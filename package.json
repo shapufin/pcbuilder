@@ -1,0 +1,17 @@
+{
+  "name": "buildmyrig",
+  "private": true,
+  "packageManager": "pnpm@12.6.0",
+  "scripts": {
+    "dev": "turbo dev --filter=@buildmyrig/web",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "seed": "pnpm --filter @buildmyrig/web payload run seed",
+    "payload": "pnpm --filter @buildmyrig/web payload"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  }
+}

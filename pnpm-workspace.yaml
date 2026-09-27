@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+onlyBuiltDependencies:
+  - sharp
+  - esbuild
+  - '@swc/core'
+  - argon2
+  - bcrypt
+  - unrs-resolver
+dangerouslyAllowAllBuilds: true

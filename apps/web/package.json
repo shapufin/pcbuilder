@@ -1,0 +1,36 @@
+{
+  "name": "@buildmyrig/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "payload": "payload",
+    "seed": "payload run src/seed"
+  },
+  "dependencies": {
+    "@buildmyrig/lib": "workspace:*",
+    "@buildmyrig/plugin-pc-builder": "workspace:*",
+    "@buildmyrig/plugin-shop": "workspace:*",
+    "@buildmyrig/ui": "workspace:*",
+    "@payloadcms/db-postgres": "^3.0.0",
+    "@payloadcms/db-sqlite": "^3.0.0",
+    "@payloadcms/next": "^3.0.0",
+    "@payloadcms/richtext-lexical": "^3.0.0",
+    "graphql": "^16.8.1",
+    "next": "15.2.9",
+    "payload": "^3.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}
