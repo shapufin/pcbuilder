@@ -16,6 +16,10 @@
     "payload": "^3.0.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@payloadcms/plugin-ecommerce": "^3.90.2"
   }
 }

@@ -4,3 +4,4 @@
  */
 export const powerRequired = (tdpSumWatts: number, multiplier = 1.3, baseWatts = 100): number =>
   Math.round(tdpSumWatts * multiplier + baseWatts)
+

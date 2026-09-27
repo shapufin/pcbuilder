@@ -4,7 +4,7 @@ import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { Users } from './collections/Users'
+import { Users } from './collections/Users.ts'
 import { shopPlugin } from '@buildmyrig/plugin-shop'
 import { pcBuilderPlugin } from '@buildmyrig/plugin-pc-builder'
 

@@ -2,6 +2,7 @@
   "name": "@buildmyrig/web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "payload": "payload",
-    "seed": "payload run src/seed"
+    "seed": "payload run src/seed.ts"
   },
   "dependencies": {
     "@buildmyrig/lib": "workspace:*",

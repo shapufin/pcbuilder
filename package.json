@@ -8,7 +8,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
-    "seed": "pnpm --filter @buildmyrig/web payload run seed",
+    "seed": "pnpm --filter @buildmyrig/web seed",
     "payload": "pnpm --filter @buildmyrig/web payload"
   },
   "devDependencies": {
