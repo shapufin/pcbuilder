@@ -15,6 +15,8 @@ All custom endpoints are Payload REST endpoints (`config.endpoints`) or Next.js 
 | POST | `/api/builder/templates/:id/use` | none | — | `{ buildId }` (increments popularity) |
 | GET | `/api/builder/stock/:categoryId` | none | `?excludeIds=` | top 5 in-stock compatible alternatives (fallback suggester) |
 
+**Implementation status (2026-09-28)**: `GET /api/builder/index`, `GET /api/builder/rules/conflicts`, `POST /api/builder/rules/import` are live (import takes JSON `{ rows }` from the admin view rather than multipart CSV; CSV parsing happens client-side; no dryRun yet — committed directly). Builds/share/export/templates-use/stock endpoints land with Phase 2d/2e. CSV **export** is currently client-side in the rule manager view (not a `/api/builder/rules/export` endpoint).
+
 ## Shop endpoints (plugin-shop)
 
 | Method | Path | Auth | Request | Response |

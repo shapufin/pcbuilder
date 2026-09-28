@@ -2,6 +2,24 @@
 
 Order per master prompt: shop core → builder → blocks/animations → hardening. Estimates assume 1–2 devs full-time; weeks are calendar estimates (A16).
 
+## Where we are (live status — updated 2026-09-28)
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Phase 0 — Foundations + spike | ✅ done | Path A (`@payloadcms/plugin-ecommerce`) adopted; SQLite dev fallback (no Docker on dev machine) |
+| Phase 1 — Catalog, products, storefront, cart, checkout UI | ✅ done | `/shop/[categorySlug]`, `/product/[slug]`, `/cart`, `/checkout` live; 34 seeded products |
+| Phase 1 — Stripe wiring | ✅ done | Conditional on `STRIPE_SECRET_KEY`; endpoints `/api/payments/stripe/*` |
+| Phase 1 — e2e happy path (Playwright) | ⏳ blocked | Needs real Stripe test keys in `.env` (owner action) |
+| Phase 2a — Rule engine (TDD) | ✅ done | 28/28 Vitest, 5k-component scale benchmark <20ms |
+| Phase 2b — Builder collections + seed | ✅ done | 6 collections, 31 components / 9 slots, 42 rules, 2 build templates |
+| Phase 2c — Admin rule manager + conflicts field | ✅ done | `/admin/compatibility-rules-manager`, live-conflicts ui field, builder index/conflicts/import endpoints; admin RootLayout bug fixed |
+| Phase 2d — Configurator UI | ⏭️ **next** | Steps/rail/live filtering/warnings/power per [07-ux-plan.md](07-ux-plan.md); engine + `GET /api/builder/index` ready to consume |
+| Phase 2e — Summary + share + composite cart line + server validation at checkout | ⏳ pending | Needs `registerLineItemType` from [05-plugin-contracts.md](05-plugin-contracts.md) |
+| Phase 3 — Blocks + animations | not started | |
+| Phase 4 — Hardening & launch | not started | |
+
+Latest commits: `5284cbc` (2b), `eeeb067` (2c). Full detail: [18-progress-log.md](18-progress-log.md).
+
 ## Phase 0 — Foundations & spike (week 1)
 
 Monorepo scaffold (pnpm + Turborepo, apps/web, packages/*), Payload 3 + Postgres + Drizzle wired, Tailwind 4 + shadcn/ui + tokens, ESLint/Prettier/CI, env config, docker-compose local DB.

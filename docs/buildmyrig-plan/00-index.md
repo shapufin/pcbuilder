@@ -2,6 +2,8 @@
 
 Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, built on Payload CMS 3.x + Next.js 15 + PostgreSQL. This folder is the complete technical plan, split into small topic docs so each can be loaded independently (token-efficient AI recall).
 
+> **Current status (2026-09-28)**: Phases 0, 1 (minus Stripe e2e) and 2a–2c are implemented and committed. Next: **Phase 2d — configurator UI**, then 2e (composite cart lines + server validation at checkout). See [15-delivery-phases.md](15-delivery-phases.md) → "Where we are" and [18-progress-log.md](18-progress-log.md) for what landed.
+
 ## Navigation
 
 | Doc | Deliverable (master prompt §10) |
