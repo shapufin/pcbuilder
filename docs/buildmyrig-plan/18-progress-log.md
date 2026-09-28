@@ -2,7 +2,14 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
-## 2026-09-28 — Phase 1c storefront + review fixes
+## 2026-09-28 (2) — Phase 2a: rule engine implemented + 28/28 tests green
+
+- `packages/lib/src/rule-engine.ts`: full engine per [06-rule-engine.md](06-rule-engine.md) — bidirectional mirroring (category-normalized), component-specific targets respected, precomputed violation sets (O(components) evaluate), all 5 operators, conservative missing-spec semantics (A8), token interpolation with passthrough, power formula, `explainIncompatibility`, `conflictsFor`, stale-selection tolerance.
+- Semantics locked during TDD: warns-type warnings surface on ALL candidates in the target category (card badges), warning/info-severity blocking rules warn only on live selected combos; out-of-stock components are skipped from `valid` (not "excluded") unless `inStockOnly: false`.
+- Vitest wired into `packages/lib`; turbo `test` task runs it. Scale benchmark: 5k components / 2k rules evaluates < 20ms.
+- Verified: 28/28 tests, typecheck 5/5, production build clean.
+
+## 2026-09-28 (1) — Phase 1c storefront + review fixes
 
 - Storefront routes live: `/` (ISR 60s), `/shop/[categorySlug]` (faceted filters: brand, price bands, sort, pagination via URL params), `/product/[slug]` (metadata API, spec table, Add to cart), `/cart`, `/checkout` (graceful no-Stripe state), `/admin` (Payload).
 - Wired Stripe payments: server `stripeAdapter` (inactive unless `STRIPE_SECRET_KEY` set) + client `stripeAdapterClient` in `EcommerceProvider`. Endpoints: `/api/payments/stripe/initiate|confirm-order|webhooks`.
@@ -22,7 +29,8 @@ Reverse-chronological work log. Each entry: what landed, verification, known gap
 | 1 Shop core — catalog, products, seed | ✅ done |
 | 1 Shop core — payments/Stripe wiring | ✅ done (needs real Stripe test keys for live e2e) |
 | 1 Shop core — e2e happy path (Playwright) | ⏳ pending — needs Stripe test keys for checkout leg |
-| 2 PC builder — rule engine TDD | ⏭️ next |
+| 2 PC builder — rule engine TDD | ✅ engine + 28/28 tests done |
+| 2 PC builder — collections + admin rule manager + configurator UI | ⏭️ next |
 | 3 Blocks + animations · 4 Hardening | not started |
 
 ## Known gaps / watch items

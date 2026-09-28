@@ -1,0 +1,241 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.0.2 [39m[90mC:/Users/EDEMNUSHIW/Desktop/payloadcms/packages/lib[39m
+
+[90mstdout[2m | src/debug.test.ts[2m > [22m[2mdebug[2m > [22m[2msupports case
+[22m[39mMB RESULT: {"categoryId":"motherboard","validComponentIds":["mb-am5"],"excluded":[{"componentId":"mb-x","ruleId":"r4","severity":"error","message":"msg"}]}
+
+ [32m✓[39m src/debug.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [31m❯[39m src/rule-engine.test.ts [2m([22m[2m28 tests[22m[2m | [22m[31m10 failed[39m[2m)[22m[32m 73[2mms[22m[39m
+   [31m❯[39m rule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md) [2m(28)[22m
+     [32m✓[39m #1 requires blocks motherboard with wrong socket[32m 4[2mms[22m[39m
+     [32m✓[39m #2 requires allows matching motherboard[32m 1[2mms[22m[39m
+     [32m✓[39m #3 excludes DDR4 ram on DDR5 board[32m 1[2mms[22m[39m
+[31m     [31m×[31m #4 supports allows only listed targets[39m[32m 15[2mms[22m[39m
+[31m     [31m×[31m #5 warns type appears only in warnings[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m #6 bidirectional rule fires when motherboard picked first[39m[32m 3[2mms[22m[39m
+     [32m✓[39m #7 non-bidirectional rule does not fire in reverse[32m 0[2mms[22m[39m
+     [32m✓[39m #8 circular requires: both selections satisfy, empty selection no loop[32m 1[2mms[22m[39m
+[31m     [31m×[31m #9 circular exclusion is deterministic[39m[32m 1[2mms[22m[39m
+     [32m✓[39m #10 missing spec never blocks and never throws[32m 0[2mms[22m[39m
+     [32m✓[39m #11 empty category yields no valid, no excluded, no crash[32m 0[2mms[22m[39m
+[31m     [31m×[31m #12 ITX case and ATX board exclude each other[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m #13 operator in with array value[39m[32m 1[2mms[22m[39m
+     [32m✓[39m #14 gte boundary equality passes[32m 0[2mms[22m[39m
+     [32m✓[39m #15 lte boundary equality passes[32m 0[2mms[22m[39m
+     [32m✓[39m #16 contains on case form factors array[32m 0[2mms[22m[39m
+[31m     [31m×[31m #17 category subject applies to all candidates of category[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m #18 component subject fires only when selected[39m[32m 1[2mms[22m[39m
+     [32m✓[39m #19 storage x2 both evaluated as subjects[32m 1[2mms[22m[39m
+     [32m✓[39m #20 interpolation replaces all tokens; unknown passes through[32m 0[2mms[22m[39m
+     [32m✓[39m #21 interpolation missing context passes tokens through[32m 0[2mms[22m[39m
+     [32m✓[39m #22 recommendedPsuWatts = sum(tdp)*1.3 + 100[32m 0[2mms[22m[39m
+     [32m✓[39m #23 power warning fires below requirement, not at equality[32m 0[2mms[22m[39m
+     [32m✓[39m #24 no PSU selected yields recommendation without warning[32m 0[2mms[22m[39m
+[31m     [31m×[31m #25 out-of-stock filtered from valid; explain still evaluates[39m[32m 1[2mms[22m[39m
+     [32m✓[39m #26 unknown componentId in selections ignored without throw[32m 1[2mms[22m[39m
+     [32m✓[39m #27 empty selections: all categories fully valid, zero warnings[32m 0[2mms[22m[39m
+[31m     [31m×[31m #28 evaluates 5k components / 2k rules in < 20ms[39m[32m 34[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 10 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#4 supports allows only listed targets
+[31m[1mAssertionError[22m: expected [ 'mb-am5', 'mb-x' ] to deeply equal [ 'mb-am5' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "mb-am5",[22m
+[31m+   "mb-x",[39m
+[2m  ][22m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m124:91[22m[39m
+    [90m122|[39m     )
+    [90m123|[39m     const res = engine.evaluate({ cpu: ['cpu-a'] })
+    [90m124|[39m     expect(res.categories.find((c) => c.categoryId === 'motherboard')!…
+    [90m   |[39m                                                                                           [31m^[39m
+    [90m125|[39m   })
+    [90m126|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#5 warns type appears only in warnings
+[31m[1mAssertionError[22m: expected 0 to be greater than 0[39m
+[36m [2m❯[22m src/rule-engine.test.ts:[2m149:33[22m[39m
+    [90m147|[39m     const res = engine.evaluate({ gpu: ['gpu-h'] })
+    [90m148|[39m     expect(res.categories.find((c) => c.categoryId === 'motherboard')!…
+    [90m149|[39m     expect(res.warnings.length).toBeGreaterThan(0)
+    [90m   |[39m                                 [31m^[39m
+    [90m150|[39m   })
+    [90m151|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#6 bidirectional rule fires when motherboard picked first
+[31m[1mAssertionError[22m: expected [] to deeply equal [ 'cpu-a' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   "cpu-a",[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m164:100[22m[39m
+    [90m162|[39m     )
+    [90m163|[39m     const res = engine.evaluate({ motherboard: ['mb-lga'] })
+    [90m164|[39m     expect(res.categories.find((c) => c.categoryId === 'cpu')!.exclude…
+    [90m   |[39m                                                                                                    [31m^[39m
+    [90m165|[39m   })
+    [90m166|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#9 circular exclusion is deterministic
+[31m[1mAssertionError[22m: expected [] to deeply equal [ 'mb-x' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   "mb-x",[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m215:140[22m[39m
+    [90m213|[39m       ),
+    [90m214|[39m     )
+    [90m215|[39m     expect(engine.evaluate({ cpu: ['cpu-x'] }).categories.find((c) => …
+    [90m   |[39m                                                                                                                                            [31m^[39m
+    [90m216|[39m     expect(engine.evaluate({ motherboard: ['mb-x'] }).categories.find(…
+    [90m217|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#12 ITX case and ATX board exclude each other
+[31m[1mAssertionError[22m: expected +0 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m254:125[22m[39m
+    [90m252|[39m       ),
+    [90m253|[39m     )
+    [90m254|[39m     expect(engine.evaluate({ case: ['case-itx'] }).categories.find((c)…
+    [90m   |[39m                                                                                                                             [31m^[39m
+    [90m255|[39m     expect(engine.evaluate({ motherboard: ['mb-atx'] }).categories.fin…
+    [90m256|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#13 operator in with array value
+[31m[1mAssertionError[22m: expected [ 'mb-1', 'mb-2', 'mb-3' ] to deeply equal [ 'mb-1', 'mb-3' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "mb-1",[22m
+[31m+   "mb-2",[39m
+[2m    "mb-3",[22m
+[2m  ][22m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m272:41[22m[39m
+    [90m270|[39m     )
+    [90m271|[39m     const mb = engine.evaluate({ cpu: ['cpu-a'] }).categories.find((c)…
+    [90m272|[39m     expect(mb.validComponentIds.sort()).toEqual(['mb-1', 'mb-3'])
+    [90m   |[39m                                         [31m^[39m
+    [90m273|[39m   })
+    [90m274|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#17 category subject applies to all candidates of category
+[31m[1mAssertionError[22m: expected [ 'ram5', 'ram4' ] to deeply equal [ 'ram5' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  [[22m
+[2m    "ram5",[22m
+[31m+   "ram4",[39m
+[2m  ][22m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m334:117[22m[39m
+    [90m332|[39m       ),
+    [90m333|[39m     )
+    [90m334|[39m     expect(engine.evaluate({ cpu: ['cpu-any'] }).categories.find((c) =…
+    [90m   |[39m                                                                                                                     [31m^[39m
+    [90m335|[39m   })
+    [90m336|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#18 component subject fires only when selected
+[31m[1mAssertionError[22m: expected +0 to be 1 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m350:121[22m[39m
+    [90m348|[39m     )
+    [90m349|[39m     expect(engine.evaluate({ cpu: ['cpu-b'] }).categories.find((c) => …
+    [90m350|[39m     expect(engine.evaluate({ cpu: ['cpu-a'] }).categories.find((c) => …
+    [90m   |[39m                                                                                                                         [31m^[39m
+    [90m351|[39m   })
+    [90m352|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#25 out-of-stock filtered from valid; explain still evaluates
+[31m[1mAssertionError[22m: expected [] to deeply equal [ 'mb-am5' ][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [[39m
+[32m-   "mb-am5",[39m
+[32m- ][39m
+[31m+ [][39m
+
+[36m [2m❯[22m src/rule-engine.test.ts:[2m448:51[22m[39m
+    [90m446|[39m     const mb = engine.evaluate({ cpu: ['cpu-a'] }).categories.find((c)…
+    [90m447|[39m     expect(mb.validComponentIds).toEqual(['mb-lga'])
+    [90m448|[39m     expect(mb.excluded.map((e) => e.componentId)).toEqual(['mb-am5'])
+    [90m   |[39m                                                   [31m^[39m
+    [90m449|[39m     expect(engine.explainIncompatibility('mb-am5', { cpu: ['cpu-a'] })…
+    [90m450|[39m   })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/rule-engine.test.ts[2m > [22mrule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.md)[2m > [22m#28 evaluates 5k components / 2k rules in < 20ms
+[31m[1mAssertionError[22m: expected 28.769900000000007 to be less than 20[39m
+[36m [2m❯[22m src/rule-engine.test.ts:[2m482:21[22m[39m
+    [90m480|[39m     engine.evaluate({ cpu: ['c-0'] })
+    [90m481|[39m     const elapsed = performance.now() - t0
+    [90m482|[39m     expect(elapsed).toBeLessThan(20)
+    [90m   |[39m                     [31m^[39m
+    [90m483|[39m   })
+    [90m484|[39m })
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (2)[39m
+[2m      Tests [22m [1m[31m10 failed[39m[22m[2m | [22m[1m[32m19 passed[39m[22m[90m (29)[39m
+[2m   Start at [22m 09:45:18
+[2m   Duration [22m 547ms[2m (transform 49%, tests 25%, import 20%, worker 5%)[22m
+
+Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL
+
+  × "pnpm recursive exec" failed in C:
+  │ \Users\EDEMNUSHIW\Desktop\payloadcms\packages\lib
+
+
