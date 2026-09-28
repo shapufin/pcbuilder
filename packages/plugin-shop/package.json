@@ -20,6 +20,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@payloadcms/plugin-ecommerce": "^3.90.2"
+    "@payloadcms/plugin-ecommerce": "^3.90.2",
+    "stripe": "^22.6.2"
   }
 }

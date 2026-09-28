@@ -1,5 +1,6 @@
 import type { Access, CollectionConfig, Config, Plugin, PayloadRequest } from 'payload'
 import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
+import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import { Media } from './collections/media.ts'
 import { Categories } from './collections/categories.ts'
 import { Brands } from './collections/brands.ts'
@@ -101,8 +102,19 @@ export const shopPlugin =
       orders: true,
       addresses: true,
       carts: true,
-      // Payments (Stripe adapter) land in the checkout task later in Phase 1.
-      payments: { paymentMethods: [] },
+      // Stripe payments: endpoints /api/payments/stripe/initiate|confirm-order|webhooks.
+      // Inactive until STRIPE_SECRET_KEY is set (keeps local dev working without keys).
+      payments: {
+        paymentMethods: process.env.STRIPE_SECRET_KEY
+          ? [
+              stripeAdapter({
+                publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+                secretKey: process.env.STRIPE_SECRET_KEY,
+                webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+              }),
+            ]
+          : [],
+      },
     } as never) as Plugin
 
     return withEcommerce({

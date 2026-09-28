@@ -23,6 +23,7 @@ Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, b
 | [15-delivery-phases.md](15-delivery-phases.md) | 11. Phase-by-phase delivery plan |
 | [16-risks.md](16-risks.md) | 12. Risk register |
 | [17-assumptions-backlog.md](17-assumptions-backlog.md) | 13. Assumptions & open questions · 14. Deferred backlog |
+| [18-progress-log.md](18-progress-log.md) | Live work log: what landed, verification, phase status |
 
 ## Self-review checklist (all items covered)
 

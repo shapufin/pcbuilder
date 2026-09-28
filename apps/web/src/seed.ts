@@ -102,7 +102,8 @@ const seed = async (): Promise<void> => {
         category: categories[def.category].id,
         brand: brands[def.brand].id,
         description: `${def.title} — seeded demo product.`,
-        prices: { priceInEUREnabled: true, priceInEUR: def.price },
+        priceInEUREnabled: true,
+        priceInEUR: def.price,
         _status: 'published',
       } as never,
     })
@@ -122,7 +123,8 @@ const seed = async (): Promise<void> => {
         title: `${def.title} (default)`,
         product: product.id,
         options: [variantOption.id],
-        prices: { priceInEUREnabled: true, priceInEUR: def.price },
+        priceInEUREnabled: true,
+        priceInEUR: def.price,
       } as never,
     })
   }

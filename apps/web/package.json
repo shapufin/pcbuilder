@@ -20,6 +20,7 @@
     "@payloadcms/db-postgres": "^3.0.0",
     "@payloadcms/db-sqlite": "^3.0.0",
     "@payloadcms/next": "^3.0.0",
+    "@payloadcms/plugin-ecommerce": "^3.90.2",
     "@payloadcms/richtext-lexical": "^3.0.0",
     "graphql": "^16.8.1",
     "next": "15.2.9",
