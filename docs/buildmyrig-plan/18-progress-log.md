@@ -2,6 +2,13 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-09-28 (3) — Phase 2b: builder collections + seed (31 components / 42 rules)
+
+- `packages/plugin-pc-builder/src/collections/`: 6 collections per [04-collections/builder-collections.md](04-collections/builder-collections.md) + [compatibility.md](compatibility.md) — `component-categories` (slot types, required/maxSelectable), `components` (rel → `variants` per A1, typed rule-critical spec fields, cosmetic specsJson), `compatibility-rules` (subject/target component|category conditional fields, 5 operators, severity, bidirectional flag, message tokens), `derived-power-rules` (multiplier 1.3 + base 100), `build-templates` (drafts on), `configured-builds` (owner-scoped access, shareId, price/validation snapshots).
+- Plugin wired: `pcBuilderPlugin` now spreads all 6 collections. Regenerated `apps/web/src/payload-types.ts` (strict `CollectionSlug` union requires the new slugs). Fixed `product-variants` → `variants` (actual ecommerce plugin slug).
+- Seed extended: 34 products (+ variants), **31 builder components** across 9 slots (cpu…os), **42 compatibility rules** (socket/ramType/form-factor/GPU-length/PSU-headroom/cooler-socket/ITX-exclusions/NVMe/PCIe advisories), 1 derived power rule, **2 build templates** (Vanguard Gaming PC €1,862.00; Compact Creator ITX €1,472.00, both with 8 slots + computed basePrice).
+- Verified: typecheck 5/5, rule-engine 28/28, production build clean, REST smoke: `/api/components`, `/api/compatibility-rules`, `/api/build-templates` (depth=1, slots resolve) all 200.
+
 ## 2026-09-28 (2) — Phase 2a: rule engine implemented + 28/28 tests green
 
 - `packages/lib/src/rule-engine.ts`: full engine per [06-rule-engine.md](06-rule-engine.md) — bidirectional mirroring (category-normalized), component-specific targets respected, precomputed violation sets (O(components) evaluate), all 5 operators, conservative missing-spec semantics (A8), token interpolation with passthrough, power formula, `explainIncompatibility`, `conflictsFor`, stale-selection tolerance.

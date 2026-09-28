@@ -1,8 +1,14 @@
 import type { Config, Plugin } from 'payload'
+import { ComponentCategories } from './collections/component-categories.ts'
+import { Components } from './collections/components.ts'
+import { CompatibilityRules } from './collections/compatibility-rules.ts'
+import { DerivedPowerRules } from './collections/derived-power-rules.ts'
+import { BuildTemplates } from './collections/build-templates.ts'
+import { ConfiguredBuilds } from './collections/configured-builds.ts'
 
 /**
  * plugin-pc-builder — component catalog, compatibility rules, build templates.
- * Phase 2 will inject builder collections + admin rule manager
+ * Phase 2 continues with admin rule manager + configurator UI
  * (see docs/buildmyrig-plan/05-plugin-contracts.md).
  */
 export interface PcBuilderPluginOptions {
@@ -17,10 +23,18 @@ export const pcBuilderPlugin =
   (incomingConfig: Config): Config => {
     if (pluginOptions.enabled === false) return incomingConfig
 
-    let config = { ...incomingConfig }
-    // Phase 2: spread builder collections, endpoints, admin components here.
-    config.collections = [...(config.collections || [])]
-    return config
+    return {
+      ...incomingConfig,
+      collections: [
+        ...(incomingConfig.collections || []),
+        ComponentCategories,
+        Components,
+        CompatibilityRules,
+        DerivedPowerRules,
+        BuildTemplates,
+        ConfiguredBuilds,
+      ],
+    }
   }
 
 export default pcBuilderPlugin

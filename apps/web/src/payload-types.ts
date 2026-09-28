@@ -88,6 +88,12 @@ export interface Config {
     carts: Cart;
     orders: Order;
     transactions: Transaction;
+    'component-categories': ComponentCategory;
+    components: Component;
+    'compatibility-rules': CompatibilityRule;
+    'derived-power-rules': DerivedPowerRule;
+    'build-templates': BuildTemplate;
+    'configured-builds': ConfiguredBuild;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -118,6 +124,12 @@ export interface Config {
     carts: CartsSelect<false> | CartsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'component-categories': ComponentCategoriesSelect<false> | ComponentCategoriesSelect<true>;
+    components: ComponentsSelect<false> | ComponentsSelect<true>;
+    'compatibility-rules': CompatibilityRulesSelect<false> | CompatibilityRulesSelect<true>;
+    'derived-power-rules': DerivedPowerRulesSelect<false> | DerivedPowerRulesSelect<true>;
+    'build-templates': BuildTemplatesSelect<false> | BuildTemplatesSelect<true>;
+    'configured-builds': ConfiguredBuildsSelect<false> | ConfiguredBuildsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -613,6 +625,219 @@ export interface Transaction {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "component-categories".
+ */
+export interface ComponentCategory {
+  id: number;
+  name: string;
+  slug: string;
+  /**
+   * Token name from packages/ui icon set
+   */
+  icon?: string | null;
+  sortOrder?: number | null;
+  required?: boolean | null;
+  /**
+   * e.g. storage = 2, case-fan = 6
+   */
+  maxSelectable?: number | null;
+  helperText?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "components".
+ */
+export interface Component {
+  id: number;
+  name: string;
+  /**
+   * Price/SKU/inventory source — A1: component references a ProductVariant
+   */
+  productVariant: number | Variant;
+  category: number | ComponentCategory;
+  brand?: (number | null) | Brand;
+  images?: (number | Media)[] | null;
+  description?: string | null;
+  marketingCopy?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  socket?: ('AM5' | 'LGA1700' | 'LGA1851') | null;
+  ramType?: ('DDR4' | 'DDR5') | null;
+  ramSpeedMhz?: number | null;
+  tdpWatts?: number | null;
+  psuWatts?: number | null;
+  moboFormFactor?: ('ATX' | 'mATX' | 'ITX') | null;
+  caseSupportedFormFactors?: ('ATX' | 'mATX' | 'ITX')[] | null;
+  gpuLengthMm?: number | null;
+  caseGpuMaxLengthMm?: number | null;
+  coolerSocketSupport?: ('AM5' | 'LGA1700' | 'LGA1851')[] | null;
+  storageInterface?: ('NVMe' | 'SATA') | null;
+  pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
+  /**
+   * Cosmetic specs; display + whitelisted filters
+   */
+  specsJson?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  compatTags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * OS slot special-casing
+   */
+  isOsLicense?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compatibility-rules".
+ */
+export interface CompatibilityRule {
+  id: number;
+  subjectType: 'component' | 'category';
+  subjectComponent?: (number | null) | Component;
+  subjectCategory?: (number | null) | ComponentCategory;
+  targetType: 'component' | 'category';
+  targetComponent?: (number | null) | Component;
+  targetCategory?: (number | null) | ComponentCategory;
+  type: 'requires' | 'excludes' | 'supports' | 'warns';
+  operator: 'equals' | 'in' | 'gte' | 'lte' | 'contains';
+  /**
+   * Spec key inspected on the target, e.g. socket
+   */
+  field: string;
+  /**
+   * JSON-encoded for in/contains
+   */
+  value: string;
+  severity?: ('error' | 'warning' | 'info') | null;
+  bidirectional?: boolean | null;
+  /**
+   * Tokens: {componentA} {componentB} {socketA} — any {key} uses the failing spec value
+   */
+  message?: string | null;
+  enabled?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "derived-power-rules".
+ */
+export interface DerivedPowerRule {
+  id: number;
+  targetCategory: number | ComponentCategory;
+  /**
+   * requiredWatts = sum(tdpWatts) * multiplier + baseWatts
+   */
+  overheadMultiplier?: number | null;
+  baseWatts?: number | null;
+  severity?: ('error' | 'warning') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "build-templates".
+ */
+export interface BuildTemplate {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  heroCopy?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  images?: (number | Media)[] | null;
+  tags?: ('gaming' | 'editing' | 'workstation' | 'streaming')[] | null;
+  slots?:
+    | {
+        category: number | ComponentCategory;
+        component?: (number | null) | Component;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Computed from slots server-side
+   */
+  basePrice?: number | null;
+  popularity?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configured-builds".
+ */
+export interface ConfiguredBuild {
+  id: number;
+  name: string;
+  user?: (number | null) | User;
+  shareId?: string | null;
+  slots: {
+    category: number | ComponentCategory;
+    components?: (number | Component)[] | null;
+    id?: string | null;
+  }[];
+  /**
+   * Display-only; recomputed server-side at checkout
+   */
+  priceSnapshot?: number | null;
+  /**
+   * { errors, warnings, rulesVersion } from the rule engine at save time
+   */
+  validationSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('draft' | 'addedToCart' | 'ordered') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -698,6 +923,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'transactions';
         value: number | Transaction;
+      } | null)
+    | ({
+        relationTo: 'component-categories';
+        value: number | ComponentCategory;
+      } | null)
+    | ({
+        relationTo: 'components';
+        value: number | Component;
+      } | null)
+    | ({
+        relationTo: 'compatibility-rules';
+        value: number | CompatibilityRule;
+      } | null)
+    | ({
+        relationTo: 'derived-power-rules';
+        value: number | DerivedPowerRule;
+      } | null)
+    | ({
+        relationTo: 'build-templates';
+        value: number | BuildTemplate;
+      } | null)
+    | ({
+        relationTo: 'configured-builds';
+        value: number | ConfiguredBuild;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1092,6 +1341,135 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "component-categories_select".
+ */
+export interface ComponentCategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  icon?: T;
+  sortOrder?: T;
+  required?: T;
+  maxSelectable?: T;
+  helperText?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "components_select".
+ */
+export interface ComponentsSelect<T extends boolean = true> {
+  name?: T;
+  productVariant?: T;
+  category?: T;
+  brand?: T;
+  images?: T;
+  description?: T;
+  marketingCopy?: T;
+  socket?: T;
+  ramType?: T;
+  ramSpeedMhz?: T;
+  tdpWatts?: T;
+  psuWatts?: T;
+  moboFormFactor?: T;
+  caseSupportedFormFactors?: T;
+  gpuLengthMm?: T;
+  caseGpuMaxLengthMm?: T;
+  coolerSocketSupport?: T;
+  storageInterface?: T;
+  pcieVersion?: T;
+  specsJson?: T;
+  compatTags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  isOsLicense?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compatibility-rules_select".
+ */
+export interface CompatibilityRulesSelect<T extends boolean = true> {
+  subjectType?: T;
+  subjectComponent?: T;
+  subjectCategory?: T;
+  targetType?: T;
+  targetComponent?: T;
+  targetCategory?: T;
+  type?: T;
+  operator?: T;
+  field?: T;
+  value?: T;
+  severity?: T;
+  bidirectional?: T;
+  message?: T;
+  enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "derived-power-rules_select".
+ */
+export interface DerivedPowerRulesSelect<T extends boolean = true> {
+  targetCategory?: T;
+  overheadMultiplier?: T;
+  baseWatts?: T;
+  severity?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "build-templates_select".
+ */
+export interface BuildTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  heroCopy?: T;
+  images?: T;
+  tags?: T;
+  slots?:
+    | T
+    | {
+        category?: T;
+        component?: T;
+        id?: T;
+      };
+  basePrice?: T;
+  popularity?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configured-builds_select".
+ */
+export interface ConfiguredBuildsSelect<T extends boolean = true> {
+  name?: T;
+  user?: T;
+  shareId?: T;
+  slots?:
+    | T
+    | {
+        category?: T;
+        components?: T;
+        id?: T;
+      };
+  priceSnapshot?: T;
+  validationSnapshot?: T;
+  status?: T;
   updatedAt?: T;
   createdAt?: T;
 }
