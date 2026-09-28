@@ -1,6 +1,6 @@
 import config from '@payload-config'
 import { generatePageMetadata, RootPage } from '@payloadcms/next/views'
-import { importMap } from './importMap'
+import { importMap } from '../importMap'
 import '@payloadcms/next/css'
 
 type Args = {

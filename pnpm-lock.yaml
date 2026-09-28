@@ -242,10 +242,19 @@ importers:
 
   packages/plugin-pc-builder:
     dependencies:
+      '@buildmyrig/lib':
+        specifier: workspace:*
+        version: link:../lib
       payload:
         specifier: ^3.0.0
         version: 3.90.2(graphql@16.14.2)(typescript@5.9.3)
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.3
+        version: 26.6.3
       typescript:
         specifier: ^5.0.0
         version: 5.9.3
@@ -254,7 +263,7 @@ importers:
     dependencies:
       '@payloadcms/plugin-ecommerce':
         specifier: ^3.90.2
-        version: 3.90.2(monaco-editor@0.57.0)(next@15.2.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)
+        version: 3.90.2(@types/react@19.3.0)(monaco-editor@0.57.0)(next@15.2.9(babel-plugin-macros@3.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)
       payload:
         specifier: ^3.0.0
         version: 3.90.2(graphql@16.14.2)(typescript@5.9.3)
@@ -4118,21 +4127,6 @@ snapshots:
       - typescript
 
   '@payloadcms/plugin-ecommerce@3.90.2(@types/react@19.3.0)(monaco-editor@0.57.0)(next@15.2.9(babel-plugin-macros@3.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)':
-    dependencies:
-      '@payloadcms/translations': 3.90.2
-      '@payloadcms/ui': 3.90.2(@types/react@19.3.0)(monaco-editor@0.57.0)(next@15.2.9(babel-plugin-macros@3.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)
-      payload: 3.90.2(graphql@16.14.2)(typescript@5.9.3)
-      qs-esm: 8.0.1
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-    transitivePeerDependencies:
-      - '@types/react'
-      - monaco-editor
-      - next
-      - supports-color
-      - typescript
-
-  '@payloadcms/plugin-ecommerce@3.90.2(monaco-editor@0.57.0)(next@15.2.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)':
     dependencies:
       '@payloadcms/translations': 3.90.2
       '@payloadcms/ui': 3.90.2(@types/react@19.3.0)(monaco-editor@0.57.0)(next@15.2.9(babel-plugin-macros@3.1.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sass@1.77.4))(payload@3.90.2(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@5.9.3)

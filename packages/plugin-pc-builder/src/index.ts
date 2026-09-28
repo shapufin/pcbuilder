@@ -1,10 +1,11 @@
-import type { Config, Plugin } from 'payload'
+import type { CollectionConfig, Config, Plugin } from 'payload'
 import { ComponentCategories } from './collections/component-categories.ts'
 import { Components } from './collections/components.ts'
 import { CompatibilityRules } from './collections/compatibility-rules.ts'
 import { DerivedPowerRules } from './collections/derived-power-rules.ts'
 import { BuildTemplates } from './collections/build-templates.ts'
 import { ConfiguredBuilds } from './collections/configured-builds.ts'
+import { builderIndexEndpoint, builderConflictsEndpoint, builderRulesImportEndpoint } from './endpoints.ts'
 
 /**
  * plugin-pc-builder — component catalog, compatibility rules, build templates.
@@ -34,6 +35,27 @@ export const pcBuilderPlugin =
         BuildTemplates,
         ConfiguredBuilds,
       ],
+      endpoints: [
+        ...(incomingConfig.endpoints || []),
+        builderIndexEndpoint,
+        builderConflictsEndpoint,
+        builderRulesImportEndpoint,
+      ],
+      admin: {
+        ...incomingConfig.admin,
+        components: {
+          ...incomingConfig.admin?.components,
+          views: {
+            ...incomingConfig.admin?.components?.views,
+            ruleManager: {
+              type: 'custom',
+              path: '/compatibility-rules-manager',
+              // Specifier is resolved relative to the config's importMap baseDir (apps/web/src)
+              Component: '../../../packages/plugin-pc-builder/src/admin/RuleManagerView#RuleManagerView',
+            } as never,
+          },
+        },
+      },
     }
   }
 

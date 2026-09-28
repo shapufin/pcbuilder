@@ -52,5 +52,11 @@ export const Components: CollectionConfig = {
     { name: 'specsJson', type: 'json', admin: { description: 'Cosmetic specs; display + whitelisted filters' } },
     { name: 'compatTags', type: 'array', fields: [{ name: 'tag', type: 'text', required: true }] },
     { name: 'isOsLicense', type: 'checkbox', defaultValue: false, admin: { description: 'OS slot special-casing' } },
+    {
+      type: 'ui',
+      name: 'conflictsPreview',
+      label: 'Live conflicts',
+      admin: { components: { Field: '../../../packages/plugin-pc-builder/src/admin/ConflictsField#ConflictsField' } },
+    },
   ],
 }

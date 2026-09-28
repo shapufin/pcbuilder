@@ -18,7 +18,7 @@ Access: public read, admin/manager write. Hook: sortOrder change → reindex bui
 
 ## Component
 
-A purchasable part. **Relationship choice (A1): a Component references a ProductVariant (rel), not a Product.** Justification: price, SKU, and inventory all resolve at variant granularity in the ecommerce plugin; keeping the component → variant rel lets `plugin-shop` treat a component as just another sellable line without importing builder code. Display/marketing data lives on the parent Product (component.title mirrors product.title via a sync hook to keep builder lists cheap).
+A purchasable part. **Relationship choice (A1): a Component references a ProductVariant (rel), not a Product.** Justification: price, SKU, and inventory all resolve at variant granularity in the ecommerce plugin; keeping the component → variant rel lets `plugin-shop` treat a component as just another sellable line without importing builder code. Display/marketing data lives on the parent Product (component.title mirrors product.title via a sync hook to keep builder lists cheap). **Implemented 2026-09-28 (Phase 2b): the ecommerce plugin's variant slug is `variants` (confirmed from generated payload types), not `product-variants`.**
 
 | Field | Type | Notes |
 | --- | --- | --- |

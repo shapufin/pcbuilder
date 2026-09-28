@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
     "isolatedModules": true,
     "resolveJsonModule": true,
     "noEmit": true,

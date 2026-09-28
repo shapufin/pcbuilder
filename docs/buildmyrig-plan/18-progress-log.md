@@ -2,6 +2,14 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-09-28 (4) — Phase 2c: admin rule manager + conflict field + builder endpoints
+
+- `packages/plugin-pc-builder/src/lib/builder-index.ts`: DB → `BuilderIndex` bridge (specs from typed component fields, rule value parsing for in/contains/gte/lte, enabled-filter, derived power config, `rulesVersion` from rule count + max updatedAt) and `getEngine()` for server-side evaluation.
+- Endpoints: `GET /api/builder/index` (public), `GET /api/builder/rules/conflicts?componentId=` (interpolated messages, component names resolved), `POST /api/builder/rules/import` (staff-only, zod-validated rows, name/slug resolution).
+- Admin: custom view `/admin/compatibility-rules-manager` (grid with inline enable toggle, delete, filter, CSV export, CSV import) via `admin.components.views`; "Live conflicts" ui field on Component edit view.
+- **Critical admin fix**: `[[...segments]]/layout.tsx` was a bare passthrough since Phase 0 — replaced with the proper `RootLayout` + `handleServerFunctions` wiring; all admin pages previously 500ed (masked by the 307 redirect). Import map: custom admin components must be **string specifiers** resolved relative to the config's `importMap.baseDir` (apps/web/src) → `'../../../packages/plugin-pc-builder/src/admin/...'`; ran `payload generate:importmap`; page.tsx now imports the generated map (`../importMap`), the stale empty stub in `[[...segments]]` is unused.
+- Verified: typecheck 5/5, rule engine 28/28, production build clean, smoke: `/admin/login` 200, `/admin/compatibility-rules-manager` 200 (rule table SSR-visible), component edit 200 with conflicts field; import endpoint 401 unauth / creates rows authed; conflicts for 7800X3D correctly names both LGA1700 boards.
+
 ## 2026-09-28 (3) — Phase 2b: builder collections + seed (31 components / 42 rules)
 
 - `packages/plugin-pc-builder/src/collections/`: 6 collections per [04-collections/builder-collections.md](04-collections/builder-collections.md) + [compatibility.md](compatibility.md) — `component-categories` (slot types, required/maxSelectable), `components` (rel → `variants` per A1, typed rule-critical spec fields, cosmetic specsJson), `compatibility-rules` (subject/target component|category conditional fields, 5 operators, severity, bidirectional flag, message tokens), `derived-power-rules` (multiplier 1.3 + base 100), `build-templates` (drafts on), `configured-builds` (owner-scoped access, shareId, price/validation snapshots).
@@ -37,7 +45,9 @@ Reverse-chronological work log. Each entry: what landed, verification, known gap
 | 1 Shop core — payments/Stripe wiring | ✅ done (needs real Stripe test keys for live e2e) |
 | 1 Shop core — e2e happy path (Playwright) | ⏳ pending — needs Stripe test keys for checkout leg |
 | 2 PC builder — rule engine TDD | ✅ engine + 28/28 tests done |
-| 2 PC builder — collections + admin rule manager + configurator UI | ⏭️ next |
+| 2 PC builder — collections + seed (31 comps / 42 rules) | ✅ done (`5284cbc`) |
+| 2 PC builder — admin rule manager + conflict field | ✅ done (incl. admin RootLayout fix) |
+| 2 PC builder — configurator UI | ⏭️ next after rule manager |
 | 3 Blocks + animations · 4 Hardening | not started |
 
 ## Known gaps / watch items
