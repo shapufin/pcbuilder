@@ -2,10 +2,24 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Where } from 'payload'
 import { getPayloadClient, formatPrice, productFilters } from '@/lib/shop'
+import { JsonLd, itemListJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
+import { PageRenderer } from '@/blocks/PageRenderer'
 
 type Props = {
   params: Promise<{ categorySlug: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export async function generateMetadata({ params }: Props): Promise<import('next').Metadata> {
+  const { categorySlug } = await params
+  const payload = await getPayloadClient()
+  const category = (
+    await payload.find({ collection: 'categories', where: { slug: { equals: categorySlug } }, limit: 1 })
+  ).docs[0]
+  return {
+    title: category ? `${category.title} | BuildMyRig` : 'Shop | BuildMyRig',
+    description: category?.description ?? undefined,
+  }
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
@@ -14,9 +28,14 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const payload = await getPayloadClient()
 
   const category = (
-    await payload.find({ collection: 'categories', where: { slug: { equals: categorySlug } }, limit: 1 })
+    await payload.find({ collection: 'categories', where: { slug: { equals: categorySlug } }, limit: 1, depth: 2 })
   ).docs[0]
   if (!category) notFound()
+
+  type CategoryWithBlocks = typeof category & {
+    topBlocks?: { blockType?: string }[] | null
+  }
+  const cat = category as CategoryWithBlocks
 
   const { and, sort, page } = productFilters(sp)
   const products = await payload.find({
@@ -39,7 +58,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   }
 
   return (
-    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '240px 1fr', gap: 32 }}>
+    <>
+      <PageRenderer layout={cat.topBlocks} />
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '240px 1fr', gap: 32 }}>
       <aside>
         <h3 style={{ fontSize: 16, marginBottom: 8 }}>Brand</h3>
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
@@ -104,6 +125,21 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           </nav>
         )}
       </section>
-    </main>
+
+      <JsonLd
+        data={itemListJsonLd(
+          category.title,
+          products.docs.map((p) => ({ name: p.title, url: `/product/${p.slug}` })),
+        )}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', url: '/' },
+          { name: 'Shop', url: '/shop/components' },
+          { name: category.title, url: `/shop/${categorySlug}` },
+        ])}
+      />
+      </main>
+    </>
   )
 }

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { clearProductsForComponent, syncComponentProductLink } from '../lib/product-sync.ts'
 
 const SOCKET_OPTIONS = ['AM5', 'LGA1700', 'LGA1851'] as const
 const DDR_OPTIONS = ['DDR4', 'DDR5'] as const
@@ -15,6 +16,29 @@ export const Components: CollectionConfig = {
     delete: ({ req }) => Boolean(req.user),
   },
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'category', 'brand', 'productVariant'] },
+  hooks: {
+    afterChange: [
+      async ({ doc, req }) => {
+        // Best-effort: never block a component save on the products sync.
+        try {
+          await syncComponentProductLink(req.payload, doc)
+        } catch (err) {
+          req.payload.logger.error(`components: product link sync failed for ${String(doc.id)}: ${String(err)}`)
+        }
+        return doc
+      },
+    ],
+    afterDelete: [
+      async ({ doc, req }) => {
+        try {
+          await clearProductsForComponent(req.payload, doc.id)
+        } catch (err) {
+          req.payload.logger.error(`components: product link cleanup failed for ${String(doc.id)}: ${String(err)}`)
+        }
+        return doc
+      },
+    ],
+  },
   fields: [
     { name: 'name', type: 'text', required: true },
     {

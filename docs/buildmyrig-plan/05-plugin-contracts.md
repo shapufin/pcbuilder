@@ -47,7 +47,7 @@ export interface PcBuilderPluginOptions {
   variantsSlug?: CollectionSlug           // default 'variants' — soft reference, no import of shop
   mediaSlug?: CollectionSlug              // default 'media'
   ruleIndexesCache?: { revalidateSeconds?: number }   // default revalidate 30
-  powerDefaults?: { overheadMultiplier?: number; baseWatts?: number }  // default 1.3 / 100
+  powerDefaults?: { overheadMultiplier?: number; baseWatts?: number }  // default 1.3 / 100 — wired 2026-09-28 (setPowerDefaults at config time; rule-doc values take precedence)
   clientIndexMaxBytes?: number            // default 314_572 (300KB) — page splits index if exceeded
   onBuildAddedToCart?: (build: unknown, payload: Payload) => Promise<void>
 }
@@ -55,8 +55,8 @@ export interface PcBuilderPluginOptions {
 
 **Collections added**: componentCategories, components, compatibilityRules, derivedPowerRules, buildTemplates, configuredBuilds.
 **Endpoints added** (all zod-validated): see [../08-api-surface.md](../08-api-surface.md) — rule evaluation, index fetch, conflicts lookup, build save/share, CSV import/export.
-**Hooks added**: component `afterChange` spec-index rebuild; compatibilityRule `afterChange` rulesVersion bump; configuredBuild `beforeChange` server validation + price snapshot; buildTemplates `afterChange` revalidation.
-**Admin components injected**: custom view "Compatibility Rules" (grid + CSV import/export, `components.views`); custom field on Component edit "Conflicts" (live conflict table, `components.fields`); custom view "Build Stats" (popular templates, completed builds count, `components.views`).
+**Hooks added**: component `afterChange` spec-index rebuild + products `isComponent`/`component` link sync (and `afterDelete` cleanup — entry 10); compatibilityRule `afterChange` rulesVersion bump; configuredBuild `beforeChange` server validation + price snapshot; buildTemplates `beforeChange` `basePrice` recompute (Σ slot variant `priceInEUR`, entry 10) + `afterChange`/`afterDelete` revalidation of `/` + `/builder`.
+**Admin components injected**: custom view "Compatibility Rules" (grid + CSV import/export, `components.views`; sidebar link via `components.afterNavLinks` — entry 10); custom field on Component edit "Conflicts" (live conflict table, `components.fields`); Builder tab on the shop products collection (`isComponent` + `component`, entry 10); custom view "Build Stats" (popular templates, completed builds count, `components.views` — Phase 4).
 **Events consumed**: `shop:low-stock` → flags affected components in admin "Build Stats" (read-only stats, no shop import).
 **Events emitted**: `builder:rules-version` (cache invalidation), `builder:build-completed` (analytics).
 

@@ -3,12 +3,14 @@
 ## Payments — Stripe
 
 - Injected as `PaymentAdapter` (contract in [05-plugin-contracts.md](05-plugin-contracts.md)). Stripe hosted Checkout (PCI scope minimal), full + partial refunds via adapter.
-- Webhook route `/api/stripe/webhook`: signature verify → idempotent by event id → update order/transactions → inventory finalize → emails. Handled events: `checkout.session.completed|expired`, `charge.refunded`, `payment_intent.payment_failed`.
-- Retry alerting: handler failure → log + Sentry + Resend alert; Stripe retries up to 3 days, idempotency makes replays safe.
+- **As implemented (entry 13)**: route `POST /api/payments/stripe/webhooks` (Payload adapter endpoint, *not* a Next.js route — mounted by `@payloadcms/plugin-ecommerce`'s `stripeAdapter` only when `STRIPE_SECRET_KEY` is set): signature verify (`constructEvent` + `STRIPE_WEBHOOK_SECRET`, 400 on bad/expired sig) → dispatch to `webhooks` handlers in `packages/plugin-shop/src/payments/stripe-webhooks.ts`. Handled events: `payment_intent.succeeded` (settle: CAS-claim txn → create order → cart purchased → inventory decrement), `payment_intent.payment_failed` (pending→failed), `charge.refunded` (full only). Idempotency = **state-machine CAS guards on the transaction** (replays no-op), not an event-id store — proof: e2e 14/14 incl. replay (entry 13). Plan sketch below (`checkout.session.*`, event-id log) is superseded by this line.
+- Retry alerting: handler failure → log (Sentry/Resend wiring pending); Stripe retries up to 3 days, CAS idempotency makes replays safe. **Deploy order**: migrate schema first (the `transactions` `stripe`/`paymentMethod` fields exist only once an adapter is configured), then set keys.
 
 ## Email — Resend
 
 Chosen over SES for: simple DX, react-email templating fits our component stack; low volume (transactional only) makes pricing irrelevant (A14). Templates (react-email): `order-confirmation`, `shipping-notification` (tracking), `password-reset`, `low-stock-alert` (staff), `contact-form` (staff), `newsletter-welcome`. Sender domain verified via DNS; all sends logged to `payload.logger` + Sentry breadcrumbs.
+
+> **Status (2026-09-28)**: `POST /api/newsletter` is live (zod email validation, 5/min/IP rate limit via `@buildmyrig/lib`, sends through Resend `/emails` only when `RESEND_API_KEY` + `EMAIL_FROM` are set - otherwise dry-run log + `{ok:true,dryRun:true}`). Wire the Resend templates/audience above for production.
 
 ## Storage — `@payloadcms/storage-s3`
 

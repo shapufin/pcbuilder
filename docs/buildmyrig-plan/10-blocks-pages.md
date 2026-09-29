@@ -2,6 +2,8 @@
 
 Payload's `blocks` field as the layout builder (https://payloadcms.com/docs/fields/blocks, guide: https://payloadcms.com/posts/guides/how-to-build-flexible-layouts-with-payload-blocks). `Pages` collection spec in [04-collections/platform.md](04-collections/platform.md).
 
+> **Implementation status (2026-09-28, Phase 3)**: all 12 blocks live in `apps/web/src/blocks/` (`definitions.ts` = Payload configs, `registry.tsx` = blockType->component map, `PageRenderer` skips unknown blockTypes with a server warning). Composition map done: homepage renders via `/` (isHomepage page, Phase-1 fallback kept), marketing/legal via root `/[slug]`, category pages render the bounded `topBlocks` zone (Hero+CtaBanner) above the hardcoded listing. Newsletter block posts to `POST /api/newsletter`. TemplatesCarousel cards apply the template and route to `/builder/configure`. Hero supports all three variants (`image`/`split`/`video` - the video variant uses the `videoUrl` field + `embedUrlFor`, added in review entry 9).
+
 ## v1 block set (12)
 
 | Block | Purpose | Fields | Frontend component | Content strategy | Responsive notes |

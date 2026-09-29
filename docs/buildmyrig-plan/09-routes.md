@@ -17,6 +17,13 @@
 | `/auth/*` | SSR forms | Payload auth | AuthForm variants | Payload auth REST | field errors inline |
 | `/about`, `/contact`, `/faq`, `/terms`, `/privacy` | ISR | static content | PageRenderer blocks | Local API pages | last-good |
 | `/admin` | Payload admin (CSR, bundled by Payload 3) | — | + our custom views/fields | — | — |
+| `/api/carts/:id/add-build` | Node route handler | composite 'configured-build' line (registered by plugin-shop on the carts collection) | — | — | — |
+| `/api/carts/:id/validate` | Node route handler | checkout pre-flight (20/min/IP, owner-or-secret): re-resolves every composite line, 422 + per-slot `reasons` before payment starts | — | — | — |
+| `/sitemap.xml` | ISR (1h) | crawl freshness without per-request cost | Next MetadataRoute sitemap | Local API: pages/categories/products/build-templates | empty on DB error |
+| `/robots.txt` | static | crawler policy | MetadataRoute robots | env `BMR_URL` | default rules |
+| `/api/newsletter` | Node route handler | email capture (12-integrations): zod email, 5/min/IP via `@buildmyrig/lib` rateLimit, Resend send when `RESEND_API_KEY`+`EMAIL_FROM` set else dry-run log | NewsletterSignup block form | Resend HTTP API | 400 invalid / 429 over limit / 502 send failure |
+
+> **Implementation status (2026-09-28)**: `/builder`, `/builder/configure`, `/builder/summary`, `/build/[shareId]`, `/cart`, `/checkout` are live. Collection endpoints are matched relative to the collection slug (`/:id/add-build`, `/:id/validate`), and paths starting with a collection slug resolve to that collection's endpoints — global endpoints can't serve collection-prefixed paths. Phase 3: `/` renders the isHomepage page's blocks (ISR 60s + on-demand revalidate on save), `/[slug]` serves all published page docs (marketing/legal live: about, contact, faq, terms, privacy; unknown slug → 404), `/sitemap.xml` (1h), `/robots.txt`, and `POST /api/newsletter` (zod email, 5/min/IP, Resend when configured else dry-run) are live.
 | `/api/*` handlers | Node runtime route handlers | webhooks need raw body | — | — | — |
 
 ## Middleware

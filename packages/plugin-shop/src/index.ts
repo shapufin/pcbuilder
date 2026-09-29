@@ -8,6 +8,15 @@ import { AttributeTypes } from './collections/attribute-types.ts'
 import { AttributeValues } from './collections/attribute-values.ts'
 import { Prices } from './collections/prices.ts'
 import { DiscountCodes } from './collections/discount-codes.ts'
+import {
+  cartItemMatcher,
+  extendItemsFields,
+  validateBuildsAtCheckout,
+  wrapCartBeforeChange,
+  type CartBeforeChangeHook,
+} from './lib/line-item-hooks.ts'
+import { cartAddBuildEndpoint, cartValidateBuildsEndpoint } from './endpoints.ts'
+import { stripeWebhooks } from './payments/stripe-webhooks.ts'
 
 /**
  * plugin-shop — catalog, carts, orders, pricing, inventory, discounts.
@@ -99,9 +108,49 @@ export const shopPlugin =
         }),
       },
       inventory: true,
-      orders: true,
+      orders: {
+        // Phase 2e: composite 'configured-build' lines are re-validated at
+        // checkout (resolveLine throws → order creation aborts).
+        ordersCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) =>
+          ({
+            ...defaultCollection,
+            fields: extendItemsFields(defaultCollection.fields),
+            hooks: {
+              ...defaultCollection.hooks,
+              beforeChange: [...(defaultCollection.hooks?.beforeChange ?? []), validateBuildsAtCheckout],
+            },
+          }) as CollectionConfig,
+      },
       addresses: true,
-      carts: true,
+      carts: {
+        // Phase 2e: items gain lineType/configuredBuild/subItems; subtotal hook
+        // chains after the default one and adds server-resolved build prices.
+        // Guest carts on (secret + localStorage per 07-ux-plan.md).
+        allowGuestCarts: true,
+        cartsCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) => {
+          const defaultHooks = Array.isArray(defaultCollection.hooks?.beforeChange)
+            ? defaultCollection.hooks.beforeChange
+            : []
+          return {
+            ...defaultCollection,
+            fields: extendItemsFields(defaultCollection.fields),
+            // Wrap the default hook so product-less composite lines don't crash it.
+            hooks: {
+              ...defaultCollection.hooks,
+              beforeChange: defaultHooks.map((hook, i) =>
+                i === 0 ? wrapCartBeforeChange(hook as CartBeforeChangeHook) : hook,
+              ),
+            },
+            // Collection endpoints are matched relative to the collection slug.
+            endpoints: [
+              ...(Array.isArray(defaultCollection.endpoints) ? defaultCollection.endpoints : []),
+              cartAddBuildEndpoint,
+              cartValidateBuildsEndpoint,
+            ],
+          } as CollectionConfig
+        },
+        cartItemMatcher: cartItemMatcher as never,
+      },
       // Stripe payments: endpoints /api/payments/stripe/initiate|confirm-order|webhooks.
       // Inactive until STRIPE_SECRET_KEY is set (keeps local dev working without keys).
       payments: {
@@ -111,7 +160,11 @@ export const shopPlugin =
                 publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
                 secretKey: process.env.STRIPE_SECRET_KEY,
                 webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-              }),
+                // Reliable settlement path (Phase 4): without handlers the
+                // endpoint ACKs events without updating orders — see
+                // payments/stripe-webhooks.ts (idempotent state-machine CAS).
+                webhooks: stripeWebhooks,
+              } as never),
             ]
           : [],
       },

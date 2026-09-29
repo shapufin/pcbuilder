@@ -2,12 +2,22 @@
 
 import { useState } from 'react'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
+import { flyToCart } from '@/lib/fly-to-cart'
 
-export function AddToCartButton({ productId, variantId }: { productId: number | string; variantId?: number | string }) {
+export function AddToCartButton({
+  productId,
+  variantId,
+  label,
+}: {
+  productId: number | string
+  variantId?: number | string
+  label?: string
+}) {
   const { addItem } = useEcommerce()
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
 
-  const onAdd = async () => {
+  const onAdd = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
     setState('busy')
     try {
       await addItem(
@@ -16,6 +26,7 @@ export function AddToCartButton({ productId, variantId }: { productId: number | 
           : { product: productId as never },
         1,
       )
+      flyToCart(rect, label ?? 'Added')
       setState('done')
     } catch {
       setState('error')

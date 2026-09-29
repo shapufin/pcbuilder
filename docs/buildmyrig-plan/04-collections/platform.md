@@ -29,6 +29,8 @@ Access: admin/manager write, public none.
 
 See [../10-blocks-pages.md](../10-blocks-pages.md) for the 12-block set and `blockToComponent` registry.
 
+> **Status (2026-09-28, Phase 3)**: Pages live (`apps/web/src/collections/Pages.ts`) — drafts on, public read `published` only, manager write, `isHomepage` uniqueness enforced by a beforeChange hook (verified A/B), on-demand `revalidatePath` on save. SEO fields via `@payloadcms/plugin-seo` wrapped so the group is named `seo` (plugin hardcodes `meta`). Category pages get a bounded `topBlocks` zone (Hero+CtaBanner) via `categoryTopBlocksPlugin`. Redirects collection still pending (Phase 4).
+
 | Field | Type | Notes |
 | --- | --- | --- |
 | title / slug | text | unique indexed |

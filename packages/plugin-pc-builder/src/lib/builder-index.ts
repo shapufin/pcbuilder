@@ -2,6 +2,7 @@ import type { Payload, TypedUser } from 'payload'
 import {
   createRuleEngine,
   type BuilderIndex,
+  type ComponentDisplay,
   type ComponentSpecEntry,
   type DerivedPowerConfig,
   type RuleDoc,
@@ -37,6 +38,10 @@ interface ComponentRow {
   id: string | number
   name: string
   category?: { id: string | number } | string | number | null
+  brand?: { id: string | number; name?: string } | string | number | null
+  images?: { url?: string | null }[] | null
+  description?: string | null
+  specsJson?: Record<string, unknown> | null
   productVariant?: {
     id: string | number
     priceInEUR?: number
@@ -80,12 +85,54 @@ const parseValue = (op: RuleDoc['operator'], raw: string): RuleDoc['value'] => {
   return raw
 }
 
+/** Plugin-level fallbacks for the power formula (PcBuilderPluginOptions.powerDefaults). */
+let pluginPowerDefaults: { overheadMultiplier?: number; baseWatts?: number } = {}
+
+/** Called once at plugin init (same pattern as registerLineItemType). */
+export const setPowerDefaults = (defaults?: { overheadMultiplier?: number; baseWatts?: number }): void => {
+  pluginPowerDefaults = defaults ?? {}
+}
+
+const MAX_DISPLAY_SPECS = 16
+
+/** Cosmetic specsJson → display chips: primitives + flat primitive arrays only. */
+const cosmeticSpecs = (
+  raw: Record<string, unknown> | null | undefined,
+): ComponentDisplay['specs'] | undefined => {
+  if (!raw || typeof raw !== 'object') return undefined
+  const out: NonNullable<ComponentDisplay['specs']> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (Object.keys(out).length >= MAX_DISPLAY_SPECS) break
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      out[key] = value
+    } else if (
+      Array.isArray(value) &&
+      value.every((v) => typeof v === 'string' || typeof v === 'number')
+    ) {
+      out[key] = value as (string | number)[]
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
+const displayOf = (c: ComponentRow): ComponentDisplay => {
+  const display: ComponentDisplay = { name: c.name }
+  const brand = nameOf(c.brand)
+  if (brand) display.brand = brand
+  const image = c.images?.find((img) => img?.url)?.url
+  if (image) display.image = image
+  if (c.description) display.description = c.description
+  const specs = cosmeticSpecs(c.specsJson)
+  if (specs) display.specs = specs
+  return display
+}
+
 export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex> => {
   const [catsRes, compsRes, rulesRes, powerRes] = await Promise.all([
     payload.find({ collection: 'component-categories', limit: 100, sort: 'sortOrder' }),
     payload.find({ collection: 'components', limit: 5000, depth: 1 }),
     payload.find({ collection: 'compatibility-rules', limit: 5000, depth: 1 }),
-    payload.find({ collection: 'derived-power-rules', limit: 10 }),
+    payload.find({ collection: 'derived-power-rules', limit: 10, depth: 1 }),
   ])
 
   const categories = catsRes.docs.map((c) => ({
@@ -95,6 +142,8 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     required: c.required ?? true,
     maxSelectable: c.maxSelectable ?? 1,
     sortOrder: c.sortOrder ?? 0,
+    ...(c.helperText ? { helperText: c.helperText } : {}),
+    ...(c.icon ? { icon: c.icon } : {}),
   }))
 
   const components: ComponentSpecEntry[] = (compsRes.docs as ComponentRow[]).map((c) => {
@@ -120,6 +169,7 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
       specs,
       priceCents,
       inStock: true, // per-variant inventory wiring lands with checkout integration
+      display: displayOf(c),
     }
   })
 
@@ -144,10 +194,25 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
           : { kind: 'category', id: idOf(r.targetCategory), name: nameOf(r.targetCategory) },
     }))
 
-  const firstPower = powerRes.docs[0] as { overheadMultiplier?: number; baseWatts?: number } | undefined
+  interface PowerRow {
+    overheadMultiplier?: number
+    baseWatts?: number
+    severity?: 'error' | 'warning'
+    targetCategory?: { id?: string | number; slug?: string } | string | number | null
+  }
+  const firstPower = powerRes.docs[0] as PowerRow | undefined
+  const tcat = firstPower?.targetCategory
+  const targetCategoryId =
+    tcat == null ? undefined : typeof tcat === 'object' ? (tcat.id != null ? String(tcat.id) : undefined) : String(tcat)
+  const targetCategorySlug = tcat != null && typeof tcat === 'object' ? tcat.slug : undefined
   const power: DerivedPowerConfig = {
-    overheadMultiplier: firstPower?.overheadMultiplier ?? 1.3,
-    baseWatts: firstPower?.baseWatts ?? 100,
+    overheadMultiplier: firstPower?.overheadMultiplier ?? pluginPowerDefaults.overheadMultiplier ?? 1.3,
+    baseWatts: firstPower?.baseWatts ?? pluginPowerDefaults.baseWatts ?? 100,
+    ...(firstPower?.severity === 'error' || firstPower?.severity === 'warning'
+      ? { severity: firstPower.severity }
+      : {}),
+    ...(targetCategoryId ? { targetCategoryId } : {}),
+    ...(targetCategorySlug ? { targetCategorySlug } : {}),
   }
 
   const lastTs = Math.max(

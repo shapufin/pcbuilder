@@ -10,14 +10,15 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "echo \"no tests yet\" && exit 0"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "payload": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^5.0.2"
   },
   "dependencies": {
     "@buildmyrig/lib": "workspace:*",

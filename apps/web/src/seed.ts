@@ -9,18 +9,6 @@ interface ProductDef {
   builder?: { cat: string; spec: BuilderSpec }
 }
 
-const CATEGORY_TO_SLOT: Record<string, string> = {
-  CPU: 'cpu',
-  Motherboards: 'motherboard',
-  RAM: 'ram',
-  GPUs: 'gpu',
-  Storage: 'storage',
-  PSUs: 'psu',
-  Cases: 'case',
-  Cooling: 'cooling',
-  OS: 'os',
-}
-
 const productDefs: ProductDef[] = [
   // CPUs
   { title: 'Intel Core i7-14700K', category: 'CPU', brand: 'Intel', price: 40900, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 253 } } },
@@ -376,14 +364,19 @@ const seed = async (): Promise<void> => {
         })),
         basePrice,
         popularity: 0,
+        _status: 'published',
       } as never,
     })
   }
 
+  // ---- Pages (Phase 3: block-composed pages, 10-blocks-pages.md; idempotent by slug) ----
+  const { seedPages } = await import('./pages-seed.ts')
+  const pageCount = await seedPages(payload)
+
   payload.logger.info(
     `Seed complete: users, ${categoryNames.length} categories, ${brandNames.length} brands, ` +
       `${productDefs.length} products + variants, ${Object.keys(componentByTitle).length} components, ` +
-      `${ruleCount} compatibility rules, 1 derived power rule, ${buildTemplateDefs.length} build templates.`,
+      `${ruleCount} compatibility rules, 1 derived power rule, ${buildTemplateDefs.length} build templates, ${pageCount} pages.`,
   )
 }
 

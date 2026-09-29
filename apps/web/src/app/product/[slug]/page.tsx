@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
+import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { AddToCartButton } from './AddToCartButton'
 
 type Props = {
@@ -77,9 +78,36 @@ export default async function ProductPage({ params }: Props) {
           <AddToCartButton
             productId={product.id}
             variantId={variants.docs[0]?.id}
+            label={product.title}
           />
+          {Boolean((product as { isComponent?: boolean | null }).isComponent) && (
+            <Link
+              href="/builder"
+              style={{
+                display: 'block',
+                marginTop: 16,
+                color: '#818cf8',
+                fontSize: 14,
+                textAlign: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              Available in the PC Builder →
+            </Link>
+          )}
         </aside>
       </div>
+
+      <JsonLd data={productJsonLd(product as never)} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', url: '/' },
+          ...(product.category && typeof product.category === 'object'
+            ? [{ name: product.category.title, url: `/shop/${product.category.slug}` }]
+            : []),
+          { name: product.title, url: `/product/${product.slug}` },
+        ])}
+      />
     </main>
   )
 }

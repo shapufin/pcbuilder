@@ -30,3 +30,6 @@ Thumbs.db
 # Misc
 *.tmp
 *.temp
+
+# trace-mcp local index
+.trace-mcp/

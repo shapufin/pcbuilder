@@ -32,6 +32,8 @@ Purpose: purchasable item, parent of variants (a GPU product may have variants f
 
 Access: public read (published only), admin/manager write. Hooks: `afterChange` → revalidate `/product/[slug]` + `/shop/[categorySlug]` via Next.js cache tag; `beforeChange` → slug uniqueness + price sanity.
 
+> **Status (2026-09-28)**: `isComponent` + `component` are live (progress-log entry 10). plugin-pc-builder injects a **Builder** tab into the shop products collection at config time (`withBuilderTab` — TDD: append/idempotent/admin-only `component` field access). `Components.afterChange`/`afterDelete` sync the link from the variant side (component → variant → product; stale links cleared; best-effort so component saves never block). Backfill for pre-existing DBs: `pnpm --filter @buildmyrig/web backfill:links` (31/31 linked on dev). Storefront: `isComponent` is public (product page shows the "Available in the PC Builder" CTA), `component` is admin-only via field-level access.
+
 ## ProductVariants
 
 | Field | Type | Notes |

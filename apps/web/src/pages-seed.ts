@@ -1,0 +1,211 @@
+import type { Payload } from 'payload'
+
+/**
+ * Phase-3 page content (10-blocks-pages.md composition map).
+ * Idempotent by slug — safe on both a fresh seed and an existing DB.
+ * Returns the number of pages created.
+ */
+
+type LexicalParagraph = Record<string, unknown>
+
+const rt = (paragraphs: string[]) =>
+  ({
+    root: {
+      type: 'root',
+      children: paragraphs.map(
+        (text): LexicalParagraph => ({
+          type: 'paragraph',
+          children: [{ type: 'text', text, format: 0, version: 1 }],
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          version: 1,
+        }),
+      ),
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      version: 1,
+    },
+  }) as never
+
+const faqItems = [
+  {
+    question: 'Do the parts actually fit together?',
+    answer:
+      'Every component in the builder is validated against compatibility rules (socket, RAM type, case clearances, PSU wattage) before you can save or buy.',
+  },
+  {
+    question: 'Can I start from a template and change parts?',
+    answer: 'Yes — pick a template on the builder landing page, then swap any component in configure mode.',
+  },
+  { question: 'Do you support custom water cooling?', answer: 'Air and AIO coolers are supported in v1. Custom loop planning is on the roadmap.' },
+  {
+    question: 'What warranty do assembled rigs carry?',
+    answer: 'Components carry their manufacturer warranties; assembled systems add a 24-month build warranty covering labour.',
+  },
+]
+
+export const seedPages = async (payload: Payload): Promise<number> => {
+  const existing = await payload.find({ collection: 'pages', limit: 200, overrideAccess: true })
+  const have = new Set(existing.docs.map((d) => String((d as { slug?: string }).slug)))
+
+  const categoryDocs = await payload.find({ collection: 'categories', limit: 50, overrideAccess: true })
+  const catIdByTitle = new Map(categoryDocs.docs.map((c) => [String(c.title), c.id as number | string]))
+  const brandDocs = await payload.find({ collection: 'brands', limit: 50, overrideAccess: true })
+  const allBrandIds = brandDocs.docs.map((b) => b.id as number | string)
+
+  let created = 0
+  const createPage = async (data: Record<string, unknown>): Promise<void> => {
+    const slug = String(data.slug)
+    if (have.has(slug)) return
+    await payload.create({ collection: 'pages', draft: false, data: data as never })
+    created += 1
+  }
+
+  const gpusId = catIdByTitle.get('GPUs')
+  const cpusId = catIdByTitle.get('CPU')
+
+  await createPage({
+    title: 'Home',
+    slug: 'home',
+    isHomepage: true,
+    _status: 'published',
+    seo: {
+      title: 'BuildMyRig — custom PCs, configured your way',
+      description: 'Pre-built gaming and creator PCs, or configure your own — step by step.',
+    },
+    layout: [
+      {
+        blockType: 'hero',
+        heading: 'Build your perfect rig',
+        subheading: 'Pre-built gaming and creator PCs, or configure your own — step by step.',
+        variant: 'image',
+        align: 'center',
+        ctas: [
+          { label: 'Open the builder', url: '/builder', style: 'primary' },
+          { label: 'Browse components', url: '/shop/components', style: 'secondary' },
+        ],
+      },
+      { blockType: 'templatesCarousel', heading: 'Ready-to-go builds', autoplay: false },
+      { blockType: 'productGrid', heading: 'Latest products', limit: 4, columns: '3' },
+      ...(cpusId
+        ? [{ blockType: 'productGrid', heading: 'Top CPUs', category: cpusId, limit: 4, columns: '3', viewAllLabel: 'View all CPUs' }]
+        : []),
+      ...(gpusId
+        ? [
+            {
+              blockType: 'featuredCategory',
+              category: gpusId,
+              heading: 'Graphics cards for every budget',
+              copy: 'From 1080p entry cards to flagship 4K GPUs — filtered to your case and PSU by the builder.',
+              ctaLabel: 'Shop GPUs',
+            },
+          ]
+        : []),
+      { blockType: 'logosStrip', heading: 'Brands we carry', brands: allBrandIds },
+      {
+        blockType: 'testimonials',
+        heading: 'What builders say',
+        items: [
+          { quote: 'The compatibility checker saved me from a socket mismatch on my first build.', name: 'Marta K.', role: 'First-time builder' },
+          { quote: 'Ordered a template, swapped the GPU, checkout took two minutes.', name: 'Jonas B.', role: 'Stream gear upgrade' },
+          { quote: 'Clear pricing in the summary — no surprise VAT at the end.', name: 'Priya S.', role: 'Workstation buyer' },
+        ],
+      },
+      { blockType: 'newsletterSignup', heading: 'Get build deals in your inbox', consent: 'No spam — unsubscribe anytime.' },
+    ],
+  })
+
+  await createPage({
+    title: 'FAQ',
+    slug: 'faq',
+    _status: 'published',
+    seo: { title: 'FAQ', description: 'Answers about compatibility, templates, warranty and shipping.' },
+    layout: [
+      {
+        blockType: 'richText',
+        richtext: rt([
+          'Everything you need to know before ordering a custom build. Still stuck? Contact support and a human will reply within one working day.',
+        ]),
+      },
+      {
+        blockType: 'faq',
+        heading: 'Frequently asked questions',
+        items: faqItems.map((item) => ({ question: item.question, answer: rt([item.answer]) })),
+      },
+      {
+        blockType: 'ctaBanner',
+        heading: 'Ready to build?',
+        copy: 'Open the configurator and see live compatibility feedback as you pick parts.',
+        ctaLabel: 'Open the builder',
+        ctaUrl: '/builder',
+        tone: 'indigo',
+      },
+    ],
+  })
+
+  for (const pageDef of [
+    {
+      title: 'About us',
+      slug: 'about',
+      description: 'Who builds BuildMyRig and how we pick parts.',
+      paragraphs: [
+        'BuildMyRig started because buying a custom PC should not require three forums and a spreadsheet. We combine a vetted catalog with a rule engine that checks every combination before you pay.',
+        'We stock only parts we would put in our own machines, publish honest pricing including VAT, and build every system in-house before it ships.',
+      ],
+      cta: { heading: 'See what you can build', url: '/builder', label: 'Open the builder' },
+    },
+    {
+      title: 'Contact',
+      slug: 'contact',
+      description: 'How to reach the BuildMyRig team.',
+      paragraphs: [
+        'Email: support@buildmyrig.test — we reply within one working day, Monday to Friday.',
+        'Order questions include your order number so we can pull it up immediately. Press and partnership enquiries: partners@buildmyrig.test.',
+      ],
+      cta: { heading: 'Prefer self-service?', url: '/faq', label: 'Check the FAQ' },
+    },
+    {
+      title: 'Terms of service',
+      slug: 'terms',
+      description: 'Terms and conditions for BuildMyRig orders.',
+      paragraphs: [
+        'These terms govern purchases from BuildMyRig. By placing an order you confirm you are at least 18 years old or have parental consent.',
+        'Prices include VAT. Titles of components pass on full payment; systems remain subject to our 24-month build warranty terms.',
+        'We may refuse orders where stock, pricing errors, or suspected fraud make fulfilment impossible; any payment is refunded within 5 working days.',
+      ],
+      cta: { heading: 'Questions about an order?', url: '/contact', label: 'Contact us' },
+    },
+    {
+      title: 'Privacy policy',
+      slug: 'privacy',
+      description: 'How BuildMyRig handles your data.',
+      paragraphs: [
+        'We collect only what an order needs: name, email, shipping address, and payment confirmations (card data never touches our servers — payments run through Stripe).',
+        'Newsletter subscription is double opt-in and can be cancelled from any email. You can request export or deletion of your data by emailing privacy@buildmyrig.test.',
+        'We use cookies for cart persistence and anonymous traffic analytics. No third-party advertising trackers.',
+      ],
+      cta: { heading: 'Read the terms', url: '/terms', label: 'Terms of service' },
+    },
+  ]) {
+    await createPage({
+      title: pageDef.title,
+      slug: pageDef.slug,
+      _status: 'published',
+      seo: { title: pageDef.title, description: pageDef.description },
+      layout: [
+        { blockType: 'richText', richtext: rt(pageDef.paragraphs) },
+        {
+          blockType: 'ctaBanner',
+          heading: pageDef.cta.heading,
+          ctaLabel: pageDef.cta.label,
+          ctaUrl: pageDef.cta.url,
+          tone: 'dark',
+        },
+      ],
+    })
+  }
+
+  return created
+}

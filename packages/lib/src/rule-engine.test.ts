@@ -149,21 +149,24 @@ describe('rule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.m
     expect(res.warnings.length).toBeGreaterThan(0)
   })
 
-  // #6 bidirectional mirror catches reverse selection
+  // #6 bidirectional mirror catches reverse selection (dynamic value)
   it('#6 bidirectional rule fires when motherboard picked first', () => {
     const engine = createRuleEngine(
       baseIndex(
         [
           comp('cpu-a', 'cpu', { socket: 'AM5' }),
           comp('cpu-b', 'cpu', { socket: 'LGA1700' }),
+          comp('mb-am5', 'motherboard', { socket: 'AM5' }),
           comp('mb-lga', 'motherboard', { socket: 'LGA1700' }),
         ],
         [rule({ id: 'r6', bidirectional: true })],
       ),
     )
-    // Mirror: "any selected motherboard requires an AM5 cpu" → cpu-b excluded
-    const res = engine.evaluate({ motherboard: ['mb-lga'] })
-    expect(res.categories.find((c) => c.categoryId === 'cpu')!.excluded.map((e) => e.componentId)).toEqual(['cpu-b'])
+    // Mirror value is dynamic: the selected board's socket drives the CPU filter
+    const am5 = engine.evaluate({ motherboard: ['mb-am5'] })
+    expect(am5.categories.find((c) => c.categoryId === 'cpu')!.excluded.map((e) => e.componentId)).toEqual(['cpu-b'])
+    const lga = engine.evaluate({ motherboard: ['mb-lga'] })
+    expect(lga.categories.find((c) => c.categoryId === 'cpu')!.excluded.map((e) => e.componentId)).toEqual(['cpu-a'])
   })
 
   // #7 bidirectional false does not mirror
@@ -486,6 +489,206 @@ describe('rule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.m
     const elapsed = performance.now() - t0
     expect(elapsed).toBeLessThan(20)
   })
+
+  // #29 display.name feeds {componentA}/{componentB} interpolation
+  it('#29 messages interpolate display names instead of raw ids', () => {
+    const cpu: ComponentSpecEntry = {
+      ...comp('cpu-1', 'cpu', { socket: 'AM5' }),
+      display: { name: 'Ryzen 7 7800X3D' },
+    }
+    const mb: ComponentSpecEntry = {
+      ...comp('mb-1', 'motherboard', { socket: 'LGA1700' }),
+      display: { name: 'ASUS ROG Strix B650-A' },
+    }
+    const engine = createRuleEngine(
+      baseIndex(
+        [cpu, mb],
+        [rule({ id: 'r29', subject: { kind: 'component', id: 'cpu-1' }, message: '{componentA} does not fit {componentB} (socket {socket})' })],
+      ),
+    )
+    const excluded = engine.evaluate({ cpu: ['cpu-1'] }).categories.find((c) => c.categoryId === 'motherboard')!
+    expect(excluded.excluded[0].message).toBe(
+      'Ryzen 7 7800X3D does not fit ASUS ROG Strix B650-A (socket LGA1700)',
+    )
+    expect(engine.explainIncompatibility('mb-1', { cpu: ['cpu-1'] })[0].message).not.toContain('cpu-1')
+  })
+
+  // #30 no display block → ids still used, never undefined/throw
+  it('#30 missing display falls back to component id in messages', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [comp('cpu-9', 'cpu', { socket: 'AM5' }), comp('mb-9', 'motherboard', { socket: 'LGA1700' })],
+        [rule({ id: 'r30', subject: { kind: 'component', id: 'cpu-9' }, message: '{componentA} vs {componentB}' })],
+      ),
+    )
+    const excluded = engine.evaluate({ cpu: ['cpu-9'] }).categories.find((c) => c.categoryId === 'motherboard')!
+    expect(excluded.excluded[0].message).toBe('cpu-9 vs mb-9')
+  })
+
+  // #31 validateSelections: blocking violation between two selected parts
+  it('#31 validateSelections reports blocking violation between selected parts', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [
+          comp('cpu-am5', 'cpu', { socket: 'AM5' }),
+          comp('mb-lga', 'motherboard', { socket: 'LGA1700' }),
+          comp('mb-am5', 'motherboard', { socket: 'AM5' }),
+        ],
+        [rule({ id: 'r31', subject: { kind: 'component', id: 'cpu-am5' }, value: 'AM5' })],
+      ),
+    )
+    const bad = engine.validateSelections({ cpu: ['cpu-am5'], motherboard: ['mb-lga'] })
+    expect(bad.errors).toHaveLength(1)
+    expect(bad.errors[0].ruleId).toBe('r31')
+    expect(bad.errors[0].severity).toBe('error')
+    expect(bad.errors[0].message).toContain('cpu-am5')
+    expect(bad.errors[0].message).toContain('mb-lga')
+    expect(bad.warnings).toEqual([])
+    expect(engine.validateSelections({ cpu: ['cpu-am5'], motherboard: ['mb-am5'] }).errors).toEqual([])
+  })
+
+  // #32 warns-type rule on a selected combo → warning, never an error
+  it('#32 validateSelections surfaces warns-type rules as warnings only', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [comp('cpu-a', 'cpu', {}), comp('mb-a', 'motherboard', { socket: 'LGA1700' })],
+        [rule({ id: 'r32', type: 'warns', severity: 'info', message: '{componentA} runs warm with {componentB}' })],
+      ),
+    )
+    const { errors, warnings } = engine.validateSelections({ cpu: ['cpu-a'], motherboard: ['mb-a'] })
+    expect(errors).toEqual([])
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].message).toContain('cpu-a runs warm with mb-a')
+  })
+
+  // #33 category-subject blocking rule (ITX case excludes ATX boards)
+  it('#33 validateSelections catches category-subject blocking violations', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [
+          comp('case-itx', 'case', { moboFormFactor: 'ITX', caseSupportedFormFactors: ['ITX'] }),
+          comp('mb-atx', 'motherboard', { moboFormFactor: 'ATX' }),
+          comp('mb-itx', 'motherboard', { moboFormFactor: 'ITX' }),
+        ],
+        [
+          rule({
+            id: 'r33',
+            type: 'excludes',
+            field: 'moboFormFactor',
+            value: 'ATX',
+            bidirectional: true,
+            subject: { kind: 'category', id: 'case' },
+            target: { kind: 'category', id: 'motherboard' },
+            message: 'ITX cases cannot fit {componentB} ({moboFormFactor})',
+          }),
+        ],
+      ),
+    )
+    const { errors } = engine.validateSelections({ case: ['case-itx'], motherboard: ['mb-atx'] })
+    expect(errors).toHaveLength(1)
+    expect(errors[0].message).toContain('mb-atx')
+    expect(engine.validateSelections({ case: ['case-itx'], motherboard: ['mb-itx'] }).errors).toEqual([])
+  })
+
+  // #34 bidirectional rule reported once regardless of pick order
+  it('#34 validateSelections dedupes bidirectional violations to one issue', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [comp('cpu-a', 'cpu', { socket: 'AM5' }), comp('mb-b', 'motherboard', { socket: 'LGA1700' })],
+        [
+          rule({
+            id: 'r34',
+            bidirectional: true,
+            message: '{componentA} and {componentB} sockets do not match',
+          }),
+        ],
+      ),
+    )
+    const { errors } = engine.validateSelections({ cpu: ['cpu-a'], motherboard: ['mb-b'] })
+    expect(errors).toHaveLength(1)
+    expect(errors[0].ruleId).toBe('r34')
+  })
+
+  // #35 power warning when the selected PSU is underpowered
+  it('#35 validateSelections includes the derived power warning', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [comp('cpu-a', 'cpu', { tdpWatts: 120 }), comp('psu-255', 'psu', { psuWatts: 255 })],
+        [],
+      ),
+    )
+    const { errors, warnings } = engine.validateSelections({ cpu: ['cpu-a'], psu: ['psu-255'] })
+    expect(errors).toEqual([])
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0].ruleId).toBe('derived-power')
+    expect(warnings[0].message).toContain('256')
+  })
+
+  // #36 empty selections validate clean
+  it('#36 validateSelections with empty selections is clean', () => {
+    const engine = createRuleEngine(
+      baseIndex([comp('cpu-a', 'cpu', { socket: 'AM5' })], [rule({ id: 'r36' })]),
+    )
+    expect(engine.validateSelections({})).toEqual({ errors: [], warnings: [] })
+  })
+
+  // #37 stale selection ids ignored
+  it('#37 validateSelections ignores unknown component ids without throw', () => {
+    const engine = createRuleEngine(
+      baseIndex([comp('cpu-a', 'cpu', { socket: 'AM5' })], [rule({ id: 'r37' })]),
+    )
+    expect(() => engine.validateSelections({ cpu: ['ghost'] })).not.toThrow()
+    expect(engine.validateSelections({ cpu: ['ghost'] }).errors).toEqual([])
+  })
+
+  // #38 dynamic mirror in validateSelections: selected board's socket drives CPU check
+  it('#38 validateSelections enforces mirrored socket match from the selected board', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [
+          comp('cpu-am5', 'cpu', { socket: 'AM5' }),
+          comp('cpu-lga', 'cpu', { socket: 'LGA1700' }),
+          comp('mb-am5', 'motherboard', { socket: 'AM5' }),
+          comp('mb-lga', 'motherboard', { socket: 'LGA1700' }),
+        ],
+        [rule({ id: 'r38', bidirectional: true, subject: { kind: 'component', id: 'cpu-am5' }, value: 'AM5' })],
+      ),
+    )
+    expect(engine.validateSelections({ cpu: ['cpu-am5'], motherboard: ['mb-am5'] }).errors).toEqual([])
+    expect(engine.validateSelections({ cpu: ['cpu-lga'], motherboard: ['mb-lga'] }).errors).toEqual([])
+    const bad = engine.validateSelections({ cpu: ['cpu-am5'], motherboard: ['mb-lga'] })
+    expect(bad.errors).toHaveLength(1)
+    expect(bad.errors[0].ruleId).toBe('r38')
+  })
+
+  // #39 dynamic mirror only checks components in the rule's target category
+  it('#39 dynamic mirror ignores selected components outside its target category', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [
+          comp('cpu-a', 'cpu', { socket: 'AM5' }),
+          comp('mb-a', 'motherboard', { socket: 'AM5', ramType: 'DDR5' }),
+          comp('ram-d4', 'ram', { ramType: 'DDR4' }),
+        ],
+        [
+          rule({
+            id: 'r39',
+            subject: { kind: 'component', id: 'ram-d4' },
+            field: 'ramType',
+            value: 'DDR4',
+            bidirectional: true,
+            message: '{componentA} is DDR4 but the motherboard only supports {ramType}.',
+          }),
+        ],
+      ),
+    )
+    // no RAM selected → the RAM mirror must not fire on the CPU
+    expect(engine.validateSelections({ cpu: ['cpu-a'], motherboard: ['mb-a'] }).errors).toEqual([])
+    // mismatching RAM selected → the mirror fires on the RAM
+    const bad = engine.validateSelections({ cpu: ['cpu-a'], motherboard: ['mb-a'], ram: ['ram-d4'] })
+    expect(bad.errors).toHaveLength(1)
+    expect(bad.errors[0].ruleId).toBe('r39')
+  })
 })
 
 function engineComponents(): ComponentSpecEntry[] {
@@ -495,3 +698,88 @@ function engineComponents(): ComponentSpecEntry[] {
     comp('mb-nvme', 'motherboard', {}),
   ]
 }
+
+// ---------- Derived power-rule wiring (targetCategory + severity) ----------
+
+describe('derived power-rule config wiring', () => {
+  const numericPsuIndex = (power: BuilderIndex['power']): BuilderIndex => {
+    const idx = baseIndex(
+      [
+        comp('cpu-a', 'cpu', { tdpWatts: 120 }),
+        comp('psu-low', '5', { tdpWatts: 0, psuWatts: 100 }),
+      ],
+      [],
+    )
+    idx.categories = [
+      { id: '2', slug: 'cpu', name: 'CPU', required: true, maxSelectable: 1, sortOrder: 0 },
+      { id: '5', slug: 'psu', name: 'Power Supply', required: true, maxSelectable: 1, sortOrder: 1 },
+    ]
+    idx.power = power
+    return idx
+  }
+
+  // #40 production category ids are numeric - target must resolve via targetCategoryId
+  it('#40 power warning resolves target slot via targetCategoryId (numeric ids)', () => {
+    const engine = createRuleEngine(
+      numericPsuIndex({ overheadMultiplier: 1.3, baseWatts: 100, targetCategoryId: '5' }),
+    )
+    const res = engine.evaluate({ '2': ['cpu-a'], '5': ['psu-low'] })
+    expect(res.powerWarnings).toHaveLength(1)
+    expect(res.recommendedPsuWatts).toBe(256)
+  })
+
+  // #41 populated targetCategory rel may only give us the slug
+  it('#41 power warning resolves target slot via targetCategorySlug', () => {
+    const engine = createRuleEngine(
+      numericPsuIndex({ overheadMultiplier: 1.3, baseWatts: 100, targetCategorySlug: 'psu' }),
+    )
+    expect(engine.evaluate({ '2': ['cpu-a'], '5': ['psu-low'] }).powerWarnings).toHaveLength(1)
+  })
+
+  // #42 admin hardening: severity error blocks the save instead of advising
+  it('#42 power severity error lands in validateSelections errors, not warnings', () => {
+    const idx = baseIndex(
+      [
+        comp('cpu-a', 'cpu', { tdpWatts: 120 }),
+        comp('psu-255', 'psu', { tdpWatts: 0, psuWatts: 255 }),
+      ],
+      [],
+    )
+    idx.power = { overheadMultiplier: 1.3, baseWatts: 100, severity: 'error' }
+    const engine = createRuleEngine(idx)
+    const { errors, warnings } = engine.validateSelections({ cpu: ['cpu-a'], psu: ['psu-255'] })
+    expect(errors.filter((e) => e.ruleId === 'derived-power')).toHaveLength(1)
+    expect(warnings.filter((w) => w.ruleId === 'derived-power')).toHaveLength(0)
+    // live evaluation surfaces the hardened severity too
+    const ev = engine.evaluate({ cpu: ['cpu-a'], psu: ['psu-255'] })
+    expect(ev.powerWarnings[0]?.severity).toBe('error')
+  })
+
+  // #43 default severity stays advisory
+  it('#43 power severity defaults to warning in validateSelections', () => {
+    const idx = baseIndex(
+      [
+        comp('cpu-a', 'cpu', { tdpWatts: 120 }),
+        comp('psu-255', 'psu', { tdpWatts: 0, psuWatts: 255 }),
+      ],
+      [],
+    )
+    const engine = createRuleEngine(idx)
+    const { errors, warnings } = engine.validateSelections({ cpu: ['cpu-a'], psu: ['psu-255'] })
+    expect(errors.filter((e) => e.ruleId === 'derived-power')).toHaveLength(0)
+    expect(warnings.filter((w) => w.ruleId === 'derived-power')).toHaveLength(1)
+  })
+
+  // #44 stale configured id (deleted category) must fall back to the slug
+  it('#44 stale targetCategoryId falls back to targetCategorySlug', () => {
+    const engine = createRuleEngine(
+      numericPsuIndex({
+        overheadMultiplier: 1.3,
+        baseWatts: 100,
+        targetCategoryId: '999',
+        targetCategorySlug: 'psu',
+      }),
+    )
+    expect(engine.evaluate({ '2': ['cpu-a'], '5': ['psu-low'] }).powerWarnings).toHaveLength(1)
+  })
+})

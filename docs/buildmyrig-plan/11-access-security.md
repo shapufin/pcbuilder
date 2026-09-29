@@ -30,7 +30,7 @@ Field-level: customers.notes staff+only; configuredBuilds.user read by owner/sta
 ## Authentication
 
 - Payload auth email/password (https://payloadcms.com/docs/auth/overview), bcrypt hashing, `maxLoginAttempts` + `lockTime` enabled, password reset via Resend.
-- Sessions: httpOnly, secure, SameSite=Lax cookies (CSRF posture: Payload's built-in CSRF protection enabled with `BMR_URL` origin; all mutating custom endpoints additionally require the cart/session token or JWT).
+- Sessions: httpOnly, secure, SameSite=Lax cookies (CSRF posture: Payload `csrf` origin allowlist = `BMR_URL` + localhost — enforced since entry 11; all mutating custom endpoints additionally require the cart/session token or JWT).
 - OAuth (Google) — Phase 2 (assumption A13).
 
 ## Security checklist (enforced in plan + CI)
@@ -42,7 +42,7 @@ Field-level: customers.notes staff+only; configuredBuilds.user read by owner/sta
 | 3 | Stripe webhook | signature verification, raw body, event-id idempotency |
 | 4 | Price tampering | client never submits prices/quantities' prices — server recomputes from DB (06-rule-engine.md §server flow); discount revalidated server-side |
 | 5 | IDOR | every order/build/address read scoped by `user.id` or shareId; checkout validates cart ownership (cart token HMAC) |
-| 6 | Rate limiting | Upstash Ratelimit on public POSTs (checkout 10/min, validate 20/min, builds 30/min) |
+| 6 | Rate limiting | Fixed-window in-memory limiter (`rateLimit` in `@buildmyrig/lib`) on public POSTs (checkout confirm via plugin defaults, builds 30/min, use-template 30/min, add-build 30/min, validate 20/min, newsletter 5/min). Single-instance only — swap for Upstash if deploying serverless multi-instance |
 | 7 | Secrets | Vercel env vars / Doppler locally; never in repo; `git-secrets` scan in CI |
 | 8 | Upload validation | mime whitelist (jpeg/png/webp/avif), 8MB cap, S3 key sanitization by Payload upload |
 | 9 | Dependency audit | `pnpm audit --prod` + Dependabot in CI; block on high/critical |
@@ -55,3 +55,7 @@ Field-level: customers.notes staff+only; configuredBuilds.user read by owner/sta
 - PRs touching `plugin-shop` auth/payment paths, `/api/checkout`, `/api/stripe/webhook`, auth collection, or access control files: run the security review subagent prompt (repo `SECURITY_REVIEW_PROMPT.md`) — mandatory, blocking.
 - All other PRs: lint, typecheck, unit tests, build (see [12-integrations-ops.md](12-integrations-ops.md) CI).
 - OWASP top-10 review completed before launch gate (Phase 4).
+
+## Enforcement status (entry 11 — Phase 4 audit)
+
+First full pass done with the `security-review` skill; 5 findings fixed (see progress-log entry 11): Users privilege escalation (critical), media write/mime over-share (high), configured-builds matrix mismatch (medium), missing `csrf` allowlist (medium), public 500 message leaks (low). Remaining from this checklist: checklist #7 (`git-secrets` scan in CI), #9 (`pnpm audit --prod` gate), #10 OWASP re-run on payment paths once Stripe keys land.

@@ -73,6 +73,7 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    pages: Page;
     media: Media;
     categories: Category;
     brands: Brand;
@@ -109,6 +110,7 @@ export interface Config {
   };
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     brands: BrandsSelect<false> | BrandsSelect<true>;
@@ -214,6 +216,201 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * Exactly one page renders / (enforced server-side)
+   */
+  isHomepage?: boolean | null;
+  layout?:
+    | (
+        | {
+            heading: string;
+            subheading?: string | null;
+            image?: (number | null) | Media;
+            /**
+             * YouTube or Vimeo URL — used when variant = video
+             */
+            videoUrl?: string | null;
+            variant?: ('image' | 'split' | 'video') | null;
+            align?: ('left' | 'center') | null;
+            ctas?:
+              | {
+                  label: string;
+                  url: string;
+                  style?: ('primary' | 'secondary') | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'hero';
+          }
+        | {
+            richtext: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richText';
+          }
+        | {
+            heading?: string | null;
+            category?: (number | null) | Category;
+            limit?: number | null;
+            columns?: ('2' | '3' | '4') | null;
+            viewAllLabel?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'productGrid';
+          }
+        | {
+            category: number | Category;
+            image?: (number | null) | Media;
+            heading: string;
+            copy?: string | null;
+            ctaLabel?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'featuredCategory';
+          }
+        | {
+            heading: string;
+            copy?: string | null;
+            ctaLabel?: string | null;
+            ctaUrl?: string | null;
+            tone?: ('dark' | 'indigo' | 'slate') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'ctaBanner';
+          }
+        | {
+            heading?: string | null;
+            tagFilter?: string | null;
+            autoplay?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'templatesCarousel';
+          }
+        | {
+            heading?: string | null;
+            columns: {
+              label: string;
+              id?: string | null;
+            }[];
+            rows?:
+              | {
+                  label: string;
+                  values?:
+                    | {
+                        value?: string | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'comparisonTable';
+          }
+        | {
+            heading?: string | null;
+            items?:
+              | {
+                  question: string;
+                  answer: {
+                    root: {
+                      type: string;
+                      children: {
+                        type: any;
+                        version: number;
+                        [k: string]: unknown;
+                      }[];
+                      direction: ('ltr' | 'rtl') | null;
+                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                      indent: number;
+                      version: number;
+                    };
+                    [k: string]: unknown;
+                  };
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'faq';
+          }
+        | {
+            heading?: string | null;
+            items?:
+              | {
+                  quote: string;
+                  name: string;
+                  role?: string | null;
+                  avatar?: (number | null) | Media;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'testimonials';
+          }
+        | {
+            heading?: string | null;
+            brands?: (number | Brand)[] | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'logosStrip';
+          }
+        | {
+            heading?: string | null;
+            consent?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'newsletterSignup';
+          }
+        | {
+            provider?: ('youtube' | 'vimeo') | null;
+            url: string;
+            poster?: (number | null) | Media;
+            title?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'videoEmbed';
+          }
+      )[]
+    | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -276,6 +473,42 @@ export interface Category {
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
   description?: string | null;
+  topBlocks?:
+    | (
+        | {
+            heading: string;
+            subheading?: string | null;
+            image?: (number | null) | Media;
+            /**
+             * YouTube or Vimeo URL — used when variant = video
+             */
+            videoUrl?: string | null;
+            variant?: ('image' | 'split' | 'video') | null;
+            align?: ('left' | 'center') | null;
+            ctas?:
+              | {
+                  label: string;
+                  url: string;
+                  style?: ('primary' | 'secondary') | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'hero';
+          }
+        | {
+            heading: string;
+            copy?: string | null;
+            ctaLabel?: string | null;
+            ctaUrl?: string | null;
+            tone?: ('dark' | 'indigo' | 'slate') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'ctaBanner';
+          }
+      )[]
+    | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -403,6 +636,14 @@ export interface Product {
   };
   priceInEUREnabled?: boolean | null;
   priceInEUR?: number | null;
+  /**
+   * Set by the PC builder plugin when a component references this product
+   */
+  isComponent?: boolean | null;
+  /**
+   * Builder component bound to this product (admin-only visibility)
+   */
+  component?: (number | null) | Component;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -441,6 +682,95 @@ export interface VariantOption {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "components".
+ */
+export interface Component {
+  id: number;
+  name: string;
+  /**
+   * Price/SKU/inventory source — A1: component references a ProductVariant
+   */
+  productVariant: number | Variant;
+  category: number | ComponentCategory;
+  brand?: (number | null) | Brand;
+  images?: (number | Media)[] | null;
+  description?: string | null;
+  marketingCopy?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  socket?: ('AM5' | 'LGA1700' | 'LGA1851') | null;
+  ramType?: ('DDR4' | 'DDR5') | null;
+  ramSpeedMhz?: number | null;
+  tdpWatts?: number | null;
+  psuWatts?: number | null;
+  moboFormFactor?: ('ATX' | 'mATX' | 'ITX') | null;
+  caseSupportedFormFactors?: ('ATX' | 'mATX' | 'ITX')[] | null;
+  gpuLengthMm?: number | null;
+  caseGpuMaxLengthMm?: number | null;
+  coolerSocketSupport?: ('AM5' | 'LGA1700' | 'LGA1851')[] | null;
+  storageInterface?: ('NVMe' | 'SATA') | null;
+  pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
+  /**
+   * Cosmetic specs; display + whitelisted filters
+   */
+  specsJson?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  compatTags?:
+    | {
+        tag: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * OS slot special-casing
+   */
+  isOsLicense?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "component-categories".
+ */
+export interface ComponentCategory {
+  id: number;
+  name: string;
+  slug: string;
+  /**
+   * Token name from packages/ui icon set
+   */
+  icon?: string | null;
+  sortOrder?: number | null;
+  required?: boolean | null;
+  /**
+   * e.g. storage = 2, case-fan = 6
+   */
+  maxSelectable?: number | null;
+  helperText?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -538,6 +868,17 @@ export interface Cart {
         product?: (number | null) | Product;
         variant?: (number | null) | Variant;
         quantity: number;
+        lineType?: ('standard' | 'configured-build') | null;
+        configuredBuild?: (number | null) | ConfiguredBuild;
+        buildName?: string | null;
+        subItems?:
+          | {
+              component?: (number | null) | Component;
+              quantity?: number | null;
+              name?: string | null;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -552,6 +893,40 @@ export interface Cart {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configured-builds".
+ */
+export interface ConfiguredBuild {
+  id: number;
+  name: string;
+  user?: (number | null) | User;
+  shareId?: string | null;
+  slots: {
+    category: number | ComponentCategory;
+    components?: (number | Component)[] | null;
+    id?: string | null;
+  }[];
+  /**
+   * Display-only; recomputed server-side at checkout
+   */
+  priceSnapshot?: number | null;
+  /**
+   * { errors, warnings, rulesVersion } from the rule engine at save time
+   */
+  validationSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('draft' | 'addedToCart' | 'ordered') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
 export interface Order {
@@ -561,6 +936,17 @@ export interface Order {
         product?: (number | null) | Product;
         variant?: (number | null) | Variant;
         quantity: number;
+        lineType?: ('standard' | 'configured-build') | null;
+        configuredBuild?: (number | null) | ConfiguredBuild;
+        buildName?: string | null;
+        subItems?:
+          | {
+              component?: (number | null) | Component;
+              quantity?: number | null;
+              name?: string | null;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
@@ -620,95 +1006,6 @@ export interface Transaction {
   cart?: (number | null) | Cart;
   amount?: number | null;
   currency?: 'EUR' | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "component-categories".
- */
-export interface ComponentCategory {
-  id: number;
-  name: string;
-  slug: string;
-  /**
-   * Token name from packages/ui icon set
-   */
-  icon?: string | null;
-  sortOrder?: number | null;
-  required?: boolean | null;
-  /**
-   * e.g. storage = 2, case-fan = 6
-   */
-  maxSelectable?: number | null;
-  helperText?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "components".
- */
-export interface Component {
-  id: number;
-  name: string;
-  /**
-   * Price/SKU/inventory source — A1: component references a ProductVariant
-   */
-  productVariant: number | Variant;
-  category: number | ComponentCategory;
-  brand?: (number | null) | Brand;
-  images?: (number | Media)[] | null;
-  description?: string | null;
-  marketingCopy?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  socket?: ('AM5' | 'LGA1700' | 'LGA1851') | null;
-  ramType?: ('DDR4' | 'DDR5') | null;
-  ramSpeedMhz?: number | null;
-  tdpWatts?: number | null;
-  psuWatts?: number | null;
-  moboFormFactor?: ('ATX' | 'mATX' | 'ITX') | null;
-  caseSupportedFormFactors?: ('ATX' | 'mATX' | 'ITX')[] | null;
-  gpuLengthMm?: number | null;
-  caseGpuMaxLengthMm?: number | null;
-  coolerSocketSupport?: ('AM5' | 'LGA1700' | 'LGA1851')[] | null;
-  storageInterface?: ('NVMe' | 'SATA') | null;
-  pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
-  /**
-   * Cosmetic specs; display + whitelisted filters
-   */
-  specsJson?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  compatTags?:
-    | {
-        tag: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * OS slot special-casing
-   */
-  isOsLicense?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -804,40 +1101,6 @@ export interface BuildTemplate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "configured-builds".
- */
-export interface ConfiguredBuild {
-  id: number;
-  name: string;
-  user?: (number | null) | User;
-  shareId?: string | null;
-  slots: {
-    category: number | ComponentCategory;
-    components?: (number | Component)[] | null;
-    id?: string | null;
-  }[];
-  /**
-   * Display-only; recomputed server-side at checkout
-   */
-  priceSnapshot?: number | null;
-  /**
-   * { errors, warnings, rulesVersion } from the rule engine at save time
-   */
-  validationSnapshot?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status?: ('draft' | 'addedToCart' | 'ordered') | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -863,6 +1126,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
       } | null)
     | ({
         relationTo: 'media';
@@ -1016,6 +1283,179 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  isHomepage?: T;
+  layout?:
+    | T
+    | {
+        hero?:
+          | T
+          | {
+              heading?: T;
+              subheading?: T;
+              image?: T;
+              videoUrl?: T;
+              variant?: T;
+              align?: T;
+              ctas?:
+                | T
+                | {
+                    label?: T;
+                    url?: T;
+                    style?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        richText?:
+          | T
+          | {
+              richtext?: T;
+              id?: T;
+              blockName?: T;
+            };
+        productGrid?:
+          | T
+          | {
+              heading?: T;
+              category?: T;
+              limit?: T;
+              columns?: T;
+              viewAllLabel?: T;
+              id?: T;
+              blockName?: T;
+            };
+        featuredCategory?:
+          | T
+          | {
+              category?: T;
+              image?: T;
+              heading?: T;
+              copy?: T;
+              ctaLabel?: T;
+              id?: T;
+              blockName?: T;
+            };
+        ctaBanner?:
+          | T
+          | {
+              heading?: T;
+              copy?: T;
+              ctaLabel?: T;
+              ctaUrl?: T;
+              tone?: T;
+              id?: T;
+              blockName?: T;
+            };
+        templatesCarousel?:
+          | T
+          | {
+              heading?: T;
+              tagFilter?: T;
+              autoplay?: T;
+              id?: T;
+              blockName?: T;
+            };
+        comparisonTable?:
+          | T
+          | {
+              heading?: T;
+              columns?:
+                | T
+                | {
+                    label?: T;
+                    id?: T;
+                  };
+              rows?:
+                | T
+                | {
+                    label?: T;
+                    values?:
+                      | T
+                      | {
+                          value?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        faq?:
+          | T
+          | {
+              heading?: T;
+              items?:
+                | T
+                | {
+                    question?: T;
+                    answer?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        testimonials?:
+          | T
+          | {
+              heading?: T;
+              items?:
+                | T
+                | {
+                    quote?: T;
+                    name?: T;
+                    role?: T;
+                    avatar?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        logosStrip?:
+          | T
+          | {
+              heading?: T;
+              brands?: T;
+              id?: T;
+              blockName?: T;
+            };
+        newsletterSignup?:
+          | T
+          | {
+              heading?: T;
+              consent?: T;
+              id?: T;
+              blockName?: T;
+            };
+        videoEmbed?:
+          | T
+          | {
+              provider?: T;
+              url?: T;
+              poster?: T;
+              title?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -1086,6 +1526,41 @@ export interface CategoriesSelect<T extends boolean = true> {
   parent?: T;
   image?: T;
   description?: T;
+  topBlocks?:
+    | T
+    | {
+        hero?:
+          | T
+          | {
+              heading?: T;
+              subheading?: T;
+              image?: T;
+              videoUrl?: T;
+              variant?: T;
+              align?: T;
+              ctas?:
+                | T
+                | {
+                    label?: T;
+                    url?: T;
+                    style?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        ctaBanner?:
+          | T
+          | {
+              heading?: T;
+              copy?: T;
+              ctaLabel?: T;
+              ctaUrl?: T;
+              tone?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -1242,6 +1717,8 @@ export interface ProductsSelect<T extends boolean = true> {
   variants?: T;
   priceInEUREnabled?: T;
   priceInEUR?: T;
+  isComponent?: T;
+  component?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -1258,6 +1735,17 @@ export interface CartsSelect<T extends boolean = true> {
         product?: T;
         variant?: T;
         quantity?: T;
+        lineType?: T;
+        configuredBuild?: T;
+        buildName?: T;
+        subItems?:
+          | T
+          | {
+              component?: T;
+              quantity?: T;
+              name?: T;
+              id?: T;
+            };
         id?: T;
       };
   secret?: T;
@@ -1280,6 +1768,17 @@ export interface OrdersSelect<T extends boolean = true> {
         product?: T;
         variant?: T;
         quantity?: T;
+        lineType?: T;
+        configuredBuild?: T;
+        buildName?: T;
+        subItems?:
+          | T
+          | {
+              component?: T;
+              quantity?: T;
+              name?: T;
+              id?: T;
+            };
         id?: T;
       };
   shippingAddress?:

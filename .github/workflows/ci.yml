@@ -36,8 +36,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint || true
+      - name: Secret scan
+        run: |
+          if git grep -nEI "AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{32,}|-----BEGIN [A-Z ]*PRIVATE KEY-----" -- . ':!pnpm-lock.yaml'; then
+            echo "::error::Potential secret pattern found in tracked files"
+            exit 1
+          fi
+      - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      - run: pnpm audit --prod --audit-level high || true
+      - run: pnpm audit --prod --audit-level high

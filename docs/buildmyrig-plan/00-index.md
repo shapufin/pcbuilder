@@ -1,8 +1,8 @@
 # BuildMyRig — Technical Plan (Index)
 
-Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, built on Payload CMS 3.x + Next.js 15 + PostgreSQL. This folder is the complete technical plan, split into small topic docs so each can be loaded independently (token-efficient AI recall).
+Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, built on Payload CMS 3.x + Next.js 16 + PostgreSQL. This folder is the complete technical plan, split into small topic docs so each can be loaded independently (token-efficient AI recall).
 
-> **Current status (2026-09-28)**: Phases 0, 1 (minus Stripe e2e) and 2a–2c are implemented and committed. Next: **Phase 2d — configurator UI**, then 2e (composite cart lines + server validation at checkout). See [15-delivery-phases.md](15-delivery-phases.md) → "Where we are" and [18-progress-log.md](18-progress-log.md) for what landed.
+> **Current status (2026-09-28)**: Phases 0, 1 (minus Stripe e2e), 2a-2e, **Phase 3** and **Phase 4 (in progress)** are implemented in the working tree (not yet committed). Reviews passed: Phase 2d+2e (entry 7), Phase 3 (entry 9), admin-GUI audit (entry 10), Phase 4 security review with 5 fixes (entry 11), entry-11 review round (entry 12), entry-12 review + webhook/load-test round (entry 13). Phase 4 to date: security/access fixes, dependency audit reduced **35 → 0 vulns** (next 15.2.9 → 16.3.6, esbuild override), CI audit + secret-scan + working ESLint gates blocking, admin training doc, **Stripe webhook handlers** (TDD #53–58, e2e idempotency proof 14/14), **load test** (prod p50: 31 ms pages, 241–720 ms APIs) — see [18-progress-log.md](18-progress-log.md) entries 11–13. Remaining Phase 4: Stripe live e2e, Playwright/Lighthouse, Sentry, admin-GUI deltas. See [15-delivery-phases.md](15-delivery-phases.md).
 
 ## Navigation
 
@@ -26,6 +26,7 @@ Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, b
 | [16-risks.md](16-risks.md) | 12. Risk register |
 | [17-assumptions-backlog.md](17-assumptions-backlog.md) | 13. Assumptions & open questions · 14. Deferred backlog |
 | [18-progress-log.md](18-progress-log.md) | Live work log: what landed, verification, phase status |
+| [../admin-training.md](../admin-training.md) | Admin training & operations handbook (roles, workflows, troubleshooting) |
 
 ## Self-review checklist (all items covered)
 

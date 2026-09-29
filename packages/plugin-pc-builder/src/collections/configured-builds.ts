@@ -1,17 +1,84 @@
-import type { CollectionConfig } from 'payload'
+import { APIError } from 'payload'
+import type { CollectionConfig, PayloadRequest } from 'payload'
+import { buildBuilderIndex } from '../lib/builder-index'
+import {
+  buildDocSlotsToBuildSlots,
+  findUnknownSlotRefs,
+  priceBuildFromIndex,
+  slotsToSelections,
+} from '../lib/builds'
+import { requireStaff } from '../lib/builder-index'
+import { createRuleEngine } from '@buildmyrig/lib'
 
-const buildOwnerAccess = ({ req }: { req: { user?: { id?: unknown } | null } }) => {
+// 11-access-security.md matrix: customer = own CRUD, staff/manager = read,
+// admin = write. Staff+ therefore see every build (incl. guest drafts);
+// only admins may update/delete builds they don't own.
+const roleIn = (user: { roles?: string[] | null } | null | undefined, roles: string[]): boolean =>
+  Boolean(user && Array.isArray(user.roles) && roles.some((r) => user.roles?.includes(r)))
+
+const buildReadAccess = ({
+  req,
+}: {
+  req: { user?: { id?: unknown; roles?: string[] | null } | null }
+}) => {
   if (!req.user) return false
+  if (roleIn(req.user, ['admin', 'manager', 'staff'])) return true
   return { user: { equals: req.user.id } }
+}
+
+const buildWriteAccess = ({
+  req,
+}: {
+  req: { user?: { id?: unknown; roles?: string[] | null } | null }
+}) => {
+  if (!req.user) return false
+  if (roleIn(req.user, ['admin'])) return true
+  return { user: { equals: req.user.id } }
+}
+
+/**
+ * Server-side gate for every configured-build write (admin or endpoint):
+ * re-validates the slot set against the current rule index and recomputes
+ * the price snapshot from live variant prices. Client snapshots are display-only.
+ * Throws APIError(422) so REST callers get the reasons instead of a generic 500.
+ */
+const validateConfiguredBuild = async ({
+  data,
+  req,
+}: {
+  data: { slots?: { category?: unknown; components?: unknown[] }[] | null; [key: string]: unknown }
+  req: PayloadRequest
+}) => {
+  if (!data.slots) return
+  const index = await buildBuilderIndex(req.payload)
+  const engine = createRuleEngine(index)
+  const slots = buildDocSlotsToBuildSlots(data.slots)
+  const unknown = findUnknownSlotRefs(index, slots)
+  if (unknown.length > 0) {
+    throw new APIError(`Build references unknown parts: ${unknown.join('; ')}`, 422)
+  }
+  const { errors, warnings } = engine.validateSelections(slotsToSelections(slots))
+  if (errors.length > 0) {
+    throw new APIError(`Build is incompatible: ${errors.map((e) => e.message).join('; ')}`, 422)
+  }
+  const componentIds = slots.flatMap((s) => s.componentIds)
+  data.priceSnapshot = priceBuildFromIndex(index, componentIds)
+  data.validationSnapshot = { errors: [], warnings, rulesVersion: index.rulesVersion }
 }
 
 export const ConfiguredBuilds: CollectionConfig = {
   slug: 'configured-builds',
   access: {
-    read: buildOwnerAccess,
-    create: ({ req }) => Boolean(req.user),
-    update: buildOwnerAccess,
-    delete: buildOwnerAccess,
+    read: buildReadAccess,
+    // Guest saves go through POST /api/builder/builds (rate-limited, validated,
+    // creates with overrideAccess). Raw REST create is admin/manager-only so
+    // anonymous callers can't bypass the rate limiter or spoof user/status/shareId.
+    create: ({ req }: { req: PayloadRequest }) => requireStaff(req.user),
+    update: buildWriteAccess,
+    delete: buildWriteAccess,
+  },
+  hooks: {
+    beforeChange: [validateConfiguredBuild],
   },
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'user', 'status', 'priceSnapshot'] },
   fields: [
