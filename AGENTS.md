@@ -1,6 +1,6 @@
 # AGENTS.md — BuildMyRig handoff / workflow context
 
-Read this first in a new AI session. It is the recovery point for the whole project: state, commands, conventions, gotchas, and where the detailed docs live. Nothing here is committed yet — **all work since `5284cbc`/`eeeb067` (Phases 2d/2e) lives in the working tree; do NOT commit unless the user explicitly asks.**
+Read this first in a new AI session. It is the recovery point for the whole project: state, commands, conventions, gotchas, and where the detailed docs live. Current state through entry 16 is pushed (`main` @ `fe67689`); still **do NOT commit/push unless the user explicitly asks** — the push above was an explicit request.
 
 ## What this is
 
@@ -33,7 +33,7 @@ Credentials: `admin@buildmyrig.test` / `Password123!` (id1 admin, id2 manager, i
 
 ## Current phase status (2026-09-29)
 
-Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**. Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological). GitHub: `github.com/shapufin/pcbuilder` `main` — push after each completed round (done through entry 14, `da30e30`; **entries 15–16 in the working tree, uncommitted**).
+Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**. Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological). GitHub: `github.com/shapufin/pcbuilder` `main` — push after each completed round (done through entry 16, `fe67689`; tree clean).
 
 Session history (one line each, entries 1–16 in the progress log):
 

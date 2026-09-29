@@ -27,7 +27,7 @@ Reverse-chronological work log. Each entry: what landed, verification, known gap
 
 **Still owner/machine-blocked**: Stripe **live** e2e (keys), Sentry DSN, Postgres migrations dry-run (no Docker), Upstash Redis. **Lighthouse is no longer machine-blocked** (chromium present) — not run yet, next candidate. Password reset + cart-drawer/dialog animations still deferred.
 
-**Repo tracking**: entries 15–16 are in the working tree (uncommitted — no commit without an explicit ask).
+**Repo tracking**: entries 15–16 pushed to GitHub (`main` @ `fe67689`); tree clean.
 
 ## 2026-09-29 (15) — Auth + `/account` (TDD #77–88) + two live-found builder bugs (#89–92) + entry review
 
@@ -60,7 +60,7 @@ Reverse-chronological work log. Each entry: what landed, verification, known gap
 
 **Still owner/machine-blocked**: Stripe **live** e2e (keys), Playwright/Lighthouse (no browser), Sentry DSN, Postgres migrations dry-run (no Docker), Upstash Redis. Cart-drawer/dialog animations remain deferred. Client UI components (LoginForm/RegisterForm/AccountNav/LogoutButton/SummaryClient save button) are untested — the repo has no component-test harness (consistent with all prior entries; covered by live probes).
 
-**Repo tracking**: entry 15 is in the working tree (uncommitted — no commit without an explicit ask).
+**Repo tracking**: entry 15 was uncommitted at the time of writing; pushed together with entry 16 as `fe67689` (2026-09-29).
 
 ## 2026-09-29 (14) — Phase-4 admin-GUI deltas + access-matrix tightening + footer/legal + cache/`rulesVersion` + analytics (TDD #59–76) + live matrix verification
 
