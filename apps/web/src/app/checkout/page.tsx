@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
+import { track } from '@/lib/analytics'
 
 type Item = {
   id: string
@@ -58,6 +59,7 @@ export default function CheckoutPage() {
       setState('confirming')
       const confirmed = (await confirmOrder(selectedPaymentMethod)) as { message?: string }
       setMessage(confirmed?.message ?? 'Order confirmed.')
+      track('Purchase', { currency: 'EUR' })
       setState('done')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Payment failed.')

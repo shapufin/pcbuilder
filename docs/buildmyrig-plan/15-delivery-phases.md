@@ -2,7 +2,7 @@
 
 Order per master prompt: shop core → builder → blocks/animations → hardening. Estimates assume 1–2 devs full-time; weeks are calendar estimates (A16).
 
-## Where we are (live status — updated 2026-09-28)
+## Where we are (live status — updated 2026-09-29)
 
 | Item | Status | Notes |
 | --- | --- | --- |
@@ -16,7 +16,7 @@ Order per master prompt: shop core → builder → blocks/animations → hardeni
 | Phase 2d — Configurator UI | ✅ done | `/builder` landing + `/builder/configure` step flow + `/builder/summary` stub; live filtering/warnings/power from the client engine; draft persisted in localStorage |
 | Phase 2e — Summary + share + composite cart line + server validation at checkout | ✅ done | `POST /api/builder/builds` + share read + `POST /api/carts/:id/add-build` composite line + orders beforeChange re-validation; summary CTAs live |
 | Phase 3 - Blocks + animations | done | Pages collection + 12 blocks + registry; homepage/marketing routes; sitemap/robots/JSON-LD; newsletter endpoint; sec-4 badge/fly/share animations |
-| Phase 4 — Hardening & launch | in progress | Security/access review + fixes (entry 11); review round, dependency audit → 0 vulns (next 16.3.6 + esbuild override), CI audit/secret gates, admin training doc (entry 12); entry-12 review + real ESLint gate, Stripe webhook handlers + e2e idempotency proof, load test (entry 13); remaining: Stripe live e2e, Playwright/Lighthouse, Sentry, admin-GUI deltas |
+| Phase 4 — Hardening & launch | in progress | Security/access review + fixes (entry 11); review round, dependency audit → 0 vulns (next 16.3.6 + esbuild override), CI audit/secret gates, admin training doc (entry 12); entry-12 review + real ESLint gate, Stripe webhook handlers + e2e idempotency proof, load test (entry 13); access-matrix tightening, admin-GUI deltas (rule manager inline edit/import preview, Build Stats, `rulesVersion` cache), legal footer, analytics (entry 14); remaining: Stripe live e2e, Playwright/Lighthouse, Sentry, Postgres migrations dry-run |
 
 Latest commits: `5284cbc` (2b), `eeeb067` (2c); Phases 2d+2e + 2e review fixes + Phase 3 + Phase 3 review fixes are in the working tree (not yet committed). Full detail: [18-progress-log.md](18-progress-log.md).
 
@@ -45,7 +45,7 @@ Pages collection + 12 blocks + registry, homepage/marketing pages, remaining ani
 ## Phase 4 — Hardening & launch (weeks 11–12)
 
 Security review (OWASP checklist), rate limiting, Sentry/uptime/alerting, analytics events, Playwright full suite + Lighthouse CI gates, migrations dry-run on production-like DB, load test checkout + webhook idempotency, admin training doc, legal pages, dependency audit clean.
-Also carries the admin-GUI audit deltas deferred from entry 10 of [18-progress-log.md](18-progress-log.md): access-matrix tightening, rule-manager feature deltas (inline edit / export / CSV preview-diff beyond the current grid), Build Stats view, `rulesVersion`/cache-invalidation hooks.
+Also carries the admin-GUI audit deltas deferred from entry 10 of [18-progress-log.md](18-progress-log.md): access-matrix tightening, rule-manager feature deltas (inline edit / export / CSV preview-diff beyond the current grid), Build Stats view, `rulesVersion`/cache-invalidation hooks — **all four done in entry 14** (TDD #59–76, live-verified).
 **DoD**: OWASP review signed off; e2e green on preview with Neon branch; zero high vulns; go-live checklist complete.
 
 ## Dependencies

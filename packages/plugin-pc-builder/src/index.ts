@@ -14,6 +14,7 @@ import {
   builderShareBuildEndpoint,
   builderUseTemplateEndpoint,
   builderStockAlternativesEndpoint,
+  builderStatsEndpoint,
 } from './endpoints.ts'
 import { resolveConfiguredBuildLine } from './lib/builds.ts'
 import { setPowerDefaults } from './lib/builder-index.ts'
@@ -67,6 +68,7 @@ export const pcBuilderPlugin =
         builderShareBuildEndpoint,
         builderUseTemplateEndpoint,
         builderStockAlternativesEndpoint,
+        builderStatsEndpoint,
       ],
       admin: {
         ...incomingConfig.admin,
@@ -77,6 +79,7 @@ export const pcBuilderPlugin =
           afterNavLinks: [
             ...(incomingConfig.admin?.components?.afterNavLinks ?? []),
             '../../../packages/plugin-pc-builder/src/admin/RuleManagerNavLink#RuleManagerNavLink',
+            '../../../packages/plugin-pc-builder/src/admin/BuildStatsNavLink#BuildStatsNavLink',
           ],
           views: {
             ...incomingConfig.admin?.components?.views,
@@ -85,6 +88,11 @@ export const pcBuilderPlugin =
               path: '/compatibility-rules-manager',
               // Specifier is resolved relative to the config's importMap baseDir (apps/web/src)
               Component: '../../../packages/plugin-pc-builder/src/admin/RuleManagerView#RuleManagerView',
+            } as never,
+            buildStats: {
+              type: 'custom',
+              path: '/build-stats',
+              Component: '../../../packages/plugin-pc-builder/src/admin/BuildStatsView#BuildStatsView',
             } as never,
           },
         },

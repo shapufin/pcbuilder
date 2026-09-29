@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
+import { isManager } from '../lib/access.ts'
 import { clearProductsForComponent, syncComponentProductLink } from '../lib/product-sync.ts'
+import { invalidateBuilderIndex } from '../lib/builder-index.ts'
 
 const SOCKET_OPTIONS = ['AM5', 'LGA1700', 'LGA1851'] as const
 const DDR_OPTIONS = ['DDR4', 'DDR5'] as const
@@ -11,13 +13,14 @@ export const Components: CollectionConfig = {
   slug: 'components',
   access: {
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'category', 'brand', 'productVariant'] },
   hooks: {
     afterChange: [
+      () => invalidateBuilderIndex(),
       async ({ doc, req }) => {
         // Best-effort: never block a component save on the products sync.
         try {
@@ -29,6 +32,7 @@ export const Components: CollectionConfig = {
       },
     ],
     afterDelete: [
+      () => invalidateBuilderIndex(),
       async ({ doc, req }) => {
         try {
           await clearProductsForComponent(req.payload, doc.id)

@@ -6,7 +6,7 @@ import {
   type BuilderIndex,
   type ResolvedLine,
 } from '@buildmyrig/lib'
-import { buildBuilderIndex } from './builder-index'
+import { getBuilderIndex } from './builder-index'
 
 /**
  * Build save/share + composite line resolution (Phase 2e).
@@ -108,7 +108,7 @@ export const resolveConfiguredBuildLine = async (
   })) as BuildDoc | null
   if (!build) throw new APIError(`Configured build ${buildId} not found`, 422)
 
-  const index = await buildBuilderIndex(payload)
+  const index = await getBuilderIndex(payload)
   const engine = createRuleEngine(index)
   const slots = buildDocSlotsToBuildSlots(build.slots)
   const unknown = findUnknownSlotRefs(index, slots)

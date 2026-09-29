@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { flyToCart } from '@/lib/fly-to-cart'
+import { track } from '@/lib/analytics'
 
 export function AddToCartButton({
   productId,
@@ -27,6 +28,7 @@ export function AddToCartButton({
         1,
       )
       flyToCart(rect, label ?? 'Added')
+      track('Add to Cart', label ? { item: label } : undefined)
       setState('done')
     } catch {
       setState('error')

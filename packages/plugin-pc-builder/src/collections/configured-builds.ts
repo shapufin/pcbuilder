@@ -1,6 +1,6 @@
 import { APIError } from 'payload'
 import type { CollectionConfig, PayloadRequest } from 'payload'
-import { buildBuilderIndex } from '../lib/builder-index'
+import { getBuilderIndex } from '../lib/builder-index'
 import {
   buildDocSlotsToBuildSlots,
   findUnknownSlotRefs,
@@ -50,7 +50,7 @@ const validateConfiguredBuild = async ({
   req: PayloadRequest
 }) => {
   if (!data.slots) return
-  const index = await buildBuilderIndex(req.payload)
+  const index = await getBuilderIndex(req.payload)
   const engine = createRuleEngine(index)
   const slots = buildDocSlotsToBuildSlots(data.slots)
   const unknown = findUnknownSlotRefs(index, slots)

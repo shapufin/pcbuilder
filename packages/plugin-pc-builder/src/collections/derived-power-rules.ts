@@ -1,12 +1,18 @@
 import type { CollectionConfig } from 'payload'
+import { isManager, isStaff } from '../lib/access.ts'
+import { invalidateBuilderIndex } from '../lib/builder-index.ts'
 
 export const DerivedPowerRules: CollectionConfig = {
   slug: 'derived-power-rules',
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+  },
+  hooks: {
+    afterChange: [() => invalidateBuilderIndex()],
+    afterDelete: [() => invalidateBuilderIndex()],
   },
   admin: { useAsTitle: 'id', defaultColumns: ['targetCategory', 'overheadMultiplier', 'baseWatts', 'severity'] },
   fields: [

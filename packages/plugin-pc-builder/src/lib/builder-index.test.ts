@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { Payload } from 'payload'
-import { buildBuilderIndex, setPowerDefaults } from './builder-index.ts'
+import { buildBuilderIndex, setPowerDefaults, getBuilderIndex, invalidateBuilderIndex } from './builder-index.ts'
 
 const componentDoc = {
   id: 1,
@@ -138,5 +138,80 @@ describe('buildBuilderIndex → derived power config (entry 10 wiring)', () => {
     } finally {
       setPowerDefaults()
     }
+  })
+})
+
+describe('getBuilderIndex cache + rulesVersion coverage (entry 14)', () => {
+  afterEach(() => {
+    invalidateBuilderIndex()
+    vi.restoreAllMocks()
+  })
+
+  const countingPayload = (): { payload: Payload; calls: () => number } => {
+    const base = fakePayload()
+    let calls = 0
+    const payload = {
+      find: async (args: { collection: string }) => {
+        calls += 1
+        return base.find(args)
+      },
+    } as unknown as Payload
+    return { payload, calls: () => calls }
+  }
+
+  it('#64 serves repeated reads from cache; invalidateBuilderIndex() forces a rebuild', async () => {
+    invalidateBuilderIndex()
+    const { payload, calls } = countingPayload()
+    const first = await getBuilderIndex(payload)
+    const second = await getBuilderIndex(payload)
+    expect(second).toBe(first)
+    expect(calls()).toBe(4)
+    invalidateBuilderIndex()
+    const third = await getBuilderIndex(payload)
+    expect(third).not.toBe(first)
+    expect(calls()).toBe(8)
+  })
+
+  it('#65 TTL: a stale entry expires without invalidation (cross-process seed safety)', async () => {
+    invalidateBuilderIndex()
+    const { payload, calls } = countingPayload()
+    await getBuilderIndex(payload)
+    expect(calls()).toBe(4)
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000)
+    await getBuilderIndex(payload)
+    expect(calls()).toBe(8)
+  })
+
+  it('#66 rulesVersion changes on component, category, and power edits — not just rule edits', async () => {
+    const base = await buildBuilderIndex(fakePayload())
+
+    const compEdit = await buildBuilderIndex(
+      fakePayload({ components: [{ ...componentDoc, updatedAt: '2026-09-28T10:00:00.000Z' }] }),
+    )
+    expect(compEdit.rulesVersion).not.toBe(base.rulesVersion)
+
+    const catEdit = await buildBuilderIndex(
+      fakePayload({
+        'component-categories': [
+          {
+            id: 4,
+            slug: 'cpu',
+            name: 'CPU',
+            sortOrder: 0,
+            updatedAt: '2026-09-28T11:00:00.000Z',
+          },
+        ],
+      }),
+    )
+    expect(catEdit.rulesVersion).not.toBe(base.rulesVersion)
+
+    const powerEdit = await buildBuilderIndex(
+      fakePayload({
+        'derived-power-rules': [
+          { id: 1, overheadMultiplier: 1.5, updatedAt: '2026-09-28T12:00:00.000Z' },
+        ],
+      }),
+    )
+    expect(powerEdit.rulesVersion).not.toBe(base.rulesVersion)
   })
 })

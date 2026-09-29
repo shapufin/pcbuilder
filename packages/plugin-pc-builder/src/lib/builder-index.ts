@@ -215,16 +215,50 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     ...(targetCategorySlug ? { targetCategorySlug } : {}),
   }
 
-  const lastTs = Math.max(
-    0,
-    ...(rulesRes.docs as RuleRow[]).map((r) => (r.updatedAt ? Date.parse(r.updatedAt) : 0)),
-  )
-  const rulesVersion = `${rules.length}-${lastTs}`
+  const maxTs = (docs: { updatedAt?: string }[]): number =>
+    Math.max(0, ...docs.map((d) => (d.updatedAt ? Date.parse(d.updatedAt) : 0)))
+  // Cache tag: covers rules AND component/category/power edits so stale
+  // ConfiguredBuild validationSnapshots re-validate (06-rule-engine.md §rulesVersion).
+  const rulesVersion = [
+    rules.length,
+    maxTs(rulesRes.docs as RuleRow[]),
+    components.length,
+    maxTs(compsRes.docs as ComponentRow[]),
+    categories.length,
+    maxTs(catsRes.docs as { updatedAt?: string }[]),
+    maxTs(powerRes.docs as { updatedAt?: string }[]),
+  ].join('-')
 
   return { components, rules, categories, power, rulesVersion }
 }
 
-export const getEngine = async (payload: Payload) => createRuleEngine(await buildBuilderIndex(payload))
+/** Single-instance in-memory cache (same deviation as the rate limiter — see
+ *  12-integrations-ops.md). TTL bounds staleness when a separate process
+ *  (seed / payload run) mutates data without firing this process's hooks. */
+const INDEX_TTL_MS = 30_000
+let cachedIndex: { data: BuilderIndex; storedAt: number } | null = null
+let inflight: Promise<BuilderIndex> | null = null
+
+export const invalidateBuilderIndex = (): void => {
+  cachedIndex = null
+}
+
+export const getBuilderIndex = async (payload: Payload): Promise<BuilderIndex> => {
+  if (cachedIndex && Date.now() - cachedIndex.storedAt < INDEX_TTL_MS) return cachedIndex.data
+  if (inflight) return inflight
+  inflight = (async () => {
+    const data = await buildBuilderIndex(payload)
+    cachedIndex = { data, storedAt: Date.now() }
+    return data
+  })()
+  try {
+    return await inflight
+  } finally {
+    inflight = null
+  }
+}
+
+export const getEngine = async (payload: Payload) => createRuleEngine(await getBuilderIndex(payload))
 
 /** Admin auth helper shared by builder endpoints. */
 export const requireStaff = (user: TypedUser | null): boolean =>

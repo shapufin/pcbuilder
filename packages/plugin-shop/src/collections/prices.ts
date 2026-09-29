@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isManager, isStaff } from '../lib/access.ts'
 
 /**
  * Prices support single-currency v1 (EUR) with a multi-currency-ready schema.
@@ -7,10 +8,10 @@ import type { CollectionConfig } from 'payload'
 export const Prices: CollectionConfig = {
   slug: 'prices',
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   admin: { useAsTitle: 'amount', defaultColumns: ['amount', 'currency', 'variant', 'product'] },
   fields: [

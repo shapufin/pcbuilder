@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isManager, isStaff } from '../lib/access.ts'
 
 /**
  * Simple discount codes for v1: percentage, fixed amount, or free shipping.
@@ -8,10 +9,10 @@ export const DiscountCodes: CollectionConfig = {
   slug: 'discount-codes',
   access: {
     // Codes are never publicly listable; validation happens via a dedicated endpoint.
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   admin: { useAsTitle: 'code', defaultColumns: ['code', 'type', 'value', 'usedCount', 'enabled'] },
   fields: [

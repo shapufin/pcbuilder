@@ -2,7 +2,14 @@ import type { Endpoint, JsonObject, Payload, PayloadRequest, TypeWithID } from '
 import { z } from 'zod'
 import { createRuleEngine, rateLimit } from '@buildmyrig/lib'
 import { interpolate } from '@buildmyrig/lib'
-import { buildBuilderIndex, getEngine, requireStaff } from './lib/builder-index.ts'
+import { getBuilderIndex, getEngine, requireStaff } from './lib/builder-index.ts'
+import { isStaff } from './lib/access.ts'
+import { getBuildStats } from './lib/build-stats.ts'
+import {
+  diffImportRows,
+  type ExistingRuleKey,
+  type ResolvedImportRow,
+} from './lib/rule-import.ts'
 import {
   findUnknownSlotRefs,
   newShareId,
@@ -29,14 +36,17 @@ const importRowSchema = z.object({
   severity: z.enum(['error', 'warning', 'info']).default('error'),
   message: z.string().optional(),
 })
-const importSchema = z.object({ rows: z.array(importRowSchema).min(1).max(2000) })
+const importSchema = z.object({
+  rows: z.array(importRowSchema).min(1).max(2000),
+  dryRun: z.boolean().optional(),
+})
 
 export const builderIndexEndpoint: Endpoint = {
   path: '/builder/index',
   method: 'get',
   handler: async (req: PayloadRequest) => {
     try {
-      return ok(await buildBuilderIndex(req.payload))
+      return ok(await getBuilderIndex(req.payload))
     } catch (e) {
       req.payload.logger.error(`builder index failed: ${e instanceof Error ? e.message : e}`)
       return bad(500, 'index build failed')
@@ -157,7 +167,7 @@ const createBuildFromSlots = async (
   name: string | undefined,
   user: PayloadRequest['user'],
 ): Promise<CreateResult> => {
-  const index = await buildBuilderIndex(payload)
+  const index = await getBuilderIndex(payload)
   const engine = createRuleEngine(index)
   // The engine skips unknown ids silently — catch them here so phantom refs
   // return 422 with reasons instead of a FOREIGN KEY 500 from payload.create.
@@ -394,7 +404,13 @@ const resolveName = async (
   // subject
   let subject: { kind: 'component' | 'category'; id: number | string } | null = null
   if (row.subjectType === 'category') {
-    const cat = await payload.find({ collection: 'component-categories', where: { slug: { equals: row.subject } }, limit: 1 })
+    // Accept slug or name: CSV export writes category names (see toCsvRow in
+    // RuleManagerView), hand-authored files usually use names.
+    const cat = await payload.find({
+      collection: 'component-categories',
+      where: { or: [{ slug: { equals: row.subject } }, { name: { equals: row.subject } }] },
+      limit: 1,
+    })
     if (cat.docs[0]) subject = { kind: 'category', id: cat.docs[0].id }
   } else {
     const comp = await payload.find({ collection: 'components', where: { name: { equals: row.subject } }, limit: 1 })
@@ -407,7 +423,11 @@ const resolveName = async (
   // target
   let target: { kind: 'component' | 'category'; id: number | string } | null = null
   if (row.targetType === 'category') {
-    const cat = await payload.find({ collection: 'component-categories', where: { slug: { equals: row.targetCategory } }, limit: 1 })
+    const cat = await payload.find({
+      collection: 'component-categories',
+      where: { or: [{ slug: { equals: row.targetCategory } }, { name: { equals: row.targetCategory } }] },
+      limit: 1,
+    })
     if (cat.docs[0]) target = { kind: 'category', id: cat.docs[0].id }
   } else {
     const comp = await payload.find({ collection: 'components', where: { name: { equals: row.targetCategory } }, limit: 1 })
@@ -434,39 +454,94 @@ export const builderRulesImportEndpoint: Endpoint = {
     const parsed = importSchema.safeParse(body)
     if (!parsed.success) return bad(400, 'invalid rows', parsed.error.flatten())
     const errors: string[] = []
-    let created = 0
+    const invalid: Array<{ line: number; reason: string }> = []
+    const resolvedList: ResolvedImportRow[] = []
     for (const [index, row] of parsed.data.rows.entries()) {
       // eslint-disable-next-line no-await-in-loop
       const resolved = await resolveName(req.payload, row, errors, index)
-      if (!resolved) continue
+      if (!resolved) {
+        invalid.push({ line: index + 1, reason: errors[errors.length - 1] ?? 'row could not be resolved' })
+        continue
+      }
+      resolvedList.push({
+        line: index + 1,
+        subjectId: resolved.subject.id,
+        targetId: resolved.target.id,
+        row,
+      })
+    }
+
+    const existingDocs = await req.payload.find({ collection: 'compatibility-rules', limit: 5000, depth: 0 })
+    const existing: ExistingRuleKey[] = (existingDocs.docs as unknown as Array<Record<string, unknown>>).map((d) => ({
+      subjectType: String(d.subjectType ?? ''),
+      subjectId: (d.subjectType === 'component' ? d.subjectComponent : d.subjectCategory) as string | number | null,
+      targetType: String(d.targetType ?? ''),
+      targetId: (d.targetType === 'component' ? d.targetComponent : d.targetCategory) as string | number | null,
+      type: String(d.type ?? ''),
+      operator: String(d.operator ?? ''),
+      field: String(d.field ?? ''),
+      value: String(d.value ?? ''),
+      severity: String(d.severity ?? ''),
+    }))
+    const diff = diffImportRows(resolvedList, invalid, existing)
+
+    if (parsed.data.dryRun) {
+      return ok({ preview: true, entries: diff.entries, summary: diff.summary, errors })
+    }
+
+    const resolvedByLine = new Map(resolvedList.map((r) => [r.line, r]))
+    let created = 0
+    let skipped = 0
+    for (const entry of diff.entries) {
+      if (entry.action === 'skip') {
+        skipped++
+        continue
+      }
+      if (entry.action === 'error') continue
+      const r = resolvedByLine.get(entry.line)
+      if (!r) continue
       try {
         // eslint-disable-next-line no-await-in-loop
         await req.payload.create({
           collection: 'compatibility-rules',
           data: {
-            subjectType: resolved.subject.kind,
-            ...(resolved.subject.kind === 'component'
-              ? { subjectComponent: resolved.subject.id }
-              : { subjectCategory: resolved.subject.id }),
-            targetType: resolved.target.kind,
-            ...(resolved.target.kind === 'component'
-              ? { targetComponent: resolved.target.id }
-              : { targetCategory: resolved.target.id }),
-            type: row.type,
-            operator: row.operator,
-            field: row.field,
-            value: row.value,
-            severity: row.severity,
+            subjectType: r.row.subjectType,
+            ...(r.row.subjectType === 'component'
+              ? { subjectComponent: r.subjectId }
+              : { subjectCategory: r.subjectId }),
+            targetType: r.row.targetType,
+            ...(r.row.targetType === 'component'
+              ? { targetComponent: r.targetId }
+              : { targetCategory: r.targetId }),
+            type: r.row.type,
+            operator: r.row.operator,
+            field: r.row.field,
+            value: r.row.value,
+            severity: r.row.severity,
             bidirectional: false,
-            message: row.message ?? '',
+            message: r.row.message ?? '',
             enabled: true,
           } as never,
         })
         created++
       } catch (e) {
-        errors.push(`row ${index + 1}: ${e instanceof Error ? e.message : 'create failed'}`)
+        errors.push(`row ${entry.line}: ${e instanceof Error ? e.message : 'create failed'}`)
       }
     }
-    return ok({ created, errors })
+    return ok({ created, skipped, errors })
+  },
+}
+
+export const builderStatsEndpoint: Endpoint = {
+  path: '/builder/stats',
+  method: 'get',
+  handler: async (req: PayloadRequest) => {
+    if (!isStaff(req.user as { roles?: string[] | null } | null)) return bad(401, 'staff role required')
+    try {
+      return ok(await getBuildStats(req.payload))
+    } catch (e) {
+      req.payload.logger.error(`build stats failed: ${e instanceof Error ? e.message : e}`)
+      return bad(500, 'stats build failed')
+    }
   },
 }

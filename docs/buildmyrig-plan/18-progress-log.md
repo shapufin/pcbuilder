@@ -2,6 +2,42 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-09-29 (14) — Phase-4 admin-GUI deltas + access-matrix tightening + footer/legal + cache/`rulesVersion` + analytics (TDD #59–76) + live matrix verification
+
+**Repo tracking**: everything through entry 13 pushed to GitHub (`github.com/shapufin/pcbuilder`, branch `main`, commit `ce6f133`, 124 files / +12690). Entry-14 work below is in the working tree, gated, and pushed as a follow-up commit.
+
+**Access-matrix tightening (TDD #59–63)** — the entry-10 audit's deferred row, implemented per [11-access-security.md](11-access-security.md) rows 11/13/14/21/22:
+
+- New role helpers `isStaff`/`isManager` in `packages/plugin-pc-builder/src/lib/access.ts` + `packages/plugin-shop/src/lib/access.ts`.
+- 11 collections tightened: **compatibility-rules + derived-power-rules** read staff+/write manager+ (were public-read); **components, component-categories, build-templates** write manager+ (were any-authenticated-user); **categories, brands, attribute-types, attribute-values** write manager+ (shop content: public read, staff never wrote them); **prices + discount-codes** read staff+/write manager+ (raw REST now hides pricing/promo internals from the public; the storefront consumes them server-side through the ecommerce plugin's own paths).
+- Tests: `access-matrix.test.ts` in both plugins — public read kept where the storefront needs it (catalog content), staff read-only everywhere, manager+ write, admin pass-through.
+- Live verified on the prod build: unauth `GET /api/{compatibility-rules,prices,discount-codes}` → **403**, unauth `GET /api/components` → **200** (public catalog), staff `GET compatibility-rules` → 200 but staff `PATCH` → **403**, admin `PATCH` → **200** (manager+ write intact).
+
+**Footer + legal links**: new `apps/web/src/components/SiteFooter.tsx` (About/FAQ/Contact/Terms/Privacy + copyright), mounted in `layout.tsx` inside `EcommerceShell`. The legal pages themselves were already seeded (`/terms`, `/privacy`, `/faq`, `/about`, `/contact`) — now discoverable. Live: homepage contains the footer nav; all five targets **200**.
+
+**Builder-index cache + `rulesVersion` (TDD #64–66)** — the other entry-10 deferral:
+
+- `lib/builder-index.ts` now exposes `getBuilderIndex` (30 s TTL + in-flight request dedup) and `invalidateBuilderIndex`; call sites in `endpoints.ts`, `builds.ts`, `configured-builds.ts` switched off the raw fetcher.
+- `rulesVersion` extended from rules-only to a composite of rules + components + categories + power-rule counts/max-timestamps, so any of those touching bumps the version (client `useEffect` polling diffs it).
+- Invalidation hooks: `compatibility-rules`/`derived-power-rules` `afterChange`, `component-categories` `afterChange`+`afterDelete`, appended to `components`' existing hook arrays.
+
+**Rule-manager deltas (entry-10's "inline edit/export/CSV preview-diff")**:
+
+- New pure helper `lib/rule-import.ts` (`ruleKey`, `diffImportRows`: create / skip-identical / error-with-reason, dedup within one file) + tests **#67–69**.
+- Import endpoint (`POST /api/builder/rules/import`) now accepts `dryRun` → `{preview, entries, summary, errors}`; commit honors skips → `{created, skipped, errors}` (previously it re-created identical rows).
+- `RuleManagerView.tsx` rewritten (610 lines): row-level inline edit (DraftRow with subject/target selects populated from `/api/components` + `/api/component-categories`), Add-rule draft row, Duplicate, Delete, filter, CSV export, and an import preview panel with per-row actions + Confirm/Cancel before commit.
+- **Live bug found by e2e of the round-trip and fixed (TDD #74–76, new `src/endpoints.test.ts`)**: CSV export writes category **names** (`toCsvRow`), but `resolveName` looked categories up by **slug only** → every export→import of a category rule failed "not found". Fix: category subject/target resolve by `slug` **or** `name` (`where: {or: [...]}`); endpoint tests drive the real handler with a mocked payload that evaluates the actual `where` clauses (name input, slug input, name/slug dedup-to-skip, component names, commit-only-creates + error reporting, manager+ gate). Live re-verified: name-based dryRun now returns `create` entries, fake subject → `error`.
+
+**Build Stats view (TDD #70–71)** — the plan's `components.views` deliverable (`05-plugin-contracts.md`): `lib/build-stats.ts` (`computeBuildStats` pure + `getBuildStats` 5-min TTL + `invalidateBuildStats`) → revenue (processing+completed only), order count/status breakdown, build statuses, top templates by `popularity`, low-stock products (1–5); endpoint `GET /api/builder/stats` (staff+); `BuildStatsView` + `BuildStatsNavLink` registered as `views.buildStats` (`/admin/build-stats`) + `afterNavLinks`. Live: admin/staff → 200 with seeded data, unauth → 401.
+
+**Analytics events (TDD #72–73)**: `apps/web/src/lib/analytics.ts` `track(name, props)` — no-op unless `window.plausible` exists *and* `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` is set (test scaffolding fix along the way: the mock must hang `plausible` off the `window` object itself, not `globalThis`). Plausible `<Script>` added to `layout.tsx` only when the domain is configured. Events wired: `Add to Cart` (AddToCartButton), `Add Build to Cart` (SummaryClient), `Initiate Checkout` + `Purchase` (checkout). No-op by default — owner sets the domain env to activate.
+
+`pnpm payload generate:importmap` re-run for the two new admin components (with dev server stopped — push race gotcha).
+
+**Gate suite (all green)**: **141/141 tests** (lib 65, plugin-shop 22, plugin-pc-builder 48, web 6), `pnpm -r typecheck` 0, `pnpm lint` 0 problems, production build clean. Live smoke on `next start`: footer + 5 legal pages 200, admin routes (`/admin/compatibility-rules-manager`, `/admin/build-stats`) 200, matrix checks above, `GET /api/builder/index` returns the new composite `rulesVersion`, import dryRun create/skip/error paths, `GET /api/builder/stats` 401/200 as designed.
+
+Still owner/machine-blocked: Stripe **live** e2e (keys), Playwright/Lighthouse (no browser), Sentry DSN, Postgres migration dry-run (no Docker), Upstash Redis. Cart-drawer/dialog animations from the Phase-3 note remain deferred with their components.
+
 ## 2026-09-28 (13) — Entry-12 review + lint gate repair + Stripe webhook handlers (TDD + e2e) + load test
 
 **Review of entry 12 (`code-review-checklist` skill)** — verdict **SHIP after five fixes**:
@@ -215,7 +251,7 @@ Verified: **74/74 tests** (lib 48, plugin-pc-builder 15, plugin-shop 11), typech
 | 2 PC builder — summary share + composite cart line + checkout validation | ✅ done — builds save/share endpoints, `add-build` composite line, orders re-validation |
 | 2 PC builder — admin GUI wiring audit + power-rule fix + products linkage | ✅ done (entry 10) — power rule fires on real ids, basePrice hook, Builder tab + sync + backfill, nav link |
 | 3 Blocks + animations | done - Pages + 12 blocks + registry, homepage/marketing routes, sitemap/robots/JSON-LD, newsletter endpoint, sec-4 badge/fly/share animations |
-| 4 Hardening & launch | in progress — security review + access fixes (entry 11), review round + dependency audit at zero + CI audit/secret gates + admin training doc (entry 12), entry-12 review + lint gate repair + Stripe webhook handlers w/ e2e idempotency proof + load test (entry 13); remaining: Stripe test keys e2e, Playwright/Lighthouse gates, Sentry/alerting, admin-GUI deltas (rule-manager inline edit/export, Build Stats, `rulesVersion` hooks) |
+| 4 Hardening & launch | in progress — security review + access fixes (entry 11), review round + dependency audit at zero + CI audit/secret gates + admin training doc (entry 12), entry-12 review + lint gate repair + Stripe webhook handlers w/ e2e idempotency proof + load test (entry 13), admin-GUI deltas + access-matrix tightening + footer/legal + cache/`rulesVersion` + analytics + live matrix verification (entry 14); remaining: Stripe test keys e2e, Playwright/Lighthouse gates, Sentry/alerting, Postgres migrations dry-run |
 ## Known gaps / watch items
 
 - **`BMR_URL` must be set in production** — it feeds the `csrf` origin allowlist; without it, cookie-authenticated requests lacking `Origin`/`Sec-Fetch-Site` are rejected (checklist #2, entry 11).
@@ -230,3 +266,4 @@ Verified: **74/74 tests** (lib 48, plugin-pc-builder 15, plugin-shop 11), typech
 - **turbo strict env mode strips shell-injected env vars** from `pnpm dev` tasks — put keys in `.env` (the child process loads them) or run `pnpm dev --env-mode=loose` for one-offs (entry 13).
 - **`transactions` schema is conditional on Stripe keys** (`paymentMethod` + `stripe` group exist only when an adapter is configured); dev push self-heals when keys are first set, but production must migrate schema *before* enabling keys or the webhook 500s with `no such column` (entry 13).
 - Load-test numbers are single-machine (`next start` on the dev box, 25 concurrent); re-run under production-like infra before capacity planning (entry 13).
+- **Payload CSRF checks `Origin` on cookie-authenticated requests including GETs** — REST calls with a session cookie and no `Origin`/`Sec-Fetch-Site` return `200 {user:null}` or 401s that look like auth failures; browsers send it automatically, curl/scripts must add `-H "Origin: http://localhost:3000"` (entry 14; explains earlier smoke-test confusion).

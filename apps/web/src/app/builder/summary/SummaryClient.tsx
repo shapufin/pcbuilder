@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { createRuleEngine, type ComponentSpecEntry } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { flyToCart } from '@/lib/fly-to-cart'
+import { track } from '@/lib/analytics'
 import { useBuilderIndex } from '../useBuilderIndex'
 import { useBuilderStore } from '../builder-store'
 import { WarningsPanel } from '../configure/WarningsPanel'
@@ -116,6 +117,7 @@ export function SummaryClient() {
       await refreshCart()
       if (from) flyToCart(from, 'Custom build')
       setCartState('added')
+      track('Add Build to Cart')
     } catch {
       setCartState('error')
     }

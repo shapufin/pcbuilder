@@ -1,12 +1,18 @@
 import type { CollectionConfig } from 'payload'
+import { isManager } from '../lib/access.ts'
+import { invalidateBuilderIndex } from '../lib/builder-index.ts'
 
 export const ComponentCategories: CollectionConfig = {
   slug: 'component-categories',
   access: {
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+  },
+  hooks: {
+    afterChange: [() => invalidateBuilderIndex()],
+    afterDelete: [() => invalidateBuilderIndex()],
   },
   admin: { useAsTitle: 'name' },
   defaultSort: 'sortOrder',

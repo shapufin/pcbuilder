@@ -16,25 +16,25 @@ Monorepo (pnpm 12 + Turborepo) for **BuildMyRig** — a custom-PC storefront: Pa
 
 | Command | What |
 | --- | --- |
-| `pnpm dev` | dev server (turbo → Next dev, port 3000). Background pattern: `Start-Process cmd /c "cd /d <repo> && (pnpm dev) > dev-server.log 2>&1"` |
+| `pnpm dev` | dev server (turbo → Next dev, port 3000). Background pattern: `Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','cd /d <repo> && (pnpm dev) > dev-server.log 2>&1'` (plain `Start-Process cmd /c "…"` fails PowerShell arg parsing) |
 | `pnpm build` | production build (kill stale `node` processes first) |
 | `pnpm start` | prod server — run from `apps/web` (bypasses turbo) |
-| `pnpm test` / `pnpm -r test` | Vitest — current: **123/123** (lib 65, plugin-shop 19, plugin-pc-builder 35, web 4) |
+| `pnpm test` / `pnpm -r test` | Vitest — current: **141/141** (lib 65, plugin-shop 22, plugin-pc-builder 48, web 6) |
 | `pnpm -r typecheck` | tsc --noEmit (expect 0) |
 | `pnpm lint` | turbo lint — `apps/web` uses real ESLint flat config (`eslint .`), expect 0 problems |
 | `pnpm seed` | reseed dev DB (31 components, 42 rules, 34 products, 2 templates) |
 | `pnpm loadtest` | `scripts/load-test.mjs` — local load test (needs a running server; use prod build for real numbers) |
 | `pnpm payload -- <cmd>` | Payload CLI in apps/web (e.g. `generate:types`) |
 
-Test numbering convention: tests are numbered cumulatively across entries (#1–#58 so far) and referenced in the progress log.
+Test numbering convention: tests are numbered cumulatively across entries (#1–#76 so far) and referenced in the progress log.
 
 Credentials: `admin@buildmyrig.test` / `Password123!` (id1 admin, id2 manager, id3 staff `staff@buildmyrig.test`).
 
-## Current phase status (2026-09-28)
+## Current phase status (2026-09-29)
 
-Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**. Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological).
+Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**. Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological). GitHub: `github.com/shapufin/pcbuilder` `main` — push after each completed round (done for `ce6f133` + entry 14).
 
-Session history (one line each, entries 1–13 in the progress log):
+Session history (one line each, entries 1–14 in the progress log):
 
 1. Phase 1c storefront + review fixes.
 2–6. (earlier sessions) builder phases 2a–2e.
@@ -44,8 +44,9 @@ Session history (one line each, entries 1–13 in the progress log):
 10. **Entry 11** — Phase 4 security review (5 fixes: Users privilege escalation, media SVG/staff write, configured-builds access, CSRF origin allowlist, error-message leaks) + 8 access tests (#45–52).
 11. **Entry 12** — entry-11 review (SHIP), audit **35 → 0 vulns** (next 16.3.6 within payload peer window; esbuild override in `pnpm-workspace.yaml`), CI audit/secret-scan blocking, `docs/admin-training.md`.
 12. **Entry 13** — entry-12 review (SHIP after fixes): real ESLint flat config (the `next lint` gate was dead under Next 16), **Stripe webhook handlers** (TDD #53–58; the adapter previously ACK'd events without settling anything), **webhook e2e 14/14** (signature reject, settle, replay-idempotency, refund, cleanup), **load test** (prod p50: 31 ms pages, 241/720 ms APIs; limiter holds: 400×29 + 429×31).
+13. **Entry 14** — GitHub push (`ce6f133`), then the entry-10 deferrals + Phase-4 deltas (TDD #59–76): access-matrix tightening (11 collections via shared `isStaff`/`isManager` helpers, live-verified 403/401/200 matrix), builder-index 30 s cache + composite `rulesVersion` + invalidation hooks, rule-manager rewrite (inline edit, add/duplicate, CSV import preview-diff with Confirm/Cancel) incl. **export-name vs resolve-slug round-trip bug fix** (#74–76), Build Stats view + staff+ `/api/builder/stats`, legal footer, Plausible analytics events. Gates: 141/141, typecheck 0, lint 0, build 0.
 
-Remaining Phase 4: Stripe **live** e2e (owner must supply `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` in `.env`), Playwright/Lighthouse gates (no browser on this machine), Sentry DSN (owner), admin-GUI deltas (rule-manager inline edit/export/CSV preview-diff, Build Stats view, `rulesVersion`/cache-invalidation), legal pages, migrations dry-run.
+Remaining Phase 4: Stripe **live** e2e (owner must supply `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` in `.env`), Playwright/Lighthouse gates (no browser on this machine), Sentry DSN (owner), Postgres migrations dry-run (no Docker). Cart-drawer/dialog animations from Phase 3 remain deferred with their components.
 
 ## How we work (workflow)
 
@@ -60,7 +61,8 @@ Remaining Phase 4: Stripe **live** e2e (owner must supply `STRIPE_SECRET_KEY`/`S
 - **PowerShell quoting**: never inline JSON/quotes in `curl --data` from PS. Write JSON to a file and use `curl.exe --data @file`; use `[System.IO.File]::WriteAllText` for exact unicode. `curl -o $null` still dumps the body to the PS stream — use a real temp file (`C:\Users\EDEMNUSHIW\AppData\Local\Temp\opencode\`). Take strings for `Edit` oldString from the `Read` tool (real unicode), not PS console output (mojibake `—`/`€`).
 - **turbo strict env mode**: shell-injected env vars (`set STRIPE_KEY=…&& pnpm dev`) are *stripped* from `pnpm dev` tasks. Put keys in `.env` (child loads it) or `pnpm dev --env-mode=loose`. `pnpm start` from `apps/web` bypasses turbo and inherits env.
 - **Stripe webhook**: route `POST /api/payments/stripe/webhooks` exists **only when `STRIPE_SECRET_KEY` is set** (404 is correct keyless). The `transactions` schema conditionally gains `paymentMethod` + `stripe` columns when an adapter exists — dev push self-heals on first key-ful boot; production must migrate *before* setting keys. Handlers live in `packages/plugin-shop/src/payments/stripe-webhooks.ts` (CAS-idempotent; deviate-from-plan event-id store intentionally).
-- **CSRF**: cookie-authed requests need `Origin: http://localhost:3000` (allowlist: `BMR_URL` + localhost; `BMR_URL` must be set in prod). Note `BMR_URL` trailing slashes are normalized.
+- **CSRF**: cookie-authed requests need `Origin: http://localhost:3000` (allowlist: `BMR_URL` + localhost; `BMR_URL` must be set in prod). Note `BMR_URL` trailing slashes are normalized. This applies to **GETs too** — a REST GET with a session cookie and no Origin returns `200 {user:null}`/401 that looks like an auth failure (browsers are fine; curl/scripts must send the header).
+- **New admin components** (`components.views`/`afterNavLinks`): run `pnpm payload -- generate:importmap` (dev server stopped) or the route 500s on the missing specifier.
 - **pnpm 12** ignores `pnpm.overrides` in package.json → overrides live in `pnpm-workspace.yaml` (esbuild `0.18.20 → 0.25.12` must survive upgrades).
 - **Next peer windows are narrow**: payload 3.90.2 wants `>=15.4.11 <15.5.0 || >=16.3.3 <17.0.0` — check `@payloadcms/next` peers before any next bump.
 - **SQLite push races**: `push: true` is not idempotent under concurrent pushes (dev server + `payload run`) — never run both.
@@ -71,7 +73,9 @@ Remaining Phase 4: Stripe **live** e2e (owner must supply `STRIPE_SECRET_KEY`/`S
 ## Key file map
 
 - Payment path: `packages/plugin-shop/src/index.ts` (adapter wiring) → `src/payments/stripe-webhooks.ts` (+ `.test.ts`, #53–58) → adapter internals at `packages/plugin-shop/node_modules/@payloadcms/plugin-ecommerce/dist/payments/adapters/stripe/`.
-- Access control: `apps/web/src/collections/Users.ts`, `packages/plugin-shop/collections/media.ts`, `packages/plugin-pc-builder/src/collections/configured-builds.ts`, CSRF in `apps/web/src/payload.config.ts`.
+- Access control: `apps/web/src/collections/Users.ts`, `packages/plugin-shop/collections/media.ts`, `packages/plugin-pc-builder/src/collections/configured-builds.ts`, CSRF in `apps/web/src/payload.config.ts`; entry-14 matrix helpers `packages/{plugin-pc-builder,plugin-shop}/src/lib/access.ts` (`isStaff`/`isManager`, tests `collections/access-matrix.test.ts`).
+- Builder ops: `packages/plugin-pc-builder/src/lib/builder-index.ts` (cached index + `rulesVersion`), `src/lib/rule-import.ts` + `src/endpoints.ts` (dryRun import), admin views `src/admin/{RuleManagerView,BuildStatsView}.tsx`, stats `src/lib/build-stats.ts`.
+- Analytics: `apps/web/src/lib/analytics.ts` (Plausible `track()`, gated on `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`).
 - CI: `.github/workflows/ci.yml` (lint, typecheck, test, build, audit, secret-scan — all blocking).
 - Load test: `scripts/load-test.mjs`.
 - Plan docs: `docs/buildmyrig-plan/` (`00-index.md` status → `18-progress-log.md` history → `15-delivery-phases.md` DoDs → topic docs 01–16).

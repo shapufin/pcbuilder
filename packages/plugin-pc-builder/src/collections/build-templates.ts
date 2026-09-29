@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isManager } from '../lib/access.ts'
 import { slotComponentIds, templateBasePrice, type PricedComponent } from '../lib/template-price.ts'
 
 /** ISR pages that render build templates (both revalidate = 60). */
@@ -16,9 +17,9 @@ export const BuildTemplates: CollectionConfig = {
   slug: 'build-templates',
   access: {
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   versions: { drafts: true },
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'tags', 'basePrice', '_status'] },

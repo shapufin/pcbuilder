@@ -1,4 +1,6 @@
 import type { CollectionConfig } from 'payload'
+import { isManager, isStaff } from '../lib/access.ts'
+import { invalidateBuilderIndex } from '../lib/builder-index.ts'
 
 const RULE_TYPES = ['requires', 'excludes', 'supports', 'warns'] as const
 const OPERATORS = ['equals', 'in', 'gte', 'lte', 'contains'] as const
@@ -7,10 +9,14 @@ const SEVERITIES = ['error', 'warning', 'info'] as const
 export const CompatibilityRules: CollectionConfig = {
   slug: 'compatibility-rules',
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
+    create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+    delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
+  },
+  hooks: {
+    afterChange: [() => invalidateBuilderIndex()],
+    afterDelete: [() => invalidateBuilderIndex()],
   },
   admin: {
     useAsTitle: 'id',
