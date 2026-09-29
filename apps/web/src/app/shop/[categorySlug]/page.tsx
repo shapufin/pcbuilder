@@ -135,7 +135,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <JsonLd
         data={breadcrumbJsonLd([
           { name: 'Home', url: '/' },
-          { name: 'Shop', url: '/shop/components' },
+          { name: 'Shop', url: '/shop' },
           { name: category.title, url: `/shop/${categorySlug}` },
         ])}
       />

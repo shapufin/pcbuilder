@@ -10,7 +10,10 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
   },
-  auth: true,
+  // Entry 15: lockout after 5 failed logins (11-access-security.md); payload
+  // adds loginAttempts/lockUntil columns — dev push self-heals, prod must
+  // migrate before deploying.
+  auth: { maxLoginAttempts: 5, lockTime: 10 * 60 * 1000 },
   access: {
     // 11-access-security.md matrix: admin writes users, everyone else may only
     // read their own profile. Previously create/update/delete were
@@ -34,8 +37,10 @@ export const Users: CollectionConfig = {
       name: 'roles',
       type: 'select',
       hasMany: true,
-      defaultValue: ['staff'],
-      options: ['admin', 'manager', 'staff'],
+      // Entry 15: least-privilege default for anyone who signs up via
+      // /auth/register or the admin UI (seeded staff/admin set roles explicitly).
+      defaultValue: ['customer'],
+      options: ['admin', 'manager', 'staff', 'customer'],
       access: {
         read: () => true,
         // Only admins assign roles — self-update must not allow escalation.

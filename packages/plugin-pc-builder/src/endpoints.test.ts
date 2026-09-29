@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PayloadRequest } from 'payload'
-import { builderRulesImportEndpoint } from './endpoints.ts'
+import { builderClaimBuildEndpoint, builderRulesImportEndpoint, builderUseTemplateEndpoint } from './endpoints.ts'
 
 /**
  * Entry 14: CSV export writes category NAMES but the import endpoint resolved
@@ -49,14 +49,26 @@ const makePayload = (existing: Doc[] = []) => {
       created.push(doc)
       return doc
     }),
+    update: vi.fn(async ({ id, data }: { id: string | number; data: Doc }) => {
+      const doc = [...existing, ...created].find((d) => d.id === id)
+      if (!doc) throw new Error('not found')
+      Object.assign(doc, data)
+      return doc
+    }),
   }
 }
 
-const makeReq = (body: unknown, payload: ReturnType<typeof makePayload>, roles = ['admin']): PayloadRequest =>
+const makeReq = (
+  body: unknown,
+  payload: ReturnType<typeof makePayload>,
+  roles = ['admin'],
+  routeParams?: Record<string, string>,
+): PayloadRequest =>
   ({
-    user: roles.length ? { roles, collection: 'users' } : null,
+    user: roles.length ? { id: 7, roles, collection: 'users' } : null,
     json: async () => body,
     payload,
+    routeParams,
   }) as unknown as PayloadRequest
 
 const row = (over: Partial<Record<string, unknown>> = {}): Record<string, unknown> => ({
@@ -163,5 +175,110 @@ describe('rules import endpoint — entry 14 (name-vs-slug resolution)', () => {
     const anon = await call({ dryRun: true, rows: [row()] }, payload, [])
     expect(anon.status).toBe(401)
     expect(payload.create).not.toHaveBeenCalled()
+  })
+})
+
+const claim = (body: unknown, payload: ReturnType<typeof makePayload>, roles = ['customer']) =>
+  builderClaimBuildEndpoint.handler!(makeReq(body, payload, roles))
+
+describe('claim endpoint — entry 15 (anonymous save -> account)', () => {
+  it('#85 anonymous -> 401; invalid body -> 400; unknown shareId -> 404', async () => {
+    const payload = makePayload()
+    expect((await claim({ shareId: 'ghost' }, payload, [])).status).toBe(401)
+    expect((await claim({}, payload)).status).toBe(400)
+    expect((await claim({ shareId: 'ghost' }, payload)).status).toBe(404)
+    expect(payload.update).not.toHaveBeenCalled()
+  })
+
+  it('#86 ownership: guest build claimable; foreign build -> 403; own build -> idempotent 200', async () => {
+    const guest = { id: 55, user: null, shareId: 'guest-share', name: 'Anonymous build' }
+    const foreign = { id: 60, user: { id: 999, collection: 'users' }, shareId: 'his-share' }
+    const own = { id: 61, user: 7, shareId: 'my-share' }
+    const payload = makePayload([guest, foreign, own])
+
+    const res = await claim({ shareId: 'guest-share' }, payload)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ id: 55, claimed: true })
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'configured-builds',
+        id: 55,
+        data: { user: 7 },
+      }),
+    )
+    expect(guest.user).toBe(7)
+
+    expect((await claim({ shareId: 'his-share' }, payload)).status).toBe(403)
+    const mine = await claim({ shareId: 'my-share' }, payload)
+    expect(mine.status).toBe(200)
+    expect(await mine.json()).toMatchObject({ id: 61, claimed: false, alreadyClaimed: true })
+    expect(payload.update).toHaveBeenCalledTimes(1)
+  })
+})
+
+/** Entry 15 live probes: use-template created price-0 builds with 8 EMPTY slots —
+ *  the endpoint read `slot.components` (configured-builds shape) but build-templates
+ *  store a singular `component` relationship. */
+const templatePayload = (template: Doc) => {
+  const created: Doc[] = []
+  const collections: Record<string, Doc[]> = {
+    'component-categories': [
+      { id: 4, slug: 'os', name: 'Operating System', required: true, maxSelectable: 1, sortOrder: 0 },
+    ],
+    components: [
+      {
+        id: 31,
+        name: 'Microsoft Windows 11 Home',
+        category: { id: 4 },
+        productVariant: { id: 90, priceInEUR: 11900 },
+      },
+    ],
+    'compatibility-rules': [],
+    'derived-power-rules': [],
+  }
+  return {
+    created,
+    find: vi.fn(async ({ collection }: { collection: string }) => ({ docs: collections[collection] ?? [] })),
+    findByID: vi.fn(async () => template),
+    update: vi.fn(async ({ id, data }: { id: string | number; data: Doc }) => ({ id, ...data })),
+    create: vi.fn(async ({ data }: { data: Doc }) => {
+      const doc = { id: 100, ...data }
+      created.push(doc)
+      return doc
+    }),
+  }
+}
+
+const useTemplate = (payload: ReturnType<typeof templatePayload>, id: string) =>
+  builderUseTemplateEndpoint.handler!(makeReq({}, payload, ['customer'], { id }))
+
+describe('use template endpoint — entry 15 (live probe regressions)', () => {
+  it('#91 singular component slots (build-templates shape) become real build slots', async () => {
+    const payload = templatePayload({
+      id: 1,
+      name: 'Vanguard',
+      popularity: 0,
+      slots: [{ category: { id: 4 }, component: { id: 31 } }],
+    })
+    const res = await useTemplate(payload, '1')
+    const data = await res.json()
+    expect(res.status).toBe(200)
+    expect(data.shareId).toBeTruthy()
+    expect(payload.created[0].slots).toEqual([{ category: 4, components: [31] }])
+    expect(payload.created[0].priceSnapshot).toBe(11900)
+  })
+
+  it('#92 template with no usable components -> 400, no build, no popularity bump', async () => {
+    const payload = templatePayload({
+      id: 2,
+      name: 'Hollow',
+      popularity: 0,
+      slots: [{ category: { id: 4 }, component: null }],
+    })
+    const res = await useTemplate(payload, '2')
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ error: expect.stringContaining('no components') })
+    expect(payload.created).toHaveLength(0)
+    expect(payload.update).not.toHaveBeenCalled()
   })
 })

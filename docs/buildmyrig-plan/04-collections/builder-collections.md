@@ -64,7 +64,7 @@ Access: public read, admin/manager write. Hooks: `afterChange` → rebuild serve
 | basePrice | number (computed from slots, read-only field override allowed) | |
 | popularity | number (incremented on "start from template") | |
 
-Access: public read, manager write. Drafts on.
+Access: public read, manager write. Drafts on. `POST /api/builder/templates/:id/use` instantiates the template (popularity +1, returns `buildId`/`shareId`) — since entry 15 it reads the **singular `component`** slot shape documented above and 400s on component-less templates instead of persisting an empty, price-0 build.
 
 ## ConfiguredBuild
 
@@ -78,4 +78,4 @@ Access: public read, manager write. Drafts on.
 | status | select: draft / addedToCart / ordered | |
 | name | text | "My 4K gaming rig" |
 
-Access: owner read/write (user match) + share read via shareId lookup (public read hook checks shareId param server-side), admin read. Hooks: `beforeChange` → run server rule engine, store validationSnapshot + recompute priceSnapshot from current DB prices; `afterChange` → invalidate share page cache tag.
+Access: owner read/write (user match) + share read via shareId lookup (public read hook checks shareId param server-side), admin read. Hooks: `beforeChange` → run server rule engine, store validationSnapshot + recompute priceSnapshot from current DB prices; `afterChange` → invalidate share page cache tag. **Guest→account attach (entry 15)**: `POST /api/builder/builds/claim` sets `user` on a `user: null` build — capability = possession of the 96-bit shareId **and** an authenticated session; foreign → 403, own → idempotent `alreadyClaimed` (see 08-api-surface.md).

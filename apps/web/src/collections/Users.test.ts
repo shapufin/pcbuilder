@@ -6,6 +6,8 @@ const rolesField = Users.fields.find(
   (f) => (f as { name?: string }).name === 'roles',
 ) as {
   access?: Record<string, unknown>
+  options?: (string | { value: string })[]
+  defaultValue?: unknown
 }
 
 const call = (fn: unknown, args: unknown): unknown => (fn as (a: unknown) => unknown)(args)
@@ -45,5 +47,17 @@ describe('users access — entry 11 privilege-escalation fix', () => {
     expect(call(rolesField.access?.create, staff)).toBe(false)
     expect(call(rolesField.access?.update, admin)).toBe(true)
     expect(call(rolesField.access?.create, admin)).toBe(true)
+  })
+})
+
+describe('users roles/auth config — entry 15 (least-privilege signup)', () => {
+  it('#87 customer role exists with least-privilege default; login lockout enabled', () => {
+    const values = (rolesField.options ?? []).map((o) => (typeof o === 'string' ? o : o.value))
+    expect(values).toContain('customer')
+    expect(rolesField.defaultValue).toEqual(['customer'])
+    expect(Users.auth).toMatchObject({
+      maxLoginAttempts: 5,
+      lockTime: 10 * 60 * 1000,
+    })
   })
 })

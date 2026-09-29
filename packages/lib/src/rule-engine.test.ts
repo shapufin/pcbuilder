@@ -689,6 +689,49 @@ describe('rule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.m
     expect(bad.errors).toHaveLength(1)
     expect(bad.errors[0].ruleId).toBe('r39')
   })
+
+  // Entry 15 — live probe: seeded template (CPU + Corsair H150i Elite) was
+  // rejected with 4× "needs a cooler that supports …" because the dynamic
+  // mirror compared specs present only on the cooler against the CPU's
+  // undefined spec. A8: missing spec never violates (06-rule-engine.md L129).
+
+  const coolerRuleIndex = () =>
+    baseIndex(
+      [
+        comp('cpu-a', 'cpu', { socket: 'AM5' }),
+        comp('cool-ok', 'cooling', { coolerSocketSupport: ['AM5', 'LGA1700'] }),
+        comp('cool-lga', 'cooling', { coolerSocketSupport: ['LGA1700'] }),
+      ],
+      [
+        rule({
+          id: 'r-cool',
+          operator: 'contains',
+          field: 'coolerSocketSupport',
+          value: ['AM5'],
+          bidirectional: true,
+          subject: { kind: 'component', id: 'cpu-a' },
+          target: { kind: 'category', id: 'cooling' },
+          message: '{componentA} needs a cooler that supports AM5.',
+        }),
+      ],
+    )
+
+  it('#89 asymmetric bidirectional requires: matching CPU+cooler validates, wrong cooler still blocked', () => {
+    const engine = createRuleEngine(coolerRuleIndex())
+    const ok = engine.validateSelections({ cpu: ['cpu-a'], cooling: ['cool-ok'] })
+    expect(ok.errors).toEqual([])
+    const bad = engine.validateSelections({ cpu: ['cpu-a'], cooling: ['cool-lga'] })
+    expect(bad.errors).toHaveLength(1)
+    expect(bad.errors[0].message).toContain('needs a cooler that supports AM5')
+  })
+
+  it('#90 evaluate: cooler pre-selected does not exclude CPUs (mirror skips missing spec)', () => {
+    const engine = createRuleEngine(coolerRuleIndex())
+    const res = engine.evaluate({ cooling: ['cool-ok'] })
+    const cpu = res.categories.find((c) => c.categoryId === 'cpu')!
+    expect(cpu.excluded).toEqual([])
+    expect(cpu.validComponentIds).toEqual(['cpu-a'])
+  })
 })
 
 function engineComponents(): ComponentSpecEntry[] {

@@ -193,7 +193,7 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
-  roles?: ('admin' | 'manager' | 'staff')[] | null;
+  roles?: ('admin' | 'manager' | 'staff' | 'customer')[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;

@@ -42,6 +42,7 @@
 - Accordion "power mode" builder view.
 - Wishlist sharing/social; wishlist persistence server-side (v1 is local).
 - Google OAuth + more social login.
+- Password reset / forgot-password flow (Resend email adapter not yet wired — entry 15; no link ships in v1 UI).
 - Affiliate program, referral codes.
 - Live carrier shipping rates + label printing.
 - Live tax service (TaxJar/Avalara).

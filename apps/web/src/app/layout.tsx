@@ -5,6 +5,7 @@ import Script from 'next/script'
 import type { Metadata } from 'next'
 import { EcommerceShell } from '../components/EcommerceShell'
 import { CartBadge } from '../components/CartBadge'
+import { AccountNav } from '../components/AccountNav'
 import { SiteFooter } from '../components/SiteFooter'
 import { JsonLd, organizationJsonLd } from '@/lib/jsonld'
 
@@ -36,12 +37,13 @@ export default function RootLayout({
             <Link href="/" style={{ fontWeight: 800, fontSize: 18, color: '#e2e8f0', textDecoration: 'none' }}>
               BuildMyRig
             </Link>
-            <Link href="/shop/components" style={{ color: '#94a3b8', textDecoration: 'none' }}>Shop</Link>
+            <Link href="/shop" style={{ color: '#94a3b8', textDecoration: 'none' }}>Shop</Link>
             <Link href="/builder" style={{ color: '#94a3b8', textDecoration: 'none' }}>Builder</Link>
+            <AccountNav />
             <Link
               href="/cart"
               id="cart-anchor"
-              style={{ color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' }}
+              style={{ color: '#94a3b8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
             >
               Cart
               <CartBadge />

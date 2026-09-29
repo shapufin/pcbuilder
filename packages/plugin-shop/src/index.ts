@@ -16,6 +16,7 @@ import {
   type CartBeforeChangeHook,
 } from './lib/line-item-hooks.ts'
 import { cartAddBuildEndpoint, cartValidateBuildsEndpoint } from './endpoints.ts'
+import { isStaff } from './lib/access.ts'
 import { stripeWebhooks } from './payments/stripe-webhooks.ts'
 
 /**
@@ -115,6 +116,28 @@ export const shopPlugin =
           ({
             ...defaultCollection,
             fields: extendItemsFields(defaultCollection.fields),
+            // Entry 15 (04-collections/commerce.md): owner read = customer id
+            // OR customerEmail match (guest orders later claimed/linked by
+            // email) + staff read. The plugin default (isAdmin OR
+            // isDocumentOwner) only matched the customer id. Non-staff users
+            // only ever get a where scoped to their OWN id/email, so this
+            // cannot widen access to other customers' orders.
+            access: {
+              ...defaultCollection.access,
+              read: (({ req }: { req: PayloadRequest }) => {
+                if (!req.user) return false
+                if (isStaff(req.user as { roles?: string[] | null } | null)) return true
+                const user = req.user as { id: number | string; email?: string | null }
+                return user.email
+                  ? {
+                      or: [
+                        { customer: { equals: user.id } },
+                        { customerEmail: { equals: user.email } },
+                      ],
+                    }
+                  : { customer: { equals: user.id } }
+              }) as Access,
+            },
             hooks: {
               ...defaultCollection.hooks,
               beforeChange: [...(defaultCollection.hooks?.beforeChange ?? []), validateBuildsAtCheckout],

@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: origin, changeFrequency: 'daily', priority: 1 },
     { url: `${origin}/builder`, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${origin}/shop/components`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${origin}/shop`, changeFrequency: 'daily', priority: 0.9 },
     ...pages.docs
       .filter((p) => !p.isHomepage)
       .map((p) => ({ url: `${origin}/${p.slug}`, changeFrequency: 'monthly' as const, priority: 0.6 })),

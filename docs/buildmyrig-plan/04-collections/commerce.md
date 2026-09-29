@@ -20,7 +20,7 @@ Guest + user carts supported by the plugin; on login, plugin-shop's `afterLogin`
 | --- | --- | --- |
 | orderNumber | text unique (BMR-2026-000001) | |
 | customer | rel → customers | |
-| email | text | guest checkout |
+| customerEmail | text | guest checkout (plugin-ecommerce's field name — the account/orders queries match on `customer = user.id` OR `customerEmail = user.email`) |
 | status | select: pending → paid → fulfilled → shipped → delivered | cancelled / refunded terminal states |
 | lineItems | array: { variant rel, quantity, lineType, configuredBuild rel, subItems: [{ component rel, quantity }] } | subItems power per-component fulfillment picking |
 | billingAddress / shippingAddress | rel → addresses | |
@@ -30,7 +30,7 @@ Guest + user carts supported by the plugin; on login, plugin-shop's `afterLogin`
 | transactions | rel → transactions | |
 | history | array: { status, at, by } | audit |
 
-Access: owner read (customer or email match), staff read, manager/admin write, **public write = none** (order created only by server checkout handler). Versions off. Hooks: `afterChange` (status=paid) → decrement inventory, release reservations, send confirmation email, analytics `purchase`; (shipped) → shipping email; (refunded) → Stripe refund reconciliation.
+Access: owner read (customer or email match — the `customerEmail` clause implemented as an `access.read` override in plugin-shop at entry 15, because the ecommerce plugin's default matched only the customer id and hid guest-email orders from their owner's `/account`), staff read, manager/admin write, **public write = none** (order created only by server checkout handler). Versions off. Hooks: `afterChange` (status=paid) → decrement inventory, release reservations, send confirmation email, analytics `purchase`; (shipped) → shipping email; (refunded) → Stripe refund reconciliation.
 
 ## Transactions
 

@@ -66,20 +66,32 @@ export const useBuilderStore = create<BuilderState>()(
       nextStep: (lastIndex) => set((s) => ({ stepIndex: Math.min(lastIndex, s.stepIndex + 1) })),
       prevStep: () => set((s) => ({ stepIndex: Math.max(0, s.stepIndex - 1) })),
 
+      // Entry-15 review (#93): any selection change invalidates the
+      // server-persisted draft — the summary CTAs (save/claim/add-to-cart)
+      // must create a fresh build doc instead of reusing one whose slots no
+      // longer match the current configuration.
       toggleSelect: (categoryId, componentId, maxSelectable) =>
         set((s) => {
           const current = s.selections[categoryId] ?? []
           const selected = current.includes(componentId)
           if (maxSelectable <= 1) {
-            return { selections: { ...s.selections, [categoryId]: selected ? [] : [componentId] } }
+            return {
+              buildId: null,
+              shareId: null,
+              selections: { ...s.selections, [categoryId]: selected ? [] : [componentId] },
+            }
           }
           if (selected) {
             return {
+              buildId: null,
+              shareId: null,
               selections: { ...s.selections, [categoryId]: current.filter((id) => id !== componentId) },
             }
           }
           const next = [...current, componentId]
           return {
+            buildId: null,
+            shareId: null,
             selections: {
               ...s.selections,
               [categoryId]: next.length > maxSelectable ? next.slice(next.length - maxSelectable) : next,
@@ -89,13 +101,20 @@ export const useBuilderStore = create<BuilderState>()(
 
       removeComponent: (categoryId, componentId) =>
         set((s) => ({
+          buildId: null,
+          shareId: null,
           selections: {
             ...s.selections,
             [categoryId]: (s.selections[categoryId] ?? []).filter((id) => id !== componentId),
           },
         })),
 
-      clearSlot: (categoryId) => set((s) => ({ selections: { ...s.selections, [categoryId]: [] } })),
+      clearSlot: (categoryId) =>
+        set((s) => ({
+          buildId: null,
+          shareId: null,
+          selections: { ...s.selections, [categoryId]: [] },
+        })),
 
       setQuery: (query) => set({ query }),
       setBrand: (brand) => set({ brand }),

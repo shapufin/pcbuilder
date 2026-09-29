@@ -393,11 +393,14 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
     let warns: Set<string> | null = null
     for (const candidate of candidates) {
       if (!appliesTo(rule, candidate)) continue
-      const cond = satisfiesOperator(
-        rule.operator,
-        candidate.specs[rule.field],
-        subjectEntry.specs[rule.field] as string | number | (string | number)[],
-      )
+      // A8 — missing spec never violates: `coolerSocketSupport` exists only on
+      // the cooler, so the mirror must not compare the candidate's spec against
+      // the other side's undefined (asymmetric fields are checked by the
+      // forward rule instead).
+      const candidateSpec = candidate.specs[rule.field]
+      const subjectSpec = subjectEntry.specs[rule.field]
+      if (candidateSpec == null || subjectSpec == null) continue
+      const cond = satisfiesOperator(rule.operator, candidateSpec, subjectSpec as string | number | (string | number)[])
       if (cond) continue
       if (blocking) {
         blocked ??= new Set()
@@ -465,11 +468,13 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
               if (!cond) continue
               isBlocked = rule.severity === 'error'
             } else {
-              const cond = satisfiesOperator(
-                rule.operator,
-                b.specs[rule.field],
-                a.specs[rule.field] as string | number | (string | number)[],
-              )
+              // A8 — missing spec never violates (mirrors the evaluate-path skip
+              // in dynamicMirrorSets: asymmetric fields like coolerSocketSupport
+              // must not be compared against the other side's undefined spec).
+              const aSpec = a.specs[rule.field]
+              const bSpec = b.specs[rule.field]
+              if (aSpec == null || bSpec == null) continue
+              const cond = satisfiesOperator(rule.operator, bSpec, aSpec as string | number | (string | number)[])
               const violates = !cond
               if (!violates) continue
               isBlocked = rule.type !== 'warns' && rule.severity === 'error'

@@ -110,6 +110,7 @@ type ImportRow = z.infer<typeof importRowSchema>
 
 const buildsLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 const useTemplateLimiter = rateLimit({ windowMs: 60_000, max: 30 })
+const claimLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 
 const clientIp = (req: PayloadRequest): string =>
   req.headers?.get?.('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -253,6 +254,68 @@ export const builderSaveBuildEndpoint: Endpoint = {
   },
 }
 
+const claimSchema = z.object({ shareId: z.string().min(1).max(64) })
+
+/**
+ * Entry 15: POST /builder/builds/claim — attach an anonymous guest build
+ * (saved while signed out) to the signed-in account. Possession of the
+ * unguessable 96-bit shareId + an authenticated session is the claim
+ * capability; owned builds are never re-assigned (foreign -> 403, own ->
+ * idempotent 200).
+ */
+export const builderClaimBuildEndpoint: Endpoint = {
+  path: '/builder/builds/claim',
+  method: 'post',
+  handler: async (req: PayloadRequest): Promise<Response> => {
+    const limited = rateLimited(claimLimiter, req)
+    if (limited) return limited
+    if (!req.user) return bad(401, 'login required')
+    let body: unknown
+    try {
+      body = await req.json?.()
+    } catch {
+      return bad(400, 'invalid JSON body')
+    }
+    const parsed = claimSchema.safeParse(body)
+    if (!parsed.success) return bad(400, 'shareId required')
+    const res = await req.payload.find({
+      collection: 'configured-builds',
+      where: { shareId: { equals: parsed.data.shareId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const doc = res.docs[0] as
+      | { id: string | number; user?: { id: string | number } | string | number | null }
+      | undefined
+    if (!doc) return bad(404, 'build not found')
+    const ownerId =
+      doc.user == null
+        ? null
+        : typeof doc.user === 'object'
+          ? doc.user.id
+          : doc.user
+    if (ownerId !== null) {
+      if (String(ownerId) === String(req.user.id)) {
+        return ok({
+          id: doc.id,
+          shareId: parsed.data.shareId,
+          claimed: false,
+          alreadyClaimed: true,
+        })
+      }
+      return bad(403, 'build belongs to another user')
+    }
+    await req.payload.update({
+      collection: 'configured-builds',
+      id: doc.id,
+      data: { user: req.user.id } as never,
+      overrideAccess: true,
+    })
+    return ok({ id: doc.id, shareId: parsed.data.shareId, claimed: true })
+  },
+}
+
 export const builderShareBuildEndpoint: Endpoint = {
   path: '/builder/builds/:shareId',
   method: 'get',
@@ -322,23 +385,34 @@ export const builderUseTemplateEndpoint: Endpoint = {
       overrideAccess: true,
     } as never)
     if (!template) return bad(404, 'template not found')
+    // build-templates store a SINGULAR `component` relationship; configured-builds
+    // use `components[]`. Accept both shapes, drop empty slots, and refuse to
+    // instantiate a component-less template (entry-15 probes: the plural-only read
+    // silently created price-0 builds with empty slots).
+    const rawSlots =
+      (template as { slots?: { category?: unknown; component?: unknown; components?: unknown[] }[] | null }).slots ?? []
+    const slots: BuildSlot[] = rawSlots
+      .map((slot) => {
+        const raw = slot.components ?? (slot.component == null ? [] : [slot.component])
+        return {
+          categoryId:
+            slot.category && typeof slot.category === 'object' && 'id' in slot.category
+              ? String(slot.category.id)
+              : String(slot.category),
+          componentIds: raw
+            .filter((c) => c != null)
+            .map((c) => (c && typeof c === 'object' && 'id' in c ? String(c.id) : String(c)))
+            .filter(Boolean),
+        }
+      })
+      .filter((s) => s.componentIds.length > 0)
+    if (slots.length === 0) return bad(400, 'template has no components')
     await req.payload.update({
       collection: 'build-templates',
       id: template.id,
       overrideAccess: true,
       data: { popularity: ((template as { popularity?: number }).popularity ?? 0) + 1 } as never,
     })
-    const slots: BuildSlot[] = (
-      (template as { slots?: { category?: unknown; components?: unknown[] }[] }).slots ?? []
-    ).map((slot) => ({
-      categoryId:
-        slot.category && typeof slot.category === 'object' && 'id' in slot.category
-          ? String(slot.category.id)
-          : String(slot.category),
-      componentIds: (slot.components ?? [])
-        .map((c) => (c && typeof c === 'object' && 'id' in c ? String(c.id) : String(c)))
-        .filter(Boolean),
-    }))
     const normalized = await normalizeSlots(req.payload, slots)
     const result = await createBuildFromSlots(req.payload, normalized, undefined, req.user)
     if (!result.ok) return result.error

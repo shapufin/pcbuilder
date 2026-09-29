@@ -9,16 +9,16 @@ Order per master prompt: shop core → builder → blocks/animations → hardeni
 | Phase 0 — Foundations + spike | ✅ done | Path A (`@payloadcms/plugin-ecommerce`) adopted; SQLite dev fallback (no Docker on dev machine) |
 | Phase 1 — Catalog, products, storefront, cart, checkout UI | ✅ done | `/shop/[categorySlug]`, `/product/[slug]`, `/cart`, `/checkout` live; 34 seeded products |
 | Phase 1 — Stripe wiring | ✅ done | Conditional on `STRIPE_SECRET_KEY`; endpoints `/api/payments/stripe/*` |
-| Phase 1 — e2e happy path (Playwright) | ⏳ blocked | Needs real Stripe test keys in `.env` (owner action) |
+| Phase 1 — e2e happy path (Playwright) | 🟡 partial | Shop/builder/auth legs green in `apps/web/e2e` (entry 16, 6/6 via `pnpm test:e2e`); checkout leg blocked — needs real Stripe test keys in `.env` (owner action) |
 | Phase 2a — Rule engine (TDD) | ✅ done | 28/28 Vitest, 5k-component scale benchmark <20ms |
 | Phase 2b — Builder collections + seed | ✅ done | 6 collections, 31 components / 9 slots, 42 rules, 2 build templates |
 | Phase 2c — Admin rule manager + conflicts field | ✅ done | `/admin/compatibility-rules-manager`, live-conflicts ui field, builder index/conflicts/import endpoints; admin RootLayout bug fixed |
 | Phase 2d — Configurator UI | ✅ done | `/builder` landing + `/builder/configure` step flow + `/builder/summary` stub; live filtering/warnings/power from the client engine; draft persisted in localStorage |
 | Phase 2e — Summary + share + composite cart line + server validation at checkout | ✅ done | `POST /api/builder/builds` + share read + `POST /api/carts/:id/add-build` composite line + orders beforeChange re-validation; summary CTAs live |
 | Phase 3 - Blocks + animations | done | Pages collection + 12 blocks + registry; homepage/marketing routes; sitemap/robots/JSON-LD; newsletter endpoint; sec-4 badge/fly/share animations |
-| Phase 4 — Hardening & launch | in progress | Security/access review + fixes (entry 11); review round, dependency audit → 0 vulns (next 16.3.6 + esbuild override), CI audit/secret gates, admin training doc (entry 12); entry-12 review + real ESLint gate, Stripe webhook handlers + e2e idempotency proof, load test (entry 13); access-matrix tightening, admin-GUI deltas (rule manager inline edit/import preview, Build Stats, `rulesVersion` cache), legal footer, analytics (entry 14); remaining: Stripe live e2e, Playwright/Lighthouse, Sentry, Postgres migrations dry-run |
+| Phase 4 — Hardening & launch | in progress | Security/access review + fixes (entry 11); review round, dependency audit → 0 vulns (next 16.3.6 + esbuild override), CI audit/secret gates, admin training doc (entry 12); entry-12 review + real ESLint gate, Stripe webhook handlers + e2e idempotency proof, load test (entry 13); access-matrix tightening, admin-GUI deltas (rule manager inline edit/import preview, Build Stats, `rulesVersion` cache), legal footer, analytics (entry 14); auth + `/account` + build-claim flow with full live probes, two live-found builder bugs fixed (A8 mirror skip, use-template shape), security + code review (entry 15); remaining: Stripe live e2e, Playwright/Lighthouse, Sentry, Postgres migrations dry-run |
 
-Latest commits: `5284cbc` (2b), `eeeb067` (2c); Phases 2d+2e + 2e review fixes + Phase 3 + Phase 3 review fixes are in the working tree (not yet committed). Full detail: [18-progress-log.md](18-progress-log.md).
+Latest commits through `da30e30` (entry 14); entry 15 in the working tree (gated, not committed). Full detail: [18-progress-log.md](18-progress-log.md).
 
 ## Phase 0 — Foundations & spike (week 1)
 
@@ -46,6 +46,7 @@ Pages collection + 12 blocks + registry, homepage/marketing pages, remaining ani
 
 Security review (OWASP checklist), rate limiting, Sentry/uptime/alerting, analytics events, Playwright full suite + Lighthouse CI gates, migrations dry-run on production-like DB, load test checkout + webhook idempotency, admin training doc, legal pages, dependency audit clean.
 Also carries the admin-GUI audit deltas deferred from entry 10 of [18-progress-log.md](18-progress-log.md): access-matrix tightening, rule-manager feature deltas (inline edit / export / CSV preview-diff beyond the current grid), Build Stats view, `rulesVersion`/cache-invalidation hooks — **all four done in entry 14** (TDD #59–76, live-verified).
+**Playwright suite: base gate done in entry 16** (`pnpm test:e2e` — storefront smoke incl. a Shop-link regression test, auth/guard/register flow, builder configure/summary; 6/6 on the prod build). It also found and drove the fix for the dead site-wide `/shop/components` link (new `/shop` landing). Remaining for this phase: checkout/webhook e2e leg (Stripe keys), Lighthouse ≥90 audit (chromium now present), Sentry DSN, Postgres migrations dry-run.
 **DoD**: OWASP review signed off; e2e green on preview with Neon branch; zero high vulns; go-live checklist complete.
 
 ## Dependencies

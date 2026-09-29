@@ -84,7 +84,7 @@ export const seedPages = async (payload: Payload): Promise<number> => {
         align: 'center',
         ctas: [
           { label: 'Open the builder', url: '/builder', style: 'primary' },
-          { label: 'Browse components', url: '/shop/components', style: 'secondary' },
+          { label: 'Browse components', url: '/shop', style: 'secondary' },
         ],
       },
       { blockType: 'templatesCarousel', heading: 'Ready-to-go builds', autoplay: false },

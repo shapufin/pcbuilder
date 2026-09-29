@@ -127,6 +127,9 @@ condition(candidate, subject, rule):
   equals: v == rule.value        in: rule.value.includes(v)     gte: v >= rule.value
   lte: v <= rule.value           contains: v ∈ rule.value (array spec)
   missing v → rule fails only for `excludes` (conservative: never blocks on missing data, A8)
+  A8 also applies to dynamic bidirectional mirroring: when either side lacks the
+  mirrored field, the pair is skipped (entry 15 — `coolerSocketSupport` exists only
+  on coolers, so comparing it against a CPU's missing spec blocked every CPU+cooler save)
 ```
 
 **Message interpolation** (pure fn, testable): replace `{componentA}`/`{componentB}` with names; `{socket}`/`{key}` with the violating component's failing spec value; unknown token → left as-is (never throws).
@@ -189,6 +192,10 @@ interface RuleEngine {
 | 26 | Stale index — unknown componentId in selections ignored (no throw) |
 | 27 | Empty selections → all categories fully valid, zero warnings |
 | 28 | 5,000 components / 2,000 rules scale benchmark evaluates < 20ms (performance regression test) |
+| 89 | Asymmetric-field mirror: dynamic mirror skips when either side lacks the mirrored field — matching CPU+cooler pair saves; wrong cooler still blocked by its forward rule (entry 15, A8 clarification) |
+| 90 | Evaluate with a pre-selected cooler excludes no CPU (same A8 skip; entry-15 live bug fix) |
+
+(Rows beyond 28 are later-entry regression tests numbered in the cross-entry sequence; see [18-progress-log.md](18-progress-log.md).)
 
 ## Admin editing UX (see also 04/compatibility.md)
 

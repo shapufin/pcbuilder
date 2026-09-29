@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { createRuleEngine, type ComponentSpecEntry } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
@@ -16,6 +17,7 @@ const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 type SavedBuild = { buildId: string; shareId: string }
 
 export function SummaryClient() {
+  const router = useRouter()
   const { index, status, retry } = useBuilderIndex()
   // Hydration gate: false during SSR, flips to true on the client without an
   // effect (react-hooks/set-state-in-effect).
@@ -30,9 +32,13 @@ export function SummaryClient() {
   const savedBuild = useBuilderStore((s) => (s.buildId && s.shareId ? { buildId: s.buildId, shareId: s.shareId } : null))
   const saveBuild = useBuilderStore((s) => s.saveBuild)
 
-  const { cartID, refreshCart, isLoading: cartLoading } = useEcommerce()
+  const { user, cartID, refreshCart, isLoading: cartLoading } = useEcommerce()
   const [cartState, setCartState] = useState<'idle' | 'adding' | 'added' | 'error'>('idle')
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle')
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  // A selection change clears the store's draft ref (#93), so a lingering
+  // 'saved' flag refers to a build the no longer matches — show idle instead.
+  const saveView = saveState === 'saved' && !savedBuild ? 'idle' : saveState
 
   const categories = useMemo(
     () => (index ? [...index.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
@@ -69,6 +75,39 @@ export function SummaryClient() {
       return next
     } catch {
       return null
+    }
+  }
+
+  /** Entry 15: sign-in keeps the guest build (claim attaches it to the account);
+   * signed-in users claim right after saving so /account lists it. */
+  const saveToAccount = async () => {
+    if (!user) {
+      track('Sign In To Save')
+      router.push('/auth/login?next=%2Fbuilder%2Fsummary')
+      return
+    }
+    setSaveState('saving')
+    const saved = await ensureSavedBuild()
+    if (!saved) {
+      setSaveState('error')
+      return
+    }
+    try {
+      const res = await fetch('/api/builder/builds/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shareId: saved.shareId }),
+      })
+      if (res.ok) {
+        setSaveState('saved')
+        track('Save Build')
+      } else if (res.status === 401) {
+        router.push('/auth/login?next=%2Fbuilder%2Fsummary')
+      } else {
+        setSaveState('error')
+      }
+    } catch {
+      setSaveState('error')
     }
   }
 
@@ -255,10 +294,25 @@ export function SummaryClient() {
         <button
           type="button"
           className="btn"
-          disabled
-          title="Save to your account — auth pages are next"
+          onClick={() => void saveToAccount()}
+          disabled={missing.length > 0 || saveState === 'saving'}
+          title={
+            missing.length > 0
+              ? 'Finish required slots first'
+              : user
+                ? 'Save this build to your account'
+                : 'Sign in to keep this build'
+          }
         >
-          Save build
+          {saveView === 'saving'
+            ? 'Saving…'
+            : saveView === 'saved'
+              ? 'Saved ✓'
+              : saveView === 'error'
+                ? 'Save failed — retry'
+                : !user
+                  ? 'Sign in to save'
+                  : 'Save build'}
         </button>
         <button
           type="button"

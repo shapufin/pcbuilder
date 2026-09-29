@@ -21,7 +21,7 @@ export async function HomeFallback() {
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
           <Link href="/builder" style={ctaPrimary}>Open the builder</Link>
-          <Link href="/shop/components" style={ctaSecondary}>Browse components</Link>
+          <Link href="/shop" style={ctaSecondary}>Browse components</Link>
         </div>
       </section>
 
