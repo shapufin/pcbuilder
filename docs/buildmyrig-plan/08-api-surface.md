@@ -23,6 +23,9 @@ All custom endpoints are Payload REST endpoints (`config.endpoints`) or Next.js 
 | Method | Path | Auth | Request | Response |
 | --- | --- | --- | --- | --- |
 | POST | `/api/auth/register` | none (5/min/IP, origin allowlist) | `{ email, password }` (zod-stripped) | 201 `{ user }` with `roles: ['customer']` pinned server-side; 400 validation / **409 duplicate email** / 403 cross-origin / 429 rate limit / generic 500 (details server-log only). Entry 15. |
+| POST | `/api/auth/forgot-password` | none (5/min/IP, origin allowlist) | `{ email }` | **always 200 `{ok:true}`** — byte-identical for unknown accounts (anti-enumeration); reset email (Resend, dry-run logged without keys) sent only when the account exists; send failure still 200. Entry 23. |
+| POST | `/api/auth/reset-password` | none (5/min/IP, origin allowlist) | `{ token, password }` | 200 + `Set-Cookie` (session minted via `generatePayloadCookie`) / 400 weak password or missing token / **403 invalid-expired token** (payload: single-use, 1 h, revokes other sessions, clears lockout) or cross-origin / 429. Entry 23. |
+| POST | `/api/contact` | none (5/min/IP, origin allowlist) | `{ name, email, message }` (zod) | 200 `{ok:true}` (+`dryRun:true` without Resend keys) → staff inbox (`STAFF_ALERT_EMAIL || EMAIL_FROM`) / 400 validation / 403 cross-origin / 429 / 502 send failure. Entry 23. |
 
 Other Next route handlers (newsletter, checkout orchestration) are listed in [09-routes.md](09-routes.md).
 
@@ -34,8 +37,8 @@ Other Next route handlers (newsletter, checkout orchestration) are listed in [09
 | POST | `/api/discounts/validate` | none | `{ code, cartId }` | `{ valid, discountTotal, message? }` |
 | POST | `/api/carts/:id/validate` | guest (cart `secret`) or owner | `{ secret? }` | `{ ok, checked }`; 422 `{ error, reasons[] }` on incompatible builds; 404 cart/secret mismatch |
 | POST | `/api/payments/stripe/webhooks` | Stripe signature | raw event | 200 `{received:true}` (CAS-idempotent; 400 on bad/expired signature; route exists only when `STRIPE_SECRET_KEY` set) |
-| POST | `/api/orders/:id/refund` | staff | `{ amountCents? }` | `{ status }` (full/partial refund via adapter) |
-| GET | `/api/orders/mine` | jwt | — | order list (owner-scoped — IDOR check) |
+
+(No refund or `/orders/mine` endpoints: refunds happen in Stripe and settle via the `charge.refunded` webhook (entry 13) — admin-only per 11-access-security; `/account` reads orders through the Local API with owner-or-`customerEmail` scoping.)
 
 ## Standard Payload REST (for reference)
 
@@ -47,7 +50,7 @@ All collections also expose Payload's generated REST + GraphQL (https://payloadc
 | --- | --- |
 | `/` homepage | `payload.find({ collection: 'pages', where: { isHomepage } })` + block rels |
 | `/shop/[categorySlug]` | `payload.find({ collection: 'products', where: facets, sort, page })` + attribute aggregate for filter counts |
-| `/shop/search` | Postgres full-text on products (tsvector via Drizzle index) |
+| `/shop/search` | `payload.find` products with sanitized `contains` on title/slug (no full-text index; LIKE metachars stripped server-side — entry 18) |
 | `/product/[slug]` | `payload.find` products by slug + variants + prices + inventory |
 | `/builder` | templates find; `getBuilderIndex()` cached |
 | `/build/[shareId]` | configuredBuilds by shareId |
@@ -61,4 +64,4 @@ Signature verification (`stripe.webhooks.constructEvent` with `STRIPE_WEBHOOK_SE
 
 ## Rate limiting
 
-All public POST endpoints (`/api/checkout`, `/api/discounts/validate`, `/api/carts/:id/validate`, `/api/builder/builds`, `/api/builder/templates/:id/use`, `/api/builder/builds/claim`, `/api/carts/:id/add-build`, `/api/auth/register`) limited with Upstash Ratelimit (sliding window; checkout 10/min/IP, validate 20/min/IP, builds + use-template + claim 30/min/IP, register 5/min/IP). Enforced at handler top; 429 response with `Retry-After`. **Current implementation**: the in-memory sliding window in `packages/lib/rate-limit.ts` (bounded — stale keys swept each window + `maxKeys` hard cap against spoofed-IP growth); swap to Upstash when running multi-instance (12-integrations-ops.md). **IP-keying caveat** (entry 15): the key is the leftmost `X-Forwarded-For` hop — spoofable when the origin is reached without a proxy; see the deployment contract in [11-access-security.md](11-access-security.md).
+All public POST endpoints (`/api/checkout`, `/api/discounts/validate`, `/api/carts/:id/validate`, `/api/builder/builds`, `/api/builder/templates/:id/use`, `/api/builder/builds/claim`, `/api/carts/:id/add-build`, `/api/auth/register`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/contact`, `/api/newsletter`) limited with Upstash Ratelimit (sliding window; checkout 10/min/IP, validate 20/min/IP, builds + use-template + claim 30/min/IP, register + forgot + reset + contact + newsletter 5/min/IP). Enforced at handler top; 429 response with `Retry-After`. **Current implementation**: the in-memory sliding window in `packages/lib/rate-limit.ts` (bounded — stale keys swept each window + `maxKeys` hard cap against spoofed-IP growth); swap to Upstash when running multi-instance (12-integrations-ops.md). **IP-keying caveat** (entry 15): the key is the leftmost `X-Forwarded-For` hop — spoofable when the origin is reached without a proxy; see the deployment contract in [11-access-security.md](11-access-security.md).

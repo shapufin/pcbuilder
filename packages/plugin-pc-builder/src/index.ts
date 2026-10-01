@@ -1,4 +1,4 @@
-import type { CollectionConfig, Config, Plugin } from 'payload'
+import type { Config, Plugin } from 'payload'
 import { registerLineItemType } from '@buildmyrig/lib'
 import { ComponentCategories } from './collections/component-categories.ts'
 import { Components } from './collections/components.ts'

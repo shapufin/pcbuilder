@@ -8,6 +8,7 @@ import { createRuleEngine, type ComponentSpecEntry } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { flyToCart } from '@/lib/fly-to-cart'
 import { track } from '@/lib/analytics'
+import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { useBuilderIndex } from '../useBuilderIndex'
 import { useBuilderStore } from '../builder-store'
 import { WarningsPanel } from '../configure/WarningsPanel'
@@ -32,7 +33,8 @@ export function SummaryClient() {
   const savedBuild = useBuilderStore((s) => (s.buildId && s.shareId ? { buildId: s.buildId, shareId: s.shareId } : null))
   const saveBuild = useBuilderStore((s) => s.saveBuild)
 
-  const { user, cartID, refreshCart, isLoading: cartLoading } = useEcommerce()
+  const { user, cart, cartID, refreshCart, isLoading: cartLoading } = useEcommerce()
+  const openCartDrawer = useCartDrawerStore((s) => s.open)
   const [cartState, setCartState] = useState<'idle' | 'adding' | 'added' | 'error'>('idle')
   const [shareState, setShareState] = useState<'idle' | 'copied'>('idle')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -125,7 +127,13 @@ export function SummaryClient() {
     }))
     try {
       const headers = { 'Content-Type': 'application/json' }
-      let cartId: string | number | undefined = cartID
+      // Entry-23 review F2: the plugin's context value omits `cartID`, so the
+      // context fallback alone always created a *second* cart (and the build
+      // landed in a cart the provider didn't know about). Use the loaded cart,
+      // then the same localStorage key the provider syncs ('cart' — the
+      // provider writes it, this only covers the not-yet-restored window).
+      let cartId: string | number | undefined =
+        cartID ?? (cart as { id?: string | number } | undefined)?.id ?? window.localStorage.getItem('cart') ?? undefined
       let secret = window.localStorage.getItem('cart_secret') ?? undefined
       if (!cartId) {
         const created = await fetch('/api/carts', {
@@ -155,6 +163,7 @@ export function SummaryClient() {
       }
       await refreshCart()
       if (from) flyToCart(from, 'Custom build')
+      openCartDrawer()
       setCartState('added')
       track('Add Build to Cart')
     } catch {

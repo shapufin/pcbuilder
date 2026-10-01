@@ -1,27 +1,25 @@
 import Link from 'next/link'
+import { getSiteSettings } from '@/lib/site-settings.server'
 
-const links: Array<{ href: string; label: string }> = [
-  { href: '/about', label: 'About' },
-  { href: '/faq', label: 'FAQ' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/terms', label: 'Terms' },
-  { href: '/privacy', label: 'Privacy' },
-]
-
-export function SiteFooter() {
+/**
+ * Entry 18 (Step A): links come from the `site-settings` global
+ * (admin-editable; defaults in @buildmyrig/plugin-pages while no doc exists).
+ */
+export async function SiteFooter() {
+  const { footerLinks } = await getSiteSettings()
   return (
     <footer
       data-testid="site-footer"
-      style={{ marginTop: 48, padding: '24px', borderTop: '1px solid #1e293b', fontSize: 14 }}
+      style={{ marginTop: 48, padding: '24px', borderTop: '1px solid var(--color-surface)', fontSize: 14 }}
     >
       <nav style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 12 }}>
-        {links.map((l) => (
-          <Link key={l.href} href={l.href} style={{ color: '#94a3b8', textDecoration: 'none' }}>
+        {footerLinks.map((l, i) => (
+          <Link key={`${l.url}-${i}`} href={l.url} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
             {l.label}
           </Link>
         ))}
       </nav>
-      <p style={{ color: '#64748b', margin: 0 }}>
+      <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
         © {new Date().getFullYear()} BuildMyRig. All rights reserved.
       </p>
     </footer>

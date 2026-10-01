@@ -1,6 +1,5 @@
-import type { Access, CollectionConfig, Config, Field } from 'payload'
-import { seoPlugin } from '@payloadcms/plugin-seo'
-import { pageBlocks, HeroBlock, CtaBannerBlock } from '../blocks/definitions.ts'
+import type { Access, CollectionConfig } from 'payload'
+import { pageBlockSlugs } from '@buildmyrig/plugin-pages'
 
 const isStaff: Access = ({ req }) =>
   Boolean(req.user?.roles?.some((r) => ['admin', 'manager', 'staff'].includes(r)))
@@ -73,59 +72,18 @@ export const Pages: CollectionConfig = {
       defaultValue: false,
       admin: { description: 'Exactly one page renders / (enforced server-side)' },
     },
-    { name: 'layout', type: 'blocks', blocks: pageBlocks, admin: { initCollapsed: true } },
+    // Block system v2 (entry 22, +contactForm entry 23): the 14 block configs
+    // live in config.blocks (pagesPlugin); this field only lists references —
+    // pageBlockSlugs is string[] at the package boundary, cast here where
+    // BlockSlug is the generated union. filterOptions mirrors section/topBlocks:
+    // without it any blockType in config.blocks would validate (review F2).
+    {
+      name: 'layout',
+      type: 'blocks',
+      blocks: [],
+      blockReferences: pageBlockSlugs as never,
+      filterOptions: () => pageBlockSlugs as never,
+      admin: { initCollapsed: true },
+    },
   ],
-}
-
-/**
- * SEO fields (04-collections/platform.md): plugin-seo provides
- * `seo.title/description/image/keywords` + admin autogenerate.
- *
- * The plugin hardcodes its group name as `meta` (its `fields` override only
- * controls the inner fields), so the wrapper renames the group to the plan's
- * `seo` after the plugin runs.
- */
-/**
- * Bounded top block zone on category pages (10-blocks-pages.md: Hero +
- * CtaBanner only — hardcoded listing template below).
- */
-export const categoryTopBlocksPlugin = () => (config: Config): Config => {
-  const topBlocks: Field = {
-    name: 'topBlocks',
-    type: 'blocks',
-    blocks: [HeroBlock, CtaBannerBlock],
-    admin: { initCollapsed: true },
-  }
-  return {
-    ...config,
-    collections: config.collections?.map((collection) =>
-      collection && typeof collection === 'object' && 'slug' in collection && collection.slug === 'categories'
-        ? { ...collection, fields: [...(collection.fields ?? []), topBlocks] }
-        : collection,
-    ),
-  }
-}
-
-export const seoFieldsPlugin = () => {
-  const plugin = seoPlugin({
-    collections: ['pages'],
-    uploadsCollection: 'media',
-    generateURL: ({ doc }) => `${process.env.BMR_URL || 'http://localhost:3000'}/${doc?.slug ?? ''}`,
-  })
-  return (config: Config): Config => {
-    const out = plugin(config)
-    return {
-      ...out,
-      collections: out.collections?.map((collection) =>
-        collection && typeof collection === 'object' && 'slug' in collection && collection.slug === 'pages'
-          ? {
-              ...collection,
-              fields: (collection.fields ?? []).map((field) =>
-                'name' in field && field.name === 'meta' ? { ...field, name: 'seo' } : field,
-              ),
-            }
-          : collection,
-      ),
-    }
-  }
 }

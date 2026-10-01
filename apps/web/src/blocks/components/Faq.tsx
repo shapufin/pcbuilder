@@ -16,11 +16,11 @@ export function Faq({ block }: { block: { heading?: string | null; items?: FaqIt
         {items.map((item, i) => (
           <details
             key={i}
-            style={{ border: '1px solid #1e293b', borderRadius: 10, padding: '14px 18px', background: '#0f172a' }}
+            style={{ border: '1px solid var(--color-surface)', borderRadius: 10, padding: '14px 18px', background: 'var(--color-bg)' }}
           >
             <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>{item.question}</summary>
             {item.answer ? (
-              <div style={{ color: '#94a3b8', marginTop: 10, lineHeight: 1.6, fontSize: 15 }}>
+              <div style={{ color: 'var(--color-text-muted)', marginTop: 10, lineHeight: 1.6, fontSize: 15 }}>
                 <LexicalRichText data={item.answer as never} />
               </div>
             ) : null}

@@ -10,7 +10,7 @@ export function AccountNav() {
   return (
     <Link
       href={user ? '/account' : '/auth/login'}
-      style={{ color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto' }}
+      style={{ color: 'var(--color-text-muted)', textDecoration: 'none', marginLeft: 'auto' }}
     >
       {user ? 'Account' : 'Sign in'}
     </Link>

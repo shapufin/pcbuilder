@@ -30,9 +30,9 @@ export function LogoutButton() {
       style={{
         padding: '9px 18px',
         borderRadius: 10,
-        border: '1px solid #334155',
+        border: '1px solid var(--color-border)',
         background: 'transparent',
-        color: '#cbd5e1',
+        color: 'var(--color-border-strong)',
         fontSize: 14,
         fontWeight: 600,
         cursor: busy ? 'wait' : 'pointer',

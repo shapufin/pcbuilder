@@ -27,14 +27,14 @@ Access: admin/manager write, public none.
 
 ## Pages (block-composed)
 
-See [../10-blocks-pages.md](../10-blocks-pages.md) for the 12-block set and `blockToComponent` registry.
+See [../10-blocks-pages.md](../10-blocks-pages.md) for the 14-block set and `blockRegistry` map.
 
-> **Status (2026-09-28, Phase 3)**: Pages live (`apps/web/src/collections/Pages.ts`) — drafts on, public read `published` only, manager write, `isHomepage` uniqueness enforced by a beforeChange hook (verified A/B), on-demand `revalidatePath` on save. SEO fields via `@payloadcms/plugin-seo` wrapped so the group is named `seo` (plugin hardcodes `meta`). Category pages get a bounded `topBlocks` zone (Hero+CtaBanner) via `categoryTopBlocksPlugin`. Redirects collection still pending (Phase 4).
+> **Status (2026-09-29)**: Pages live (`apps/web/src/collections/Pages.ts`) — drafts on, public read `published` only, manager write, `isHomepage` uniqueness enforced by a beforeChange hook (verified A/B), on-demand `revalidatePath` on save. SEO fields via `@payloadcms/plugin-seo` wrapped so the group is named `seo` (plugin hardcodes `meta`) — both the wrapper (`seoFieldsPlugin`) and the bounded `topBlocks` zone (Hero+CtaBanner) moved into **`@buildmyrig/plugin-pages`** in entry 19 (Step B); the app registers them via `pagesPlugin()`. Redirects collection still pending (Phase 4).
 
 | Field | Type | Notes |
 | --- | --- | --- |
 | title / slug | text | unique indexed |
-| layout | blocks field (12 block types) | https://payloadcms.com/docs/fields/blocks |
+| layout | blocks field (14 block types) | https://payloadcms.com/docs/fields/blocks |
 | seo | seo field | |
 | isHomepage | checkbox (unique true) | exactly one page renders `/` |
 

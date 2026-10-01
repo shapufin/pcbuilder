@@ -19,6 +19,7 @@
     "dependencies": {
         "@buildmyrig/lib": "workspace:*",
         "@buildmyrig/plugin-pc-builder": "workspace:*",
+        "@buildmyrig/plugin-pages": "workspace:*",
         "@buildmyrig/plugin-shop": "workspace:*",
         "@buildmyrig/ui": "workspace:*",
         "@payloadcms/db-postgres": "^3.0.0",

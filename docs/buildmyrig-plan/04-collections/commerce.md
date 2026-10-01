@@ -21,7 +21,7 @@ Guest + user carts supported by the plugin; on login, plugin-shop's `afterLogin`
 | orderNumber | text unique (BMR-2026-000001) | |
 | customer | rel → customers | |
 | customerEmail | text | guest checkout (plugin-ecommerce's field name — the account/orders queries match on `customer = user.id` OR `customerEmail = user.email`) |
-| status | select: pending → paid → fulfilled → shipped → delivered | cancelled / refunded terminal states |
+| status | select: processing → completed (order created `processing` on paid webhook settlement; staff mark `completed` when fulfilled/shipped) | cancelled / refunded terminal states. **Note**: the earlier plan row `pending → paid → fulfilled → shipped → delivered` never existed — corrected at entry 20 to plugin-ecommerce's real `OrderStatus` |
 | lineItems | array: { variant rel, quantity, lineType, configuredBuild rel, subItems: [{ component rel, quantity }] } | subItems power per-component fulfillment picking |
 | billingAddress / shippingAddress | rel → addresses | |
 | subtotal / discountTotal / shippingTotal / taxTotal / total | number | ALL computed server-side at checkout & webhook |
@@ -30,7 +30,7 @@ Guest + user carts supported by the plugin; on login, plugin-shop's `afterLogin`
 | transactions | rel → transactions | |
 | history | array: { status, at, by } | audit |
 
-Access: owner read (customer or email match — the `customerEmail` clause implemented as an `access.read` override in plugin-shop at entry 15, because the ecommerce plugin's default matched only the customer id and hid guest-email orders from their owner's `/account`), staff read, manager/admin write, **public write = none** (order created only by server checkout handler). Versions off. Hooks: `afterChange` (status=paid) → decrement inventory, release reservations, send confirmation email, analytics `purchase`; (shipped) → shipping email; (refunded) → Stripe refund reconciliation.
+Access: owner read (customer or email match — the `customerEmail` clause implemented as an `access.read` override in plugin-shop at entry 15, because the ecommerce plugin's default matched only the customer id and hid guest-email orders from their owner's `/account`), staff read + **status-only update** (entry 20 review: collection `update` admits staff, field access pins every field but `status` to manager+, `restrictStaffStatus` limits staff values to `processing|completed` — `packages/plugin-shop/src/collections/orders.ts`), manager/admin write for everything else, **public write = none** (orders are created only by the server checkout flow: Stripe webhook settlement or plugin-ecommerce's confirm poll — whichever claims the transaction CAS first). Versions off. Hooks — order writes go through `payload.create`/`payload.update`, so `afterChange` fires: **inventory decrement** already lives in the settlement code (`stripe-webhooks.ts`, entry 13 — not a hook); **`orderEmailsAfterChange`** (entry 20, `src/emails/order-emails.ts`): create → confirmation email, `processing → completed` → shipping email (never throws; dry-run without `RESEND_API_KEY`/`EMAIL_FROM`); **analytics**: client-side `track('Purchase')` fires at checkout confirm (entry 14) **plus a server-side `purchase` event on order create** (entry 23, `plugin-shop/src/analytics/order-purchase.ts` — create-only, skips cancelled/refunded, never throws, dry-run without `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`); refund reconciliation lives in the webhook refund handler (entry 13).
 
 ## Transactions
 

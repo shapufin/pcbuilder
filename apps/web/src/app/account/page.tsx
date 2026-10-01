@@ -10,11 +10,11 @@ export const metadata: Metadata = { title: 'My account | BuildMyRig' }
 const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 
 const statusColor = (status: string | null | undefined): string =>
-  status === 'completed' ? '#34d399' : status === 'processing' ? '#fbbf24' : '#94a3b8'
+  status === 'completed' ? 'var(--color-success)' : status === 'processing' ? 'var(--color-warning)' : 'var(--color-text-muted)'
 
 const cell: React.CSSProperties = {
   padding: '10px 12px',
-  borderBottom: '1px solid #1e293b',
+  borderBottom: '1px solid var(--color-surface)',
   textAlign: 'left',
   fontSize: 14,
 }
@@ -61,7 +61,7 @@ export default async function AccountPage() {
       >
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 4px' }}>My account</h1>
-          <p style={{ color: '#94a3b8', fontSize: 14, margin: 0 }}>{user.email}</p>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: 0 }}>{user.email}</p>
         </div>
         <LogoutButton />
       </div>
@@ -69,9 +69,9 @@ export default async function AccountPage() {
       <section style={{ marginTop: 40 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 14px' }}>Orders</h2>
         {orders.docs.length === 0 ? (
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
             No orders yet —{' '}
-            <Link href="/shop" style={{ color: '#818cf8' }}>
+            <Link href="/shop" style={{ color: 'var(--color-primary-hover)' }}>
               browse the shop
             </Link>
             .
@@ -81,17 +81,17 @@ export default async function AccountPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ ...cell, color: '#64748b', fontWeight: 600 }}>Order</th>
-                  <th style={{ ...cell, color: '#64748b', fontWeight: 600 }}>Date</th>
-                  <th style={{ ...cell, color: '#64748b', fontWeight: 600 }}>Total</th>
-                  <th style={{ ...cell, color: '#64748b', fontWeight: 600 }}>Status</th>
+                  <th style={{ ...cell, color: 'var(--color-text-muted)', fontWeight: 600 }}>Order</th>
+                  <th style={{ ...cell, color: 'var(--color-text-muted)', fontWeight: 600 }}>Date</th>
+                  <th style={{ ...cell, color: 'var(--color-text-muted)', fontWeight: 600 }}>Total</th>
+                  <th style={{ ...cell, color: 'var(--color-text-muted)', fontWeight: 600 }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.docs.map((order) => (
                   <tr key={order.id}>
                     <td style={cell}>#{order.id}</td>
-                    <td style={{ ...cell, color: '#94a3b8' }}>
+                    <td style={{ ...cell, color: 'var(--color-text-muted)' }}>
                       {new Date(order.createdAt).toLocaleDateString('en-GB')}
                     </td>
                     <td style={cell}>
@@ -111,9 +111,9 @@ export default async function AccountPage() {
       <section style={{ marginTop: 40 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 14px' }}>Saved builds</h2>
         {builds.docs.length === 0 ? (
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
             Nothing saved yet —{' '}
-            <Link href="/builder" style={{ color: '#818cf8' }}>
+            <Link href="/builder" style={{ color: 'var(--color-primary-hover)' }}>
               configure a PC
             </Link>{' '}
             and hit &ldquo;Save build&rdquo;.
@@ -129,20 +129,20 @@ export default async function AccountPage() {
                   gap: 16,
                   alignItems: 'center',
                   padding: '12px 16px',
-                  border: '1px solid #1e293b',
+                  border: '1px solid var(--color-surface)',
                   borderRadius: 10,
-                  background: '#0f172a',
+                  background: 'var(--color-bg)',
                 }}
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{build.name}</div>
-                  <div style={{ color: '#64748b', fontSize: 13 }}>
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
                     {eur(build.priceSnapshot ?? 0)} · saved{' '}
                     {new Date(build.createdAt).toLocaleDateString('en-GB')}
                   </div>
                 </div>
                 {build.shareId ? (
-                  <Link href={`/build/${build.shareId}`} style={{ color: '#818cf8', fontSize: 14 }}>
+                  <Link href={`/build/${build.shareId}`} style={{ color: 'var(--color-primary-hover)', fontSize: 14 }}>
                     View build
                   </Link>
                 ) : null}

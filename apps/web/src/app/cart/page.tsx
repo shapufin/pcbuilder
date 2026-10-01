@@ -23,14 +23,16 @@ type Item = {
 const subItemName = (s: SubItem): string => s.name ?? 'Part'
 
 export default function CartPage() {
-  const { cartID, refreshCart, removeItem, incrementItem, decrementItem, cart, isLoading } = useEcommerce()
+  const { refreshCart, removeItem, incrementItem, decrementItem, cart, isLoading } = useEcommerce()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    if (cartID) void refreshCart()
-  }, [cartID, refreshCart])
+  const rawCart = cart as { id?: string | number; items?: Item[]; subtotal?: number } | undefined
+  const cartId = rawCart?.id
 
-  const rawCart = cart as { items?: Item[]; subtotal?: number } | undefined
+  useEffect(() => {
+    if (cartId) void refreshCart()
+  }, [cartId, refreshCart])
+
   const items: Item[] = rawCart?.items ?? []
   const subtotal = rawCart?.subtotal ?? 0
 
@@ -50,7 +52,7 @@ export default function CartPage() {
   return (
     <main className="builder-page" style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
       <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Cart</h1>
-      {!cartID || (items.length === 0 && !isLoading) ? (
+      {!cart || (items.length === 0 && !isLoading) ? (
         <p style={{ color: 'var(--color-text-muted)' }}>
           Your cart is empty. <Link href="/" style={{ color: 'var(--color-primary-hover)' }}>Browse products</Link>.
         </p>

@@ -60,6 +60,17 @@ export interface PcBuilderPluginOptions {
 **Events consumed**: `shop:low-stock` → flags affected components in admin "Build Stats" (read-only stats, no shop import).
 **Events emitted**: `builder:rules-version` (cache invalidation), `builder:build-completed` (analytics).
 
+## plugin-pages
+
+**Package**: `packages/plugin-pages` (`@buildmyrig/plugin-pages`) — created entry 19 (Phase 5 Step B) to consolidate page/settings wiring out of the app.
+
+**Globals added**: `site-settings` (nav/footer link arrays; `update: isManager`; URL `validate` mirrors the renderer rule) + `theme` (dark/light preset + colors/radius/fonts; `update: isManager` — entry 21).
+**Collections patched**: `categories` gains the bounded `topBlocks` zone (`blocks: []` + `blockReferences: hero|ctaBanner` + `filterOptions` — entry 22); `pages` gains `seo.*` (wraps `@payloadcms/plugin-seo` and renames its hardcoded `meta` group — the plugin's `fields` override only controls inner fields).
+**Block system (entry 22, +`contactForm` entry 23)**: `pagesPlugin()` also injects `config.blocks` = the 14 block configs (append + dedupe by slug, before payload's sanitize pass; `enabled: false` still injects — the Lexical `BlocksFeature` needs them at boot). The app's `Pages.layout` declares `blocks: []` + `blockReferences: pageBlockSlugs` + `filterOptions`.
+**Exports**: `pagesPlugin({ enabled })` (the plugin), `pageBlocks` (the 14 payload block configs — React `registry.tsx`/`renderBlocks`/`PageRenderer` stay in `apps/web`), slug lists `pageBlockSlugs` / `sectionChildSlugs` / `lexicalEmbedBlockSlugs` (typed `BlockSlug[]`), settings resolver/defaults/types (`resolveSiteSettings`, `DEFAULT_SITE_SETTINGS`), theme resolver/validators (`resolveTheme`, `buildThemeCss`, `DEFAULT_THEME`, …).
+**App kept**: `collections/Pages.ts` itself (its `afterChange` uses `next/cache`) and `lib/site-settings.server.ts` (needs `getPayloadClient`) remain in `apps/web` — the app may import plugins, never the reverse.
+**Boundary**: pure payload config — imports neither sibling plugins nor the app (enforced, see rule 5 below).
+
 ## Payment adapter contract
 
 ```typescript
@@ -79,4 +90,4 @@ Stripe SDK adapter lives in `packages/plugin-shop/src/adapters/stripe` and is pa
 2. Subscribe to server events: `serverBus.on('shop:order-paid', handler)` from any plugin's `onInit`.
 3. Inject collections/globals/endpoints via your own plugin — ordering is controlled by plugin order in `plugins: []` (plugins execute in array order, https://payloadcms.com/docs/plugins/build-your-own#initialization).
 4. Consume admin components: `packages/ui` exports named components; your admin fields may import them.
-5. Never import across plugin boundaries — contract violations are enforced by eslint restricted paths in CI.
+5. Never import across plugin boundaries — contract violations are enforced by eslint restricted paths in CI (**real since entry 19**: each plugin package has its own flat eslint config with `no-restricted-imports` **and** `no-restricted-syntax` covering sibling `@buildmyrig/plugin-*` + `apps/web/**` + `@buildmyrig/web`, static **and** dynamic `await import(...)`; `pnpm lint` → turbo lint tasks are CI-blocking; verified with intentional violation probes for both forms).

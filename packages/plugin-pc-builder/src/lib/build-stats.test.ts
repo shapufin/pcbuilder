@@ -12,11 +12,9 @@ const fakePayload = (overrides: Record<string, unknown> = {}): Payload => {
     products: { docs: [{ id: 5, name: 'Case Fan', inventory: 3 }, { id: 6, name: 'PSU 550W', inventory: 1 }] },
     ...overrides,
   }
-  let countCalls = 0
   return {
     find: async ({ collection }: { collection: string }) => store[collection] ?? { docs: [] },
     count: async ({ collection, where }: { collection: string; where?: { status?: { equals?: string } } }) => {
-      countCalls += 1
       if (collection === 'orders' && where?.status?.equals) {
         const statuses: Record<string, number> = {
           processing: 3,
@@ -66,7 +64,6 @@ describe('Build Stats aggregation (entry 14, 07-ux-plan §8)', () => {
       },
       count: async (args: { collection: string }) => {
         calls += 1
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (base as any).count(args)
       },
     } as unknown as Payload

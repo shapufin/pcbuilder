@@ -9,7 +9,7 @@ export function VideoEmbed({
   if (!embed) return null
   return (
     <section style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', border: '1px solid #1e293b' }}>
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--color-surface)' }}>
         <iframe
           src={embed}
           title={block.title ?? 'Video'}

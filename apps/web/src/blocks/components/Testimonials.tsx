@@ -15,9 +15,9 @@ export function Testimonials({
         {items.map((item, i) => (
           <figure
             key={i}
-            style={{ border: '1px solid #1e293b', borderRadius: 12, padding: 22, margin: 0, background: '#0f172a' }}
+            style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 22, margin: 0, background: 'var(--color-bg)' }}
           >
-            <blockquote style={{ margin: '0 0 16px', color: '#cbd5e1', lineHeight: 1.6, fontSize: 15 }}>
+            <blockquote style={{ margin: '0 0 16px', color: 'var(--color-border-strong)', lineHeight: 1.6, fontSize: 15 }}>
               “{item.quote}”
             </blockquote>
             <figcaption style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -27,7 +27,7 @@ export function Testimonials({
               ) : null}
               <div>
                 <strong style={{ display: 'block', fontSize: 14 }}>{item.name}</strong>
-                {item.role ? <span style={{ color: '#64748b', fontSize: 13 }}>{item.role}</span> : null}
+                {item.role ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{item.role}</span> : null}
               </div>
             </figcaption>
           </figure>

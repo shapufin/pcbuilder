@@ -20,22 +20,22 @@ export function FeaturedCategory({
           gap: 40,
           alignItems: 'center',
           flexWrap: 'wrap',
-          border: '1px solid #1e293b',
+          border: '1px solid var(--color-surface)',
           borderRadius: 14,
           padding: 32,
-          background: 'linear-gradient(120deg, #111827 0%, #0f172a 60%)',
+          background: 'linear-gradient(120deg, var(--color-surface) 0%, var(--color-bg) 60%)',
         }}
       >
         <div style={{ flex: '1 1 320px' }}>
           <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 10px' }}>{heading ?? category?.title}</h2>
-          {copy ? <p style={{ color: '#94a3b8', lineHeight: 1.6, margin: '0 0 20px' }}>{copy}</p> : null}
+          {copy ? <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>{copy}</p> : null}
           {category?.slug ? (
             <Link
               href={`/shop/${category.slug}`}
               style={{
                 display: 'inline-block',
-                background: '#6366f1',
-                color: '#fff',
+                background: 'var(--color-primary-strong)',
+                color: 'var(--color-on-primary)',
                 padding: '10px 22px',
                 borderRadius: 10,
                 fontWeight: 700,

@@ -16,7 +16,7 @@ export async function HomeFallback() {
     <main style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
       <section style={{ textAlign: 'center', marginBottom: 64 }}>
         <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 12 }}>Build your perfect rig</h1>
-        <p style={{ color: '#94a3b8', fontSize: 18, marginBottom: 24 }}>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: 18, marginBottom: 24 }}>
           Pre-built gaming and creator PCs, or configure your own — step by step.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
@@ -39,7 +39,7 @@ export async function HomeFallback() {
         {products.docs.map((p) => (
           <Link key={p.id} href={`/product/${p.slug}`} style={card}>
             <strong>{p.title}</strong>
-            <span style={{ color: '#818cf8' }}>{formatPrice(p as never)}</span>
+            <span style={{ color: 'var(--color-primary-hover)' }}>{formatPrice(p as never)}</span>
           </Link>
         ))}
       </div>
@@ -49,14 +49,14 @@ export async function HomeFallback() {
 
 const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 } as const
 const card = {
-  border: '1px solid #1e293b', borderRadius: 12, padding: 20, color: '#e2e8f0',
-  textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 8, background: '#0f172a',
+  border: '1px solid var(--color-surface)', borderRadius: 12, padding: 20, color: 'var(--color-text)',
+  textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--color-bg)',
 } as const
 const ctaPrimary = {
-  padding: '12px 24px', borderRadius: 8, background: '#4f46e5', color: '#fff',
+  padding: '12px 24px', borderRadius: 8, background: 'var(--color-primary-strong)', color: 'var(--color-on-primary)',
   fontWeight: 600, textDecoration: 'none',
 } as const
 const ctaSecondary = {
-  padding: '12px 24px', borderRadius: 8, background: '#1e293b', color: '#e2e8f0',
+  padding: '12px 24px', borderRadius: 8, background: 'var(--color-surface)', color: 'var(--color-text)',
   fontWeight: 600, textDecoration: 'none',
 } as const

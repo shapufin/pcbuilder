@@ -15,17 +15,17 @@ function ProductCard({ product }: { product: ProductDoc }) {
       href={`/product/${product.slug}`}
       style={{
         display: 'block',
-        border: '1px solid #1e293b',
+        border: '1px solid var(--color-surface)',
         borderRadius: 12,
         padding: 16,
-        background: '#0f172a',
+        background: 'var(--color-bg)',
         textDecoration: 'none',
         color: 'inherit',
       }}
     >
       <strong style={{ display: 'block', marginBottom: 8 }}>{product.title}</strong>
-      {product.brand?.name ? <span style={{ color: '#64748b', fontSize: 13 }}>{product.brand.name}</span> : null}
-      <span style={{ display: 'block', color: '#818cf8', marginTop: 8, fontWeight: 700 }}>
+      {product.brand?.name ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{product.brand.name}</span> : null}
+      <span style={{ display: 'block', color: 'var(--color-primary-hover)', marginTop: 8, fontWeight: 700 }}>
         {formatPrice(product)}
       </span>
     </Link>
@@ -64,13 +64,13 @@ export async function ProductGrid({
           {block.heading ?? block.category?.title ?? 'Latest products'}
         </h2>
         {block.category?.slug ? (
-          <Link href={`/shop/${block.category.slug}`} style={{ color: '#818cf8', fontSize: 14, textDecoration: 'none' }}>
+          <Link href={`/shop/${block.category.slug}`} style={{ color: 'var(--color-primary-hover)', fontSize: 14, textDecoration: 'none' }}>
             {block.viewAllLabel || 'View all'} →
           </Link>
         ) : null}
       </div>
       {products.docs.length === 0 ? (
-        <p style={{ color: '#64748b' }}>No products yet.</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>No products yet.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 16 }}>
           {products.docs.map((p) => (

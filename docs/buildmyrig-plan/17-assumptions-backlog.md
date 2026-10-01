@@ -42,7 +42,7 @@
 - Accordion "power mode" builder view.
 - Wishlist sharing/social; wishlist persistence server-side (v1 is local).
 - Google OAuth + more social login.
-- Password reset / forgot-password flow (Resend email adapter not yet wired — entry 15; no link ships in v1 UI).
+- ~~Password reset / forgot-password flow~~ — **landed (entry 23)**: `/auth/forgot` + `/auth/reset` + both API routes, Resend template included (TDD #158–163).
 - Affiliate program, referral codes.
 - Live carrier shipping rates + label printing.
 - Live tax service (TaxJar/Avalara).

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { AddToCartButton } from './AddToCartButton'
+import { WishlistButton } from '@/components/WishlistButton'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -33,12 +34,12 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <main style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
-      <nav style={{ color: '#64748b', marginBottom: 16 }}>
-        <Link href="/" style={{ color: '#64748b', textDecoration: 'none' }}>Home</Link>
+      <nav style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+        <Link href="/" style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Home</Link>
         {product.category && typeof product.category === 'object' && (
           <>
             {' / '}
-            <Link href={`/shop/${product.category.slug}`} style={{ color: '#64748b', textDecoration: 'none' }}>
+            <Link href={`/shop/${product.category.slug}`} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
               {product.category.title}
             </Link>
           </>
@@ -49,36 +50,44 @@ export default async function ProductPage({ params }: Props) {
         <section>
           <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 8 }}>{product.title}</h1>
           {product.brand && typeof product.brand === 'object' && (
-            <p style={{ color: '#94a3b8', marginBottom: 16 }}>{product.brand.name}</p>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>{product.brand.name}</p>
           )}
-          <p style={{ color: '#cbd5e1', lineHeight: 1.6, marginBottom: 32 }}>{product.description}</p>
+          <p style={{ color: 'var(--color-border-strong)', lineHeight: 1.6, marginBottom: 32 }}>{product.description}</p>
 
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Specifications</h2>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <tbody>
               {specs
                 ? Object.entries(specs).map(([k, v]) => (
-                    <tr key={k} style={{ borderBottom: '1px solid #1e293b' }}>
-                      <td style={{ padding: '8px 12px', color: '#94a3b8', width: '40%' }}>{k}</td>
+                    <tr key={k} style={{ borderBottom: '1px solid var(--color-surface)' }}>
+                      <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)', width: '40%' }}>{k}</td>
                       <td style={{ padding: '8px 12px' }}>{String(v)}</td>
                     </tr>
                   ))
                 : (
                     <tr>
-                      <td style={{ padding: '8px 12px', color: '#64748b' }}>No specs listed.</td>
+                      <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)' }}>No specs listed.</td>
                     </tr>
                   )}
             </tbody>
           </table>
         </section>
 
-        <aside style={{ border: '1px solid #1e293b', borderRadius: 12, padding: 24, background: '#0f172a', alignSelf: 'start' }}>
-          <p style={{ fontSize: 28, fontWeight: 800, color: '#818cf8', marginBottom: 8 }}>{formatPrice(product as never)}</p>
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>VAT included. Shipping calculated at checkout.</p>
+        <aside style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 24, background: 'var(--color-bg)', alignSelf: 'start' }}>
+          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-primary-hover)', marginBottom: 8 }}>{formatPrice(product as never)}</p>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 16 }}>VAT included. Shipping calculated at checkout.</p>
           <AddToCartButton
             productId={product.id}
             variantId={variants.docs[0]?.id}
             label={product.title}
+          />
+          <WishlistButton
+            item={{
+              id: String(product.id),
+              slug: product.slug,
+              title: product.title,
+              priceText: formatPrice(product as never),
+            }}
           />
           {Boolean((product as { isComponent?: boolean | null }).isComponent) && (
             <Link
@@ -86,7 +95,7 @@ export default async function ProductPage({ params }: Props) {
               style={{
                 display: 'block',
                 marginTop: 16,
-                color: '#818cf8',
+                color: 'var(--color-primary-hover)',
                 fontSize: 14,
                 textAlign: 'center',
                 textDecoration: 'none',

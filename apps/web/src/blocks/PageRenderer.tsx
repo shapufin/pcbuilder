@@ -1,23 +1,10 @@
-import { blockRegistry } from './registry'
-
-type BlockShape = { blockType?: string } & Record<string, unknown>
+import { renderBlocks, type BlockShape } from './renderBlocks'
 
 /**
  * Renders a page's `layout` array. Unknown blockTypes are skipped with a
- * server warning (never crash the page — 10-blocks-pages.md).
+ * server warning (never crash the page — 10-blocks-pages.md); the shared
+ * walk lives in renderBlocks (also used by the Section container, entry 22).
  */
 export async function PageRenderer({ layout }: { layout?: BlockShape[] | null }) {
-  if (!layout?.length) return null
-  return (
-    <>
-      {layout.map((block, i) => {
-        const Comp = blockRegistry[block.blockType ?? '']
-        if (!Comp) {
-          console.warn(`[PageRenderer] unknown blockType "${block.blockType}" — skipped`)
-          return null
-        }
-        return <Comp key={`${block.blockType}-${i}`} block={block} />
-      })}
-    </>
-  )
+  return <>{renderBlocks(layout)}</>
 }

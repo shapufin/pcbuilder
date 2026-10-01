@@ -11,13 +11,16 @@ import { Testimonials } from './components/Testimonials'
 import { LogosStrip } from './components/LogosStrip'
 import { NewsletterSignup } from './components/NewsletterSignup'
 import { VideoEmbed } from './components/VideoEmbed'
+import { Section } from './components/Section'
+import { ContactForm } from './components/ContactForm'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BlockComponent = ComponentType<{ block: any }>
 
 /**
  * blockType → component map (docs/buildmyrig-plan/10-blocks-pages.md).
- * Keys MUST match the block slugs in definitions.ts.
+ * Keys MUST match the block slugs in @buildmyrig/plugin-pages `pageBlocks`
+ * (src/blocks/definitions.ts, invariant test #116).
  */
 export const blockRegistry: Record<string, BlockComponent> = {
   hero: Hero,
@@ -32,4 +35,6 @@ export const blockRegistry: Record<string, BlockComponent> = {
   logosStrip: LogosStrip,
   newsletterSignup: NewsletterSignup,
   videoEmbed: VideoEmbed,
+  section: Section,
+  contactForm: ContactForm,
 }

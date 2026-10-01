@@ -5,9 +5,10 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { Users } from './collections/Users.ts'
-import { Pages, seoFieldsPlugin, categoryTopBlocksPlugin } from './collections/Pages.ts'
+import { Pages } from './collections/Pages.ts'
 import { shopPlugin } from '@buildmyrig/plugin-shop'
 import { pcBuilderPlugin } from '@buildmyrig/plugin-pc-builder'
+import { pagesPlugin } from '@buildmyrig/plugin-pages'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -56,9 +57,8 @@ export default buildConfig({
     // Phase 1+: shop + builder plugins. Skeletons are config-identity no-ops for now.
     shopPlugin({ enabled: true }),
     pcBuilderPlugin({ enabled: true }),
-    // Phase 3: SEO fields (seo.title/description/image) for pages.
-    seoFieldsPlugin(),
-    // Phase 3: bounded Hero/CtaBanner zone on category pages.
-    categoryTopBlocksPlugin(),
+    // Phase 3 → entry 19 (Step B): SEO fields, category top-block zone and the
+    // site-settings global now live in @buildmyrig/plugin-pages.
+    pagesPlugin({ enabled: true }),
   ],
 })

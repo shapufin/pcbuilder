@@ -196,6 +196,16 @@ export const seedPages = async (payload: Payload): Promise<number> => {
       seo: { title: pageDef.title, description: pageDef.description },
       layout: [
         { blockType: 'richText', richtext: rt(pageDef.paragraphs) },
+        // Entry 23: /contact gets the form block (07-ux-plan.md).
+        ...(pageDef.slug === 'contact'
+          ? [
+              {
+                blockType: 'contactForm',
+                heading: 'Send us a message',
+                intro: 'Questions about a build or an order? Write to us — we reply within one working day, Monday to Friday.',
+              },
+            ]
+          : []),
         {
           blockType: 'ctaBanner',
           heading: pageDef.cta.heading,

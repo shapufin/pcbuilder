@@ -9,9 +9,9 @@ import { sanitizeNext } from '@/lib/auth'
 const input: React.CSSProperties = {
   padding: '12px 14px',
   borderRadius: 10,
-  border: '1px solid #334155',
-  background: '#0f172a',
-  color: '#f8fafc',
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
   fontSize: 15,
 }
 
@@ -75,11 +75,11 @@ export function RegisterForm({ next }: { next?: string }) {
   return (
     <main style={{ maxWidth: 460, margin: '0 auto', padding: '64px 24px' }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>Create account</h1>
-      <p style={{ color: '#94a3b8', fontSize: 14, margin: '0 0 24px' }}>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: '0 0 24px' }}>
         Save builds, track orders and check out faster.
       </p>
       <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: '#cbd5e1' }}>
+        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
           Email
           <input
             type="email"
@@ -91,7 +91,7 @@ export function RegisterForm({ next }: { next?: string }) {
             style={input}
           />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: '#cbd5e1' }}>
+        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
           Password
           <input
             type="password"
@@ -111,8 +111,8 @@ export function RegisterForm({ next }: { next?: string }) {
             padding: '12px 22px',
             borderRadius: 10,
             border: 0,
-            background: '#6366f1',
-            color: '#fff',
+            background: 'var(--color-primary-strong)',
+            color: 'var(--color-on-primary)',
             fontWeight: 700,
             fontSize: 15,
             cursor: busy ? 'wait' : 'pointer',
@@ -122,13 +122,13 @@ export function RegisterForm({ next }: { next?: string }) {
         </button>
       </form>
       {error ? (
-        <p role="alert" style={{ color: '#f87171', fontSize: 14, marginTop: 14 }}>
+        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 14, marginTop: 14 }}>
           {error}
         </p>
       ) : null}
-      <p style={{ color: '#94a3b8', fontSize: 14, marginTop: 24 }}>
+      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 24 }}>
         Already have an account?{' '}
-        <Link href="/auth/login" style={{ color: '#818cf8' }}>
+        <Link href="/auth/login" style={{ color: 'var(--color-primary-hover)' }}>
           Sign in
         </Link>
       </p>

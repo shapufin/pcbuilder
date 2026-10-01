@@ -44,14 +44,17 @@ Notes:
 
 ## 4. Orders and customers
 
-- **Orders** (`/admin/collections/orders`): status lifecycle is `pending → processing → succeeded / failed / cancelled / expired`, with `refunded` after a refund. Payment state comes from the Stripe webhook — never mark an order paid manually to "fix" a payment; check the webhook delivery first (see §7). Staff/managers can move orders through fulfilment statuses; **refunds (transactions) are admin-only**.
+- **Orders** (`/admin/collections/orders`): status lifecycle is `processing → completed` (orders are created `processing` when the Stripe webhook settles payment), with `cancelled` / `refunded` as manager+ terminal states; the `pending → processing → succeeded / failed / cancelled / expired` lifecycle above belongs to **transactions** (payment state). Never mark an order completed manually to "fix" a payment; check the webhook delivery first (see §7). Staff/managers can move orders through fulfilment statuses — staff are limited to `processing`/`completed` (status-only write, entry 20 review); **refunds (transactions) are admin-only**.
 - **Customers**: storefront buyers live in the `users` collection as customer-equivalent accounts; do not assign them `admin`/`manager` roles.
 
 ## 5. CMS pages and blocks
 
 - **Pages** (`/admin/collections/pages`): create/edit/publish is **admin + manager only** (staff can read).
 - Pages use **drafts**: edits save as drafts until you **publish**; only published pages are publicly readable (`/` and `/<slug>`).
-- Each page is a stack of the 12 registered blocks (hero, feature grid, testimonials, …). Reorder blocks with drag handles; every block has an admin preview label.
+- Each page is a stack of the 14 registered blocks (hero, rich text, testimonials, contact form, …) — the "Add block" drawer is grouped into **Layout / Commerce / Content**. Reorder blocks with drag handles; every block has an admin preview label.
+- **Section** (Layout group) wraps other blocks in a band; its **layout** tab controls vertical padding, background tone and inner width (choices map to site theme tokens — pick, don't type). Sections can't nest inside sections.
+- Rich-text blocks can embed a curated subset inline (product grid, category spotlight, CTA banner, templates carousel, video, newsletter) from the editor's block menu.
+- **Contact form block** (Content group): drop it on a page and submissions go to the staff inbox email (`STAFF_ALERT_EMAIL`, else the configured sender) — no admin UI list. If no email is configured, submissions are logged instead of sent (dry-run).
 - **Homepage**: exactly one page can have the **is Homepage** flag (ticking it clears the flag from any other page). The `/` route renders that page — with a built-in fallback landing if no homepage page exists yet. Revalidation is automatic on publish (no redeploy).
 - SEO fields (meta title/description, social image) sit on each page/product; sitemap and JSON-LD regenerate from them.
 - Newsletter signups from the storefront footer go straight to **Resend** (API-key based); there is no admin subscriber list.

@@ -38,7 +38,7 @@ export default async function ShopIndexPage() {
   return (
     <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
       <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>Shop</h1>
-      <p style={{ color: '#64748b', marginBottom: 24 }}>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>
         Browse PC components by category.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
@@ -50,23 +50,23 @@ export default async function ShopIndexPage() {
                 key={category.id}
                 href={`/shop/${category.slug}`}
                 style={{
-                  border: '1px solid #1e293b',
+                  border: '1px solid var(--color-surface)',
                   borderRadius: 12,
                   padding: 20,
-                  color: '#e2e8f0',
+                  color: 'var(--color-text)',
                   textDecoration: 'none',
-                  background: '#0f172a',
+                  background: 'var(--color-bg)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 8,
                 }}
               >
                 <strong style={{ fontSize: 16 }}>{category.title}</strong>
-                <span style={{ color: count > 0 ? '#818cf8' : '#64748b', fontSize: 14 }}>
+                <span style={{ color: count > 0 ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', fontSize: 14 }}>
                   {count > 0 ? `${count} product${count === 1 ? '' : 's'}` : 'No products yet'}
                 </span>
                 {category.description ? (
-                  <span style={{ color: '#94a3b8', fontSize: 13 }}>{category.description}</span>
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{category.description}</span>
                 ) : null}
               </Link>
             )

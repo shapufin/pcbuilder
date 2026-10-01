@@ -5,8 +5,8 @@ type Cta = { label: string; url: string; style?: 'primary' | 'secondary' }
 
 const primary: React.CSSProperties = {
   display: 'inline-block',
-  background: '#6366f1',
-  color: '#fff',
+  background: 'var(--color-primary-strong)',
+  color: 'var(--color-on-primary)',
   padding: '12px 24px',
   borderRadius: 10,
   fontWeight: 700,
@@ -14,8 +14,8 @@ const primary: React.CSSProperties = {
 }
 const secondary: React.CSSProperties = {
   display: 'inline-block',
-  border: '1px solid #334155',
-  color: '#e2e8f0',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
   padding: '12px 24px',
   borderRadius: 10,
   fontWeight: 600,
@@ -40,7 +40,7 @@ export function Hero({
   const copy = (
     <div style={{ flex: '1 1 320px', textAlign: centered ? 'center' : 'left' }}>
       <h1 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 800, margin: '0 0 12px' }}>{heading}</h1>
-      {subheading ? <p style={{ color: '#94a3b8', fontSize: 18, lineHeight: 1.6, margin: '0 0 24px' }}>{subheading}</p> : null}
+      {subheading ? <p style={{ color: 'var(--color-text-muted)', fontSize: 18, lineHeight: 1.6, margin: '0 0 24px' }}>{subheading}</p> : null}
       {ctas?.length ? (
         <div style={{ display: 'flex', gap: 12, justifyContent: centered ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
           {ctas.map((cta, i) => {
@@ -72,7 +72,7 @@ export function Hero({
     <img
       src={image.url}
       alt={image.alt ?? ''}
-      style={{ width: '100%', borderRadius: 14, border: '1px solid #1e293b' }}
+      style={{ width: '100%', borderRadius: 14, border: '1px solid var(--color-surface)' }}
     />
   ) : null
 

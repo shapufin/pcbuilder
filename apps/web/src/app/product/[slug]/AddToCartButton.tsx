@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { flyToCart } from '@/lib/fly-to-cart'
 import { track } from '@/lib/analytics'
+import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 
 export function AddToCartButton({
   productId,
@@ -16,6 +17,7 @@ export function AddToCartButton({
 }) {
   const { addItem } = useEcommerce()
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  const openCartDrawer = useCartDrawerStore((s) => s.open)
 
   const onAdd = async (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -29,6 +31,7 @@ export function AddToCartButton({
       )
       flyToCart(rect, label ?? 'Added')
       track('Add to Cart', label ? { item: label } : undefined)
+      openCartDrawer()
       setState('done')
     } catch {
       setState('error')
@@ -44,8 +47,8 @@ export function AddToCartButton({
         padding: '12px 0',
         borderRadius: 8,
         border: 'none',
-        background: state === 'done' ? '#059669' : '#4f46e5',
-        color: '#fff',
+        background: state === 'done' ? 'var(--color-success-strong)' : 'var(--color-primary-strong)',
+        color: 'var(--color-on-primary)',
         fontWeight: 600,
         cursor: state === 'busy' ? 'wait' : 'pointer',
       }}

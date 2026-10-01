@@ -93,10 +93,10 @@ export function TemplatesCarouselClient({
               flex: '0 0 280px',
               scrollSnapAlign: 'start',
               textAlign: 'left',
-              border: '1px solid #1e293b',
+              border: '1px solid var(--color-surface)',
               borderRadius: 12,
               padding: 16,
-              background: '#0f172a',
+              background: 'var(--color-bg)',
               color: 'inherit',
               cursor: 'pointer',
             }}
@@ -107,12 +107,12 @@ export function TemplatesCarouselClient({
             ) : null}
             <strong style={{ display: 'block', marginBottom: 6 }}>{t.name}</strong>
             {t.description ? (
-              <span style={{ display: 'block', color: '#94a3b8', fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+              <span style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
                 {t.description.slice(0, 90)}
                 {t.description.length > 90 ? '…' : ''}
               </span>
             ) : null}
-            <span style={{ color: '#818cf8', fontWeight: 700 }}>from {eur(t.basePriceCents)}</span>
+            <span style={{ color: 'var(--color-primary-hover)', fontWeight: 700 }}>from {eur(t.basePriceCents)}</span>
           </motion.button>
         ))}
       </div>
@@ -124,9 +124,9 @@ const arrowBtn: React.CSSProperties = {
   width: 36,
   height: 36,
   borderRadius: 8,
-  border: '1px solid #334155',
-  background: '#0f172a',
-  color: '#e2e8f0',
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg)',
+  color: 'var(--color-text)',
   cursor: 'pointer',
   fontSize: 16,
 }

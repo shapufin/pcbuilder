@@ -68,7 +68,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             <li key={b}>
               <Link
                 href={currentBrand === b ? qs({ brand: undefined }) : qs({ brand: b })}
-                style={{ color: currentBrand === b ? '#818cf8' : '#94a3b8', textDecoration: 'none', textTransform: 'capitalize' }}
+                style={{ color: currentBrand === b ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none', textTransform: 'capitalize' }}
               >
                 {b}
               </Link>
@@ -83,7 +83,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
             ['Over €300', { price_gte: '30000' }],
           ].map(([label, patch]) => (
             <li key={label as string}>
-              <Link href={qs(patch as Record<string, string>)} style={{ color: '#94a3b8', textDecoration: 'none' }}>
+              <Link href={qs(patch as Record<string, string>)} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
                 {label as string}
               </Link>
             </li>
@@ -91,26 +91,26 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         </ul>
         <h3 style={{ fontSize: 16, margin: '24px 0 8px' }}>Sort</h3>
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
-          <li><Link href={qs({ sort: 'price_asc' })} style={{ color: '#94a3b8', textDecoration: 'none' }}>Price ↑</Link></li>
-          <li><Link href={qs({ sort: 'price_desc' })} style={{ color: '#94a3b8', textDecoration: 'none' }}>Price ↓</Link></li>
+          <li><Link href={qs({ sort: 'price_asc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↑</Link></li>
+          <li><Link href={qs({ sort: 'price_desc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↓</Link></li>
         </ul>
       </aside>
 
       <section>
         <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>{category.title}</h1>
-        <p style={{ color: '#64748b', marginBottom: 24 }}>{products.totalDocs} products</p>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>{products.totalDocs} products</p>
         {products.docs.length === 0 ? (
-          <p style={{ color: '#64748b' }}>No products match these filters.</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>No products match these filters.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
             {products.docs.map((p) => (
               <Link
                 key={p.id}
                 href={`/product/${p.slug}`}
-                style={{ border: '1px solid #1e293b', borderRadius: 12, padding: 20, color: '#e2e8f0', textDecoration: 'none', background: '#0f172a', display: 'flex', flexDirection: 'column', gap: 8 }}
+                style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 20, color: 'var(--color-text)', textDecoration: 'none', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', gap: 8 }}
               >
                 <strong>{p.title}</strong>
-                <span style={{ color: '#818cf8' }}>{formatPrice(p as never)}</span>
+                <span style={{ color: 'var(--color-primary-hover)' }}>{formatPrice(p as never)}</span>
               </Link>
             ))}
           </div>
@@ -118,7 +118,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         {products.totalPages > 1 && (
           <nav style={{ marginTop: 24, display: 'flex', gap: 12 }}>
             {Array.from({ length: products.totalPages }, (_, i) => i + 1).map((n) => (
-              <Link key={n} href={qs({ page: String(n) })} style={{ color: n === page ? '#818cf8' : '#94a3b8', textDecoration: 'none' }}>
+              <Link key={n} href={qs({ page: String(n) })} style={{ color: n === page ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none' }}>
                 {n}
               </Link>
             ))}

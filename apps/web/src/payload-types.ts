@@ -70,7 +70,22 @@ export interface Config {
   auth: {
     users: UserAuthOperations;
   };
-  blocks: {};
+  blocks: {
+    hero: HeroBlock;
+    richText: RichTextBlock;
+    productGrid: ProductGridBlock;
+    featuredCategory: FeaturedCategoryBlock;
+    ctaBanner: CtaBannerBlock;
+    templatesCarousel: TemplatesCarouselBlock;
+    comparisonTable: ComparisonTableBlock;
+    faq: FaqBlock;
+    testimonials: TestimonialsBlock;
+    logosStrip: LogosStripBlock;
+    newsletterSignup: NewsletterSignupBlock;
+    videoEmbed: VideoEmbedBlock;
+    section: SectionBlock;
+    contactForm: ContactFormBlock;
+  };
   collections: {
     users: User;
     pages: Page;
@@ -141,8 +156,14 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+    theme: Theme;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    theme: ThemeSelect<false> | ThemeSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -189,225 +210,29 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "HeroBlock".
  */
-export interface User {
-  id: number;
-  roles?: ('admin' | 'manager' | 'staff' | 'customer')[] | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
+export interface HeroBlock {
+  heading: string;
+  subheading?: string | null;
+  image?: (number | null) | Media;
+  /**
+   * YouTube or Vimeo URL — used when variant = video
+   */
+  videoUrl?: string | null;
+  variant?: ('image' | 'split' | 'video') | null;
+  align?: ('left' | 'center') | null;
+  ctas?:
     | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
+        label: string;
+        url: string;
+        style?: ('primary' | 'secondary') | null;
+        id?: string | null;
       }[]
     | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
- */
-export interface Page {
-  id: number;
-  title: string;
-  slug: string;
-  /**
-   * Exactly one page renders / (enforced server-side)
-   */
-  isHomepage?: boolean | null;
-  layout?:
-    | (
-        | {
-            heading: string;
-            subheading?: string | null;
-            image?: (number | null) | Media;
-            /**
-             * YouTube or Vimeo URL — used when variant = video
-             */
-            videoUrl?: string | null;
-            variant?: ('image' | 'split' | 'video') | null;
-            align?: ('left' | 'center') | null;
-            ctas?:
-              | {
-                  label: string;
-                  url: string;
-                  style?: ('primary' | 'secondary') | null;
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'hero';
-          }
-        | {
-            richtext: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            };
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'richText';
-          }
-        | {
-            heading?: string | null;
-            category?: (number | null) | Category;
-            limit?: number | null;
-            columns?: ('2' | '3' | '4') | null;
-            viewAllLabel?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'productGrid';
-          }
-        | {
-            category: number | Category;
-            image?: (number | null) | Media;
-            heading: string;
-            copy?: string | null;
-            ctaLabel?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'featuredCategory';
-          }
-        | {
-            heading: string;
-            copy?: string | null;
-            ctaLabel?: string | null;
-            ctaUrl?: string | null;
-            tone?: ('dark' | 'indigo' | 'slate') | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'ctaBanner';
-          }
-        | {
-            heading?: string | null;
-            tagFilter?: string | null;
-            autoplay?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'templatesCarousel';
-          }
-        | {
-            heading?: string | null;
-            columns: {
-              label: string;
-              id?: string | null;
-            }[];
-            rows?:
-              | {
-                  label: string;
-                  values?:
-                    | {
-                        value?: string | null;
-                        id?: string | null;
-                      }[]
-                    | null;
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'comparisonTable';
-          }
-        | {
-            heading?: string | null;
-            items?:
-              | {
-                  question: string;
-                  answer: {
-                    root: {
-                      type: string;
-                      children: {
-                        type: any;
-                        version: number;
-                        [k: string]: unknown;
-                      }[];
-                      direction: ('ltr' | 'rtl') | null;
-                      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                      indent: number;
-                      version: number;
-                    };
-                    [k: string]: unknown;
-                  };
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'faq';
-          }
-        | {
-            heading?: string | null;
-            items?:
-              | {
-                  quote: string;
-                  name: string;
-                  role?: string | null;
-                  avatar?: (number | null) | Media;
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'testimonials';
-          }
-        | {
-            heading?: string | null;
-            brands?: (number | Brand)[] | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'logosStrip';
-          }
-        | {
-            heading?: string | null;
-            consent?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'newsletterSignup';
-          }
-        | {
-            provider?: ('youtube' | 'vimeo') | null;
-            url: string;
-            poster?: (number | null) | Media;
-            title?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'videoEmbed';
-          }
-      )[]
-    | null;
-  seo?: {
-    title?: string | null;
-    description?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (number | null) | Media;
-  };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'hero';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -464,6 +289,44 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "RichTextBlock".
+ */
+export interface RichTextBlock {
+  richtext: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'richText';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProductGridBlock".
+ */
+export interface ProductGridBlock {
+  heading?: string | null;
+  category?: (number | null) | Category;
+  limit?: number | null;
+  columns?: ('2' | '3' | '4') | null;
+  viewAllLabel?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'productGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories".
  */
 export interface Category {
@@ -473,45 +336,137 @@ export interface Category {
   parent?: (number | null) | Category;
   image?: (number | null) | Media;
   description?: string | null;
-  topBlocks?:
-    | (
-        | {
-            heading: string;
-            subheading?: string | null;
-            image?: (number | null) | Media;
-            /**
-             * YouTube or Vimeo URL — used when variant = video
-             */
-            videoUrl?: string | null;
-            variant?: ('image' | 'split' | 'video') | null;
-            align?: ('left' | 'center') | null;
-            ctas?:
-              | {
-                  label: string;
-                  url: string;
-                  style?: ('primary' | 'secondary') | null;
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'hero';
-          }
-        | {
-            heading: string;
-            copy?: string | null;
-            ctaLabel?: string | null;
-            ctaUrl?: string | null;
-            tone?: ('dark' | 'indigo' | 'slate') | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'ctaBanner';
-          }
-      )[]
-    | null;
+  topBlocks?: (HeroBlock | CtaBannerBlock)[] | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CtaBannerBlock".
+ */
+export interface CtaBannerBlock {
+  heading: string;
+  copy?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  tone?: ('dark' | 'indigo' | 'slate') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'ctaBanner';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FeaturedCategoryBlock".
+ */
+export interface FeaturedCategoryBlock {
+  category: number | Category;
+  image?: (number | null) | Media;
+  heading: string;
+  copy?: string | null;
+  ctaLabel?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'featuredCategory';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TemplatesCarouselBlock".
+ */
+export interface TemplatesCarouselBlock {
+  heading?: string | null;
+  tagFilter?: string | null;
+  autoplay?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'templatesCarousel';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ComparisonTableBlock".
+ */
+export interface ComparisonTableBlock {
+  heading?: string | null;
+  columns: {
+    label: string;
+    id?: string | null;
+  }[];
+  rows?:
+    | {
+        label: string;
+        values?:
+          | {
+              value?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'comparisonTable';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FaqBlock".
+ */
+export interface FaqBlock {
+  heading?: string | null;
+  items?:
+    | {
+        question: string;
+        answer: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'faq';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TestimonialsBlock".
+ */
+export interface TestimonialsBlock {
+  heading?: string | null;
+  items?:
+    | {
+        quote: string;
+        name: string;
+        role?: string | null;
+        avatar?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'testimonials';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "LogosStripBlock".
+ */
+export interface LogosStripBlock {
+  heading?: string | null;
+  brands?: (number | Brand)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'logosStrip';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -525,6 +480,150 @@ export interface Brand {
   url?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NewsletterSignupBlock".
+ */
+export interface NewsletterSignupBlock {
+  heading?: string | null;
+  consent?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'newsletterSignup';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "VideoEmbedBlock".
+ */
+export interface VideoEmbedBlock {
+  provider?: ('youtube' | 'vimeo') | null;
+  url: string;
+  poster?: (number | null) | Media;
+  title?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'videoEmbed';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionBlock".
+ */
+export interface SectionBlock {
+  blocks?:
+    | (
+        | HeroBlock
+        | RichTextBlock
+        | ProductGridBlock
+        | FeaturedCategoryBlock
+        | CtaBannerBlock
+        | TemplatesCarouselBlock
+        | ComparisonTableBlock
+        | FaqBlock
+        | TestimonialsBlock
+        | LogosStripBlock
+        | NewsletterSignupBlock
+        | VideoEmbedBlock
+        | ContactFormBlock
+      )[]
+    | null;
+  layout?: {
+    /**
+     * Vertical padding — mapped to theme spacing tokens on the storefront
+     */
+    padding?: ('none' | 'sm' | 'md' | 'lg' | 'xl') | null;
+    /**
+     * Section background — theme surface colors
+     */
+    background?: ('page' | 'alt' | 'raised') | null;
+    /**
+     * Inner content width
+     */
+    width?: ('container' | 'wide' | 'full') | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'section';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContactFormBlock".
+ */
+export interface ContactFormBlock {
+  heading?: string | null;
+  intro?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'contactForm';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  roles?: ('admin' | 'manager' | 'staff' | 'customer')[] | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * Exactly one page renders / (enforced server-side)
+   */
+  isHomepage?: boolean | null;
+  layout?:
+    | (
+        | HeroBlock
+        | RichTextBlock
+        | ProductGridBlock
+        | FeaturedCategoryBlock
+        | CtaBannerBlock
+        | TemplatesCarouselBlock
+        | ComparisonTableBlock
+        | FaqBlock
+        | TestimonialsBlock
+        | LogosStripBlock
+        | NewsletterSignupBlock
+        | VideoEmbedBlock
+        | SectionBlock
+        | ContactFormBlock
+      )[]
+    | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1289,160 +1388,7 @@ export interface PagesSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   isHomepage?: T;
-  layout?:
-    | T
-    | {
-        hero?:
-          | T
-          | {
-              heading?: T;
-              subheading?: T;
-              image?: T;
-              videoUrl?: T;
-              variant?: T;
-              align?: T;
-              ctas?:
-                | T
-                | {
-                    label?: T;
-                    url?: T;
-                    style?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        richText?:
-          | T
-          | {
-              richtext?: T;
-              id?: T;
-              blockName?: T;
-            };
-        productGrid?:
-          | T
-          | {
-              heading?: T;
-              category?: T;
-              limit?: T;
-              columns?: T;
-              viewAllLabel?: T;
-              id?: T;
-              blockName?: T;
-            };
-        featuredCategory?:
-          | T
-          | {
-              category?: T;
-              image?: T;
-              heading?: T;
-              copy?: T;
-              ctaLabel?: T;
-              id?: T;
-              blockName?: T;
-            };
-        ctaBanner?:
-          | T
-          | {
-              heading?: T;
-              copy?: T;
-              ctaLabel?: T;
-              ctaUrl?: T;
-              tone?: T;
-              id?: T;
-              blockName?: T;
-            };
-        templatesCarousel?:
-          | T
-          | {
-              heading?: T;
-              tagFilter?: T;
-              autoplay?: T;
-              id?: T;
-              blockName?: T;
-            };
-        comparisonTable?:
-          | T
-          | {
-              heading?: T;
-              columns?:
-                | T
-                | {
-                    label?: T;
-                    id?: T;
-                  };
-              rows?:
-                | T
-                | {
-                    label?: T;
-                    values?:
-                      | T
-                      | {
-                          value?: T;
-                          id?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        faq?:
-          | T
-          | {
-              heading?: T;
-              items?:
-                | T
-                | {
-                    question?: T;
-                    answer?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        testimonials?:
-          | T
-          | {
-              heading?: T;
-              items?:
-                | T
-                | {
-                    quote?: T;
-                    name?: T;
-                    role?: T;
-                    avatar?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        logosStrip?:
-          | T
-          | {
-              heading?: T;
-              brands?: T;
-              id?: T;
-              blockName?: T;
-            };
-        newsletterSignup?:
-          | T
-          | {
-              heading?: T;
-              consent?: T;
-              id?: T;
-              blockName?: T;
-            };
-        videoEmbed?:
-          | T
-          | {
-              provider?: T;
-              url?: T;
-              poster?: T;
-              title?: T;
-              id?: T;
-              blockName?: T;
-            };
-      };
+  layout?: T | {};
   seo?:
     | T
     | {
@@ -1526,41 +1472,7 @@ export interface CategoriesSelect<T extends boolean = true> {
   parent?: T;
   image?: T;
   description?: T;
-  topBlocks?:
-    | T
-    | {
-        hero?:
-          | T
-          | {
-              heading?: T;
-              subheading?: T;
-              image?: T;
-              videoUrl?: T;
-              variant?: T;
-              align?: T;
-              ctas?:
-                | T
-                | {
-                    label?: T;
-                    url?: T;
-                    style?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        ctaBanner?:
-          | T
-          | {
-              heading?: T;
-              copy?: T;
-              ctaLabel?: T;
-              ctaUrl?: T;
-              tone?: T;
-              id?: T;
-              blockName?: T;
-            };
-      };
+  topBlocks?: T | {};
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -2011,6 +1923,153 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * Shown in the site header. Empty list = no header links (Shop/Builder are not structural).
+   */
+  navLinks?:
+    | {
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  footerLinks?:
+    | {
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "theme".
+ */
+export interface Theme {
+  id: number;
+  /**
+   * Empty color fields fall back to this preset.
+   */
+  preset?: ('dark' | 'light') | null;
+  /**
+   * Leave a field empty to use the preset value.
+   */
+  colors?: {
+    bg?: string | null;
+    surface?: string | null;
+    surfaceRaised?: string | null;
+    surfaceHover?: string | null;
+    border?: string | null;
+    borderStrong?: string | null;
+    text?: string | null;
+    textMuted?: string | null;
+    primary?: string | null;
+    primaryStrong?: string | null;
+    primaryHover?: string | null;
+    primaryHoverStrong?: string | null;
+    onPrimary?: string | null;
+    success?: string | null;
+    successStrong?: string | null;
+    warning?: string | null;
+    danger?: string | null;
+    info?: string | null;
+  };
+  /**
+   * Corner radii for buttons/cards/inputs.
+   */
+  radius?: {
+    sm?: string | null;
+    md?: string | null;
+    lg?: string | null;
+  };
+  /**
+   * Font stacks; empty = preset default.
+   */
+  fonts?: {
+    body?: string | null;
+    heading?: string | null;
+    mono?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  navLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  footerLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "theme_select".
+ */
+export interface ThemeSelect<T extends boolean = true> {
+  preset?: T;
+  colors?:
+    | T
+    | {
+        bg?: T;
+        surface?: T;
+        surfaceRaised?: T;
+        surfaceHover?: T;
+        border?: T;
+        borderStrong?: T;
+        text?: T;
+        textMuted?: T;
+        primary?: T;
+        primaryStrong?: T;
+        primaryHover?: T;
+        primaryHoverStrong?: T;
+        onPrimary?: T;
+        success?: T;
+        successStrong?: T;
+        warning?: T;
+        danger?: T;
+        info?: T;
+      };
+  radius?:
+    | T
+    | {
+        sm?: T;
+        md?: T;
+        lg?: T;
+      };
+  fonts?:
+    | T
+    | {
+        body?: T;
+        heading?: T;
+        mono?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

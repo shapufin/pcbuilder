@@ -531,7 +531,6 @@ export const builderRulesImportEndpoint: Endpoint = {
     const invalid: Array<{ line: number; reason: string }> = []
     const resolvedList: ResolvedImportRow[] = []
     for (const [index, row] of parsed.data.rows.entries()) {
-      // eslint-disable-next-line no-await-in-loop
       const resolved = await resolveName(req.payload, row, errors, index)
       if (!resolved) {
         invalid.push({ line: index + 1, reason: errors[errors.length - 1] ?? 'row could not be resolved' })
@@ -575,7 +574,6 @@ export const builderRulesImportEndpoint: Endpoint = {
       const r = resolvedByLine.get(entry.line)
       if (!r) continue
       try {
-        // eslint-disable-next-line no-await-in-loop
         await req.payload.create({
           collection: 'compatibility-rules',
           data: {

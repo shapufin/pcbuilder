@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useBuilderStore } from './builder-store'
+import { dialogMotion, prefersReducedMotion } from '@/lib/motion'
 import type { LandingTemplate } from './page'
 
 const USE_CASES = ['gaming', 'editing', 'streaming', 'workstation'] as const
@@ -175,10 +176,7 @@ function GuidedQuestionsDialog({ templates, onClose, onStart, onNoMatch }: Dialo
         role="dialog"
         aria-modal="true"
         aria-labelledby="guided-title"
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        {...dialogMotion(prefersReducedMotion())}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="guided-title">Find your starting point</h2>
