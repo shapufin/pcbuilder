@@ -57,6 +57,8 @@ The Phase-3 note ("CartDrawer slide-out + dialog/sheet scale remain pending **wi
 
 **Post-review gates (all green)**: **262/262 unit** (+#180; web **71**), `pnpm -r typecheck` 6/6, `pnpm lint` 4/4, production build clean, **e2e 11/11** (#179–#182).
 
+**Repo tracking**: entries 17–23 pushed together as **`1993ab5`** (2026-10-01, 163 files) — the "not committed / `main` still at `1e8231e`" notes in the entries below are historical snapshots of the pre-push state.
+
 **Known gaps / next**: owner-blocked — Stripe **live** e2e, live Resend send (needs `RESEND_API_KEY`+`EMAIL_FROM`), Sentry DSN, `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`; Postgres dry-run needs Docker/Postgres (steps above). Plugin **`cartID` context gap** (review F2) — app works around it; upstream `@payloadcms/plugin-ecommerce` should add `cartID` to the provider value. Drawer **focus trap/restore/scroll-lock** (review F6, a11y follow-up). Server-side `track` for the `purchase` event fires only on order **create** — cancelled/refunded orders still sent a client-side `Purchase` at confirm time (accepted; refund-side events are a later analytics concern). FilterDrawer (07 §5 shop facets) remains unbuilt — the shop category page's inline filters cover desktop, and a mobile filter drawer is a feature, not an animation; parked unless requested.
 
 ## 2026-09-30 (22) — Phase 5 Step D: block system v2 (`config.blocks` + `blockReferences` + Section container + groups + Lexical embeds)
@@ -203,7 +205,7 @@ New tests **#124–130**: #124 customer id → `findByID`, #125 populated custom
 
 Reviewer independently verified: `blocks/definitions.ts` **byte-identical to HEAD** (`git hash-object`), mini-plugins diff comment-only, payload plugin-order guarantee (`payload/dist/config/build.js` stable sort by `order ?? 0`, no plugin sets it), and re-ran the package suite + lint + typecheck. **Gates re-run after fixes**: **175/175 unit**, typecheck 6/6, lint 4/4, build clean, **e2e 7/7**.
 
-**Repo tracking**: entries 17–19 **in the working tree (not committed)** — `main` still at `1e8231e`.
+**Repo tracking**: entries 17–19 **in the working tree (not committed)** — `main` still at `1e8231e` (later pushed together as `1993ab5`).
 
 ## 2026-09-29 (18) — Phase 5 Step A: site-settings global (admin-editable header/footer) + `/shop/search` + `/wishlist`
 
@@ -238,7 +240,7 @@ Reviewer independently verified: `blocks/definitions.ts` **byte-identical to HEA
 
 **Still owner/machine-blocked**: Stripe **live** e2e (keys), Sentry DSN, Postgres migrations dry-run (no Docker), Upstash Redis. Password reset + cart-drawer/dialog animations still deferred.
 
-**Repo tracking**: entries 17 + 18 **in the working tree (not committed)** — `main` still at `1e8231e`. Next: **Phase 5 Step B** (plugin extension).
+**Repo tracking**: entries 17 + 18 **in the working tree (not committed)** — `main` still at `1e8231e` (later pushed together as `1993ab5`). Next: **Phase 5 Step B** (plugin extension).
 
 ## 2026-09-29 (17) — Lighthouse audit gate (Phase 4): a11y/BP/SEO → 100, favicon + contrast fixes
 
@@ -275,7 +277,7 @@ CLS 0, FCP 1.0 s, TBT 70 ms. LCP 2.6 s (score 0.88 — Lighthouse's simulated CP
 
 **Still owner/machine-blocked**: Stripe **live** e2e (keys), Sentry DSN, Postgres migrations dry-run (no Docker), Upstash Redis. Password reset + cart-drawer/dialog animations still deferred.
 
-**Repo tracking**: entry 17 **in the working tree (not committed)** — tree was clean at `1e8231e` before this entry.
+**Repo tracking**: entry 17 **in the working tree (not committed)** — tree was clean at `1e8231e` before this entry (later pushed together as `1993ab5`).
 
 ## 2026-09-29 (16) — Entry-15 review fixes + Playwright e2e suite + `/shop` landing (e2e-found bug: dead Shop link)
 
