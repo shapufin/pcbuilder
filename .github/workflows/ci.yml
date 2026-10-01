@@ -43,5 +43,25 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      # Push mode only runs on dev boots (documented workflow): boot next dev,
+      # wait until the payload-backed /api/users/me answers (proves the schema
+      # was pushed to the CI Postgres), then tear it down before pnpm build.
+      - name: Push DB schema (dev boot against CI Postgres)
+        run: |
+          pnpm dev > dev-boot.log 2>&1 &
+          ok=""
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:3000/api/users/me > /dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::dev boot / schema push failed"
+            tail -n 120 dev-boot.log
+            exit 1
+          fi
+          echo "schema pushed ok"
+          pkill -f "turbo dev" || true
+          fuser -k 3000/tcp || true
+          sleep 2
       - run: pnpm build
       - run: pnpm audit --prod --audit-level high

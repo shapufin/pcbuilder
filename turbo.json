@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": [
+        "DATABASE_URI",
+        "PAYLOAD_SECRET",
+        "BMR_URL",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_PLAUSIBLE_DOMAIN"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^build"]
@@ -14,7 +21,19 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "DATABASE_URI",
+        "PAYLOAD_SECRET",
+        "BMR_URL",
+        "RESEND_API_KEY",
+        "EMAIL_FROM",
+        "STAFF_ALERT_EMAIL",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_PLAUSIBLE_DOMAIN"
+      ]
     }
   }
 }
