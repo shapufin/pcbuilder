@@ -1,6 +1,6 @@
 # AGENTS.md — BuildMyRig handoff / workflow context
 
-Read this first in a new AI session. It is the recovery point for the whole project: state, commands, conventions, gotchas, and where the detailed docs live. Current state through entry 24 is pushed (`main` @ `4e93a0d` — `1993ab5` contains entries 17 (Lighthouse gate) through 23 (deferred-items sweep) + review fixes; then `603ea49`–`4e93a0d` are the entry-24 CI bring-up fixes) and **CI (all 8 gates) is green for the first time in repo history**; still **do NOT commit/push unless the user explicitly asks**.
+Read this first in a new AI session. It is the recovery point for the whole project: state, commands, conventions, gotchas, and where the detailed docs live. Current state through entry 24 is pushed (`main` @ `29ed1b5`+ — `1993ab5` contains entries 17 (Lighthouse gate) through 23 (deferred-items sweep) + the entry-23 review fixes; `49714ca`–`4e93a0d` are the entry-24 CI bring-up fixes; `29ed1b5`+ = entry-24 docs syncs) and **CI (all 8 gates) is green for the first time in repo history**; still **do NOT commit/push unless the user explicitly asks**.
 
 ## What this is
 
@@ -33,7 +33,7 @@ Credentials: `admin@buildmyrig.test` / `Password123!` (id1 admin, id2 manager, i
 
 ## Current phase status (2026-10-01)
 
-Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**; **Phase 5 complete — Step A (entry 18), Step B (entries 19–20), Step C (entry 21), Step D (entry 22)**; **entry 23 deferred-items sweep done (password reset, remaining emails + purchase/low-stock/contact, cart-drawer/dialog animations)**; **entry 24 CI bring-up done — `github.com/shapufin/pcbuilder` `main` green across all 8 gates (install, secret-scan, lint, typecheck, test, Postgres schema push, build, audit) for the first time** (run 36898140224). Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological). GitHub: push after each completed round (done through entry 24; latest `4e93a0d` = entry 24, `1993ab5` = entries 17–23 + review fixes, previous `fe67689` + `1e8231e` = entries 15–16).
+Phases 0, 1 (minus live Stripe e2e), 2a–2e, 3 **done**; **Phase 4 (hardening) in progress**; **Phase 5 complete — Step A (entry 18), Step B (entries 19–20), Step C (entry 21), Step D (entry 22)**; **entry 23 deferred-items sweep done (password reset, remaining emails + purchase/low-stock/contact, cart-drawer/dialog animations)**; **entry 24 CI bring-up done — `github.com/shapufin/pcbuilder` `main` green across all 8 gates (install, secret-scan, lint, typecheck, test, Postgres schema push, build, audit) for the first time** (run 36898140224). Everything reviewed each round with the `code-review-checklist` skill; entry-level detail in `docs/buildmyrig-plan/18-progress-log.md` (reverse-chronological). GitHub: push after each completed round (done through entry 24; `49714ca`–`4e93a0d` = entry-24 CI fixes + `29ed1b5` = entry-24 docs, `1993ab5` = entries 17–23 + review fixes, previous `fe67689` + `1e8231e` = entries 15–16).
 
 Session history (one line each, entries 1–24 in the progress log):
 

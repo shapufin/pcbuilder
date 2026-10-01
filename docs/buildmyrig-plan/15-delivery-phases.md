@@ -21,7 +21,7 @@ Order per master prompt: shop core → builder → blocks/animations → hardeni
 | Deferred-items sweep (entry 23) | ✅ done | Password-reset flow (`/auth/forgot` + `/auth/reset` + APIs, anti-enumeration, TDD #158–163), remaining Resend templates + server-side `purchase` + low-stock staff alert + contact form/block (TDD #164–175), cart-drawer + dialog animations (TDD #176–179 incl. e2e); entry-23 review round (FIX → 3 blocking, all fixed, coverage #180–182); gates 262/262 + e2e 11/11. Postgres dry-run still blocked (owner steps reported) |
 | CI bring-up (entry 24) | ✅ done | Entries 17–23 pushed as `1993ab5` + **first-ever all-green CI** (run 36898140224, 8 gates): pnpm-action duplicate-version fix (`49714ca`), plugin-pc-builder react/next devDeps — stray root `node_modules/react` had masked them locally (`e45df0c`), turbo.json strict-env `env` allowlists + dev-boot schema-push step against CI postgres:16 — **first Postgres push, partial advance on the dry-run** (`bbd3ba0`), `undici ^7.29.1` override → audit 11 → 1 vuln / 0 highs (`f8a4bcd`), #140 hex-test structural fix + #140c (`4e93a0d`). Gates 263/263, typecheck 6/6, lint 4/4 |
 
-Latest commits: `4e93a0d` (entry 24: CI bring-up — first all-green CI) + `f8a4bcd`/`bbd3ba0`/`e45df0c`/`49714ca` (entry-24 fixes) + `1993ab5` (entries 17–23 + entry-23 review fixes) + `fe67689` (entries 15–16), all pushed. Full detail: [18-progress-log.md](18-progress-log.md).
+Latest commits: `29ed1b5` (entry-24 docs) + `4e93a0d` (entry 24: CI bring-up — first all-green CI) + `f8a4bcd`/`bbd3ba0`/`e45df0c`/`49714ca` (entry-24 fixes) + `1993ab5` (entries 17–23 + entry-23 review fixes) + `fe67689` (entries 15–16), all pushed. Full detail: [18-progress-log.md](18-progress-log.md).
 
 ## Phase 0 — Foundations & spike (week 1)
 

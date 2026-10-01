@@ -39,13 +39,13 @@ v1: custom Payload "Build Stats" view (cards: revenue, orders count, popular tem
 
 | Workflow | Steps |
 | --- | --- |
-| `ci.yml` (every PR) | pnpm install (turbo cache) → lint → typecheck → vitest unit (rule engine gate ≥95% coverage) → build all packages → Playwright e2e (preview deployment URL) |
-| `preview.yml` | Vercel preview deploy per PR + Neon branch database per PR (branch per preview) |
-| `deploy.yml` (main) | Vercel production deploy → `payload migrate` step runs against production DB (pre-deploy hook) → smoke test `/` + `/admin` |
-| `security.yml` | `pnpm audit --prod`, Dependabot, git-secrets scan |
+| `ci.yml` (PRs + pushes to `main`; **all 8 gates green since entry 24**, run 36898140224) | `pnpm install --frozen-lockfile` → secret scan → lint → typecheck → vitest (263/263) → **dev-boot schema push against the CI `postgres:16` service** → build → `pnpm audit --prod --audit-level high` — all blocking. **Playwright e2e is not in CI** (needs a running server; local `pnpm test:e2e`) |
+| `preview.yml` | **not built** (plan: Vercel preview deploy + Neon branch DB per PR) |
+| `deploy.yml` (main) | **not built** (plan: production deploy → `payload migrate` → smoke test `/` + `/admin`) |
+| security gates | folded into `ci.yml` (blocking secret scan + audit); no separate `security.yml` exists (plan) |
 | security review gate | security-review subagent on auth/payment PRs (see [11-access-security.md](11-access-security.md)) |
 
-Migrations strategy: `payload migrate` generates Drizzle SQL; migration files committed to repo; production migrations run via `payload migrate` in the deploy step (forward-only; destructive changes split into two releases).
+Migrations strategy: `payload migrate` generates Drizzle SQL; migration files committed to repo; production migrations run via `payload migrate` in the deploy step (forward-only; destructive changes split into two releases). **Reality (entry 24): CI performs a drizzle schema *push* against `postgres:16` on every run (proven); migration files / `payload migrate` are still untested (no local Postgres, no deploy workflow yet).**
 
 ## Environments & env vars
 
