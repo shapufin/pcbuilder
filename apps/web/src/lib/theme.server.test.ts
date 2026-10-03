@@ -29,7 +29,7 @@ describe('getThemeCss - server theme injection', () => {
     expect(findGlobal).toHaveBeenCalledWith({ slug: 'theme' })
     expect(css.startsWith(':root{')).toBe(true)
     expect(css).toContain('--color-bg: #112233;')
-    expect(css).toContain('--color-primary: #6366f1;')
+    expect(css).toContain('--color-primary: #6468f2;')
   })
 
   it('#139b payload failure falls back to default theme CSS, never throws', async () => {

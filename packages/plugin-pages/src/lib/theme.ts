@@ -36,22 +36,24 @@ export const validateColor = (v: unknown): boolean => typeof v === 'string' && H
 export const validateRadius = (v: unknown): boolean => typeof v === 'string' && RADIUS_VALUE.test(v.trim())
 export const validateFont = (v: unknown): boolean => typeof v === 'string' && FONT_VALUE.test(v.trim())
 
+// Precision Dark palette — must equal @buildmyrig/ui tokens.css values
+// (theme.server.test.ts #139c is the drift guard; update both together).
 const DARK_COLORS: ThemeColors = {
-  bg: '#0f172a',
-  surface: '#1e293b',
-  surfaceRaised: '#243449',
-  surfaceHover: '#2c3f61',
-  border: '#334155',
-  borderStrong: '#cbd5e1',
-  text: '#f8fafc',
-  textMuted: '#94a3b8',
-  primary: '#6366f1',
-  primaryStrong: '#4f46e5',
-  primaryHover: '#818cf8',
-  primaryHoverStrong: '#4338ca',
+  bg: '#0a0f1e',
+  surface: '#121a2c',
+  surfaceRaised: '#1a2540',
+  surfaceHover: '#223052',
+  border: '#283451',
+  borderStrong: '#d7deed',
+  text: '#f2f5fb',
+  textMuted: '#93a0bd',
+  primary: '#6468f2',
+  primaryStrong: '#5550ec',
+  primaryHover: '#8a8ef8',
+  primaryHoverStrong: '#4a41d6',
   onPrimary: '#ffffff',
   success: '#34d399',
-  successStrong: '#059669',
+  successStrong: '#0ea877',
   warning: '#fbbf24',
   danger: '#f87171',
   info: '#38bdf8',

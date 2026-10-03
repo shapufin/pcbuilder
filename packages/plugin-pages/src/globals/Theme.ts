@@ -18,8 +18,8 @@ const colorField = (name: string, label: string): Field => ({
   name,
   type: 'text',
   label,
-  admin: { width: 50, placeholder: '#6366f1' },
-  validate: optionalField(validateColor, 'Enter a hex color, e.g. #6366f1'),
+  admin: { width: 50, placeholder: '#6468f2' },
+  validate: optionalField(validateColor, 'Enter a hex color, e.g. #6468f2'),
 })
 
 const radiusField = (name: string, label: string): Field => ({
