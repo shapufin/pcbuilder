@@ -8,13 +8,27 @@ import { AttributeTypes } from './collections/attribute-types.ts'
 import { AttributeValues } from './collections/attribute-values.ts'
 import { Prices } from './collections/prices.ts'
 import { DiscountCodes } from './collections/discount-codes.ts'
+import { ShippingBands } from './collections/shipping-bands.ts'
+import { TaxRates } from './collections/tax-rates.ts'
+import { InventoryReservations } from './collections/inventory-reservations.ts'
+import { maskInventoryRead, staffReadOnly } from './lib/inventory-access.ts'
+import { staffOrOwnAddressRead, transactionsAccess } from './lib/access.ts'
+import { snapshotCartCheckoutState } from './lib/transaction-snapshot.ts'
+import { wrapWithReservations } from './lib/reservations.ts'
 import {
   cartItemMatcher,
+  cartTotalsFields,
   extendItemsFields,
   wrapCartBeforeChange,
   type CartBeforeChangeHook,
 } from './lib/line-item-hooks.ts'
-import { cartAddBuildEndpoint, cartValidateBuildsEndpoint } from './endpoints.ts'
+import {
+  cartAddBuildEndpoint,
+  cartValidateBuildsEndpoint,
+  cartApplyDiscountEndpoint,
+  cartShippingCountryEndpoint,
+  discountValidateEndpoint,
+} from './endpoints.ts'
 import { ordersCollectionOverride } from './collections/orders.ts'
 import { stripeWebhooks } from './payments/stripe-webhooks.ts'
 
@@ -99,12 +113,22 @@ export const shopPlugin =
                 {
                   label: 'Commerce',
                   fields: [
-                    ...defaultCollection.fields,
+                    // Matrix row 13: raw stock counts are staff+ — public gets
+                    // the `inStock` boolean via the product view.
+                    ...maskInventoryRead(defaultCollection.fields, staffReadOnly),
                   ],
                 },
               ],
             },
           ],
+        }),
+      },
+      // Variants carry the same `inventory` field with no plugin-level access
+      // hook — patched here for the same matrix row.
+      variants: {
+        variantsCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) => ({
+          ...defaultCollection,
+          fields: maskInventoryRead(defaultCollection.fields, staffReadOnly),
         }),
       },
       inventory: true,
@@ -113,7 +137,72 @@ export const shopPlugin =
       orders: {
         ordersCollectionOverride,
       },
-      addresses: true,
+      // Transactions gain an at-most-once marker for discount usage counting
+      // (entry 32 review F2): whichever settlement path wins — webhook claim,
+      // upstream poll, or repair — counts the code exactly once via a CAS.
+      transactions: {
+        transactionsCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) => ({
+          ...defaultCollection,
+          // Matrix row 17: staff+ read; writes (refunds) admin-only.
+          access: { ...defaultCollection.access, ...transactionsAccess },
+          fields: [
+            ...defaultCollection.fields,
+            {
+              name: 'discountCounted',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: { readOnly: true, description: 'Set once when the cart discount usage was counted' },
+            },
+            // Entry 44: charge-time snapshots — the cart is mutable while the
+            // PaymentIntent is in flight, so settlement reads these, not the cart.
+            {
+              name: 'discountCodeApplied',
+              type: 'relationship',
+              relationTo: 'discount-codes' as never,
+              admin: { readOnly: true, description: 'Discount code snapshotted at payment initiation' },
+            },
+            {
+              name: 'totalsSnapshot',
+              type: 'json',
+              admin: { readOnly: true, description: 'Cart totals snapshot {subtotal,discountTotal,shippingTotal,taxTotal,total} at initiation' },
+            },
+            // Entry 44: settlement resumability — lines already decremented /
+            // loop completed. Readers key conversion flags off inventoryComplete.
+            {
+              name: 'inventoryProgress',
+              type: 'number',
+              admin: { readOnly: true, description: 'Order-item lines whose stock decrement completed' },
+            },
+            {
+              name: 'inventoryComplete',
+              type: 'checkbox',
+              admin: { readOnly: true, description: 'Set with status=succeeded once the webhook decrement loop finished' },
+            },
+            // Entry 44 review: fencing token — the stale-claim window can steal
+            // a still-alive worker; the token makes the thief visible so the old
+            // worker aborts instead of double-decrementing.
+            {
+              name: 'settlementToken',
+              type: 'text',
+              admin: { hidden: true },
+            },
+          ],
+          hooks: {
+            ...defaultCollection.hooks,
+            beforeChange: [
+              ...(defaultCollection.hooks?.beforeChange ?? []),
+              snapshotCartCheckoutState,
+            ],
+          },
+        }),
+      },
+      // Matrix row 19: staff+ read all addresses; customers see only their own.
+      addresses: {
+        addressesCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) => ({
+          ...defaultCollection,
+          access: { ...defaultCollection.access, read: staffOrOwnAddressRead },
+        }),
+      },
       carts: {
         // Phase 2e: items gain lineType/configuredBuild/subItems; subtotal hook
         // chains after the default one and adds server-resolved build prices.
@@ -125,7 +214,7 @@ export const shopPlugin =
             : []
           return {
             ...defaultCollection,
-            fields: extendItemsFields(defaultCollection.fields),
+            fields: [...extendItemsFields(defaultCollection.fields), ...cartTotalsFields],
             // Wrap the default hook so product-less composite lines don't crash it.
             hooks: {
               ...defaultCollection.hooks,
@@ -138,6 +227,8 @@ export const shopPlugin =
               ...(Array.isArray(defaultCollection.endpoints) ? defaultCollection.endpoints : []),
               cartAddBuildEndpoint,
               cartValidateBuildsEndpoint,
+              cartApplyDiscountEndpoint,
+              cartShippingCountryEndpoint,
             ],
           } as CollectionConfig
         },
@@ -148,15 +239,17 @@ export const shopPlugin =
       payments: {
         paymentMethods: process.env.STRIPE_SECRET_KEY
           ? [
-              stripeAdapter({
-                publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-                secretKey: process.env.STRIPE_SECRET_KEY,
-                webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-                // Reliable settlement path (Phase 4): without handlers the
-                // endpoint ACKs events without updating orders — see
-                // payments/stripe-webhooks.ts (idempotent state-machine CAS).
-                webhooks: stripeWebhooks,
-              } as never),
+              wrapWithReservations(
+                stripeAdapter({
+                  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+                  secretKey: process.env.STRIPE_SECRET_KEY,
+                  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+                  // Reliable settlement path (Phase 4): without handlers the
+                  // endpoint ACKs events without updating orders — see
+                  // payments/stripe-webhooks.ts (idempotent state-machine CAS).
+                  webhooks: stripeWebhooks,
+                } as never) as never,
+              ),
             ]
           : [],
       },
@@ -164,6 +257,8 @@ export const shopPlugin =
 
     return withEcommerce({
       ...incomingConfig,
+      // Config-level endpoints are matched from the API root: /api/discounts/validate.
+      endpoints: [...(incomingConfig.endpoints ?? []), discountValidateEndpoint],
       collections: [
         ...(incomingConfig.collections || []),
         Media,
@@ -173,6 +268,9 @@ export const shopPlugin =
         AttributeValues,
         Prices,
         DiscountCodes,
+        ShippingBands,
+        TaxRates,
+        InventoryReservations,
       ],
     }) as Promise<Config>
   }

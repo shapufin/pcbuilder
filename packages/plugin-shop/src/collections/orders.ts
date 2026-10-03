@@ -94,7 +94,34 @@ export const ordersCollectionOverride = ({
 }): CollectionConfig =>
   ({
     ...defaultCollection,
-    fields: pinOrderFieldWrites(extendItemsFields(defaultCollection.fields)),
+    fields: pinOrderFieldWrites(
+      extendItemsFields([
+        ...defaultCollection.fields,
+        // Entry 44 review (I4): the spec'd order-level breakdown + applied
+        // discount code, populated by the settlement webhook from the
+        // charge-time transaction snapshot (carts stay mutable mid-payment).
+        {
+          type: 'tabs',
+          tabs: [
+            {
+              label: 'Pricing',
+              fields: [
+                { name: 'subtotal', type: 'number', admin: { readOnly: true } },
+                { name: 'discountTotal', type: 'number', admin: { readOnly: true } },
+                { name: 'shippingTotal', type: 'number', admin: { readOnly: true } },
+                { name: 'taxTotal', type: 'number', admin: { readOnly: true } },
+                {
+                  name: 'discountCode',
+                  type: 'relationship',
+                  relationTo: 'discount-codes' as never,
+                  admin: { readOnly: true },
+                },
+              ],
+            },
+          ],
+        } as Field,
+      ]),
+    ),
     access: {
       ...defaultCollection.access,
       read: (({ req }: { req: PayloadRequest }) => {

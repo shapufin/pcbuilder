@@ -28,6 +28,8 @@ export function productJsonLd(product: {
   priceInEUR?: number | null
   brand?: { name?: string } | null
   category?: { title?: string; slug?: string } | null
+  /** false = verified out of stock; true/undefined = in stock or untracked. */
+  inStock?: boolean
 }): Record<string, unknown> {
   const url = `${origin()}/product/${product.slug}`
   return {
@@ -42,7 +44,8 @@ export function productJsonLd(product: {
       '@type': 'Offer',
       priceCurrency: 'EUR',
       price: ((product.priceInEUR ?? 0) / 100).toFixed(2),
-      availability: 'https://schema.org/InStock',
+      availability:
+        product.inStock === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
       url,
     },
   }

@@ -6,6 +6,7 @@ import { AttributeValues } from './attribute-values.ts'
 import { Prices } from './prices.ts'
 import { DiscountCodes } from './discount-codes.ts'
 import { ordersCollectionOverride, restrictStaffStatus } from './orders.ts'
+import { staffOrOwnAddressRead, transactionsAccess } from '../lib/access.ts'
 import type { CollectionConfig, Field } from 'payload'
 
 const call = (fn: unknown, args: unknown): unknown => (fn as (a: unknown) => unknown)(args)
@@ -20,9 +21,15 @@ describe('shop access matrix — entry 14 (11-access-security.md rows 11, 13, 14
       ['attribute-types', AttributeTypes],
       ['attribute-values', AttributeValues],
     ]
+    // Draft-enabled collections gate public reads to _status=published
+    // (#61b — anonymous ?draft=true must not leak unpublished docs).
+    const publishedOnly = { _status: { equals: 'published' } }
     for (const [name, col] of cols) {
       const a = accessOf(col)
-      expect(call(a.read, asReq(null)), `${name}: public read`).toBe(true)
+      const hasDrafts = typeof col.versions === 'object' && Boolean(col.versions.drafts)
+      const expected = hasDrafts ? publishedOnly : true
+      expect(call(a.read, asReq(null)), `${name}: public read`).toEqual(expected)
+      expect(call(a.read, asReq({ roles: ['customer'] })), `${name}: customer read`).toEqual(expected)
       expect(call(a.read, asReq({ roles: ['staff'] })), `${name}: staff read`).toBe(true)
       expect(call(a.create, asReq({ roles: ['staff'] })), `${name}: staff create`).toBe(false)
       expect(call(a.update, asReq({ roles: ['staff'] })), `${name}: staff update`).toBe(false)
@@ -57,6 +64,32 @@ describe('shop access matrix — entry 14 (11-access-security.md rows 11, 13, 14
     expect(call(a.create, asReq(null))).toBe(false)
     expect(call(a.create, asReq({ roles: ['manager'] }))).toBe(true)
     expect(call(a.delete, asReq({ roles: ['admin'] }))).toBe(true)
+  })
+})
+
+describe('transactions + addresses access — entry 43 matrix alignment (#272–273)', () => {
+  it('#272 transactions: staff+ read; writes admin-only (spec row 17)', () => {
+    for (const roles of [['staff'], ['manager'], ['admin']]) {
+      expect(call(transactionsAccess.read, { req: { user: { collection: 'users', roles } } })).toBe(true)
+    }
+    expect(call(transactionsAccess.read, asReq({ roles: ['customer'] }))).toBe(false)
+    expect(call(transactionsAccess.read, asReq(null))).toBe(false)
+    for (const op of ['create', 'update', 'delete'] as const) {
+      expect(call(transactionsAccess[op], asReq({ roles: ['admin'] })), `${op}: admin`).toBe(true)
+      expect(call(transactionsAccess[op], asReq({ roles: ['manager'] })), `${op}: manager`).toBe(false)
+      expect(call(transactionsAccess[op], asReq({ roles: ['staff'] })), `${op}: staff`).toBe(false)
+    }
+  })
+
+  it('#273 addresses: staff+ read all; customers read only their own; anonymous none', () => {
+    expect(call(staffOrOwnAddressRead, { req: { user: { id: 9, roles: ['staff'] } } })).toBe(true)
+    expect(call(staffOrOwnAddressRead, { req: { user: { id: 9, roles: ['manager'] } } })).toBe(true)
+    expect(call(staffOrOwnAddressRead, { req: { user: { id: 9, roles: ['admin'] } } })).toBe(true)
+    // Customers get an ownership-scoped Where, not a blanket allow.
+    expect(call(staffOrOwnAddressRead, { req: { user: { id: 42, roles: ['customer'] } } })).toEqual({
+      customer: { equals: 42 },
+    })
+    expect(call(staffOrOwnAddressRead, asReq(null))).toBe(false)
   })
 })
 

@@ -96,6 +96,9 @@ export interface Config {
     'attribute-values': AttributeValue;
     prices: Price;
     'discount-codes': DiscountCode;
+    'shipping-bands': ShippingBand;
+    'tax-rates': TaxRate;
+    'inventory-reservations': InventoryReservation;
     addresses: Address;
     variants: Variant;
     variantTypes: VariantType;
@@ -133,6 +136,9 @@ export interface Config {
     'attribute-values': AttributeValuesSelect<false> | AttributeValuesSelect<true>;
     prices: PricesSelect<false> | PricesSelect<true>;
     'discount-codes': DiscountCodesSelect<false> | DiscountCodesSelect<true>;
+    'shipping-bands': ShippingBandsSelect<false> | ShippingBandsSelect<true>;
+    'tax-rates': TaxRatesSelect<false> | TaxRatesSelect<true>;
+    'inventory-reservations': InventoryReservationsSelect<false> | InventoryReservationsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
     variants: VariantsSelect<false> | VariantsSelect<true>;
     variantTypes: VariantTypesSelect<false> | VariantTypesSelect<true>;
@@ -897,6 +903,166 @@ export interface DiscountCode {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-bands".
+ */
+export interface ShippingBand {
+  id: number;
+  label: string;
+  /**
+   * Cents; applies when post-discount subtotal >= this
+   */
+  minSubtotal: number;
+  /**
+   * Cents; exclusive upper bound. Empty = no cap.
+   */
+  maxSubtotal?: number | null;
+  /**
+   * Cents
+   */
+  price: number;
+  enabled?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tax-rates".
+ */
+export interface TaxRate {
+  id: number;
+  /**
+   * Country code, or 'default'
+   */
+  country?: string | null;
+  /**
+   * VAT percent, e.g. 20
+   */
+  rate: number;
+  /**
+   * Used when the shipping country is unknown
+   */
+  isDefault?: boolean | null;
+  enabled?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory-reservations".
+ */
+export interface InventoryReservation {
+  id: number;
+  /**
+   * Stripe PaymentIntent the hold is keyed to
+   */
+  paymentIntentID: string;
+  cart: number | Cart;
+  /**
+   * held → converted (settled) | released (failed/cancelled/expired) | superseded (replaced by a newer hold). Release never restocks.
+   */
+  status: 'held' | 'converted' | 'released' | 'superseded';
+  items: {
+    product?: (number | null) | Product;
+    variant?: (number | null) | Variant;
+    quantity: number;
+    /**
+     * Line type the unit came from ('standard' units are skipped by poll-wins conversion)
+     */
+    lineType?: string | null;
+    id?: string | null;
+  }[];
+  /**
+   * Hold window (30 min); expired holds are swept to released
+   */
+  expiresAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carts".
+ */
+export interface Cart {
+  id: number;
+  items?:
+    | {
+        product?: (number | null) | Product;
+        variant?: (number | null) | Variant;
+        quantity: number;
+        lineType?: ('standard' | 'configured-build') | null;
+        configuredBuild?: (number | null) | ConfiguredBuild;
+        buildName?: string | null;
+        subItems?:
+          | {
+              component?: (number | null) | Component;
+              quantity?: number | null;
+              name?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  secret?: string | null;
+  customer?: (number | null) | User;
+  purchasedAt?: string | null;
+  status?: ('active' | 'purchased' | 'abandoned') | null;
+  subtotal?: number | null;
+  currency?: 'EUR' | null;
+  /**
+   * Set via /api/carts/:id/apply-discount only
+   */
+  discountCode?: (number | null) | DiscountCode;
+  /**
+   * ISO-3166 alpha-2, set via /api/carts/:id/shipping-country — drives the tax-rates match (plan item C1)
+   */
+  shippingCountry?: string | null;
+  discountTotal?: number | null;
+  shippingTotal?: number | null;
+  taxTotal?: number | null;
+  /**
+   * Charged amount: subtotal - discount + shipping (VAT-inclusive)
+   */
+  total?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "configured-builds".
+ */
+export interface ConfiguredBuild {
+  id: number;
+  name: string;
+  user?: (number | null) | User;
+  shareId?: string | null;
+  slots: {
+    category: number | ComponentCategory;
+    components?: (number | Component)[] | null;
+    id?: string | null;
+  }[];
+  /**
+   * Display-only; recomputed server-side at checkout
+   */
+  priceSnapshot?: number | null;
+  /**
+   * { errors, warnings, rulesVersion } from the rule engine at save time
+   */
+  validationSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('draft' | 'addedToCart' | 'ordered') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses".
  */
 export interface Address {
@@ -958,74 +1124,6 @@ export interface Address {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "carts".
- */
-export interface Cart {
-  id: number;
-  items?:
-    | {
-        product?: (number | null) | Product;
-        variant?: (number | null) | Variant;
-        quantity: number;
-        lineType?: ('standard' | 'configured-build') | null;
-        configuredBuild?: (number | null) | ConfiguredBuild;
-        buildName?: string | null;
-        subItems?:
-          | {
-              component?: (number | null) | Component;
-              quantity?: number | null;
-              name?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        id?: string | null;
-      }[]
-    | null;
-  secret?: string | null;
-  customer?: (number | null) | User;
-  purchasedAt?: string | null;
-  status?: ('active' | 'purchased' | 'abandoned') | null;
-  subtotal?: number | null;
-  currency?: 'EUR' | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "configured-builds".
- */
-export interface ConfiguredBuild {
-  id: number;
-  name: string;
-  user?: (number | null) | User;
-  shareId?: string | null;
-  slots: {
-    category: number | ComponentCategory;
-    components?: (number | Component)[] | null;
-    id?: string | null;
-  }[];
-  /**
-   * Display-only; recomputed server-side at checkout
-   */
-  priceSnapshot?: number | null;
-  /**
-   * { errors, warnings, rulesVersion } from the rule engine at save time
-   */
-  validationSnapshot?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status?: ('draft' | 'addedToCart' | 'ordered') | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
 export interface Order {
@@ -1068,6 +1166,11 @@ export interface Order {
   status?: OrderStatus;
   amount?: number | null;
   currency?: 'EUR' | null;
+  subtotal?: number | null;
+  discountTotal?: number | null;
+  shippingTotal?: number | null;
+  taxTotal?: number | null;
+  discountCode?: (number | null) | DiscountCode;
   updatedAt: string;
   createdAt: string;
 }
@@ -1105,6 +1208,35 @@ export interface Transaction {
   cart?: (number | null) | Cart;
   amount?: number | null;
   currency?: 'EUR' | null;
+  /**
+   * Set once when the cart discount usage was counted
+   */
+  discountCounted?: boolean | null;
+  /**
+   * Discount code snapshotted at payment initiation
+   */
+  discountCodeApplied?: (number | null) | DiscountCode;
+  /**
+   * Cart totals snapshot {subtotal,discountTotal,shippingTotal,taxTotal,total} at initiation
+   */
+  totalsSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Order-item lines whose stock decrement completed
+   */
+  inventoryProgress?: number | null;
+  /**
+   * Set with status=succeeded once the webhook decrement loop finished
+   */
+  inventoryComplete?: boolean | null;
+  settlementToken?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1257,6 +1389,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'discount-codes';
         value: number | DiscountCode;
+      } | null)
+    | ({
+        relationTo: 'shipping-bands';
+        value: number | ShippingBand;
+      } | null)
+    | ({
+        relationTo: 'tax-rates';
+        value: number | TaxRate;
+      } | null)
+    | ({
+        relationTo: 'inventory-reservations';
+        value: number | InventoryReservation;
       } | null)
     | ({
         relationTo: 'addresses';
@@ -1545,6 +1689,52 @@ export interface DiscountCodesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shipping-bands_select".
+ */
+export interface ShippingBandsSelect<T extends boolean = true> {
+  label?: T;
+  minSubtotal?: T;
+  maxSubtotal?: T;
+  price?: T;
+  enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tax-rates_select".
+ */
+export interface TaxRatesSelect<T extends boolean = true> {
+  country?: T;
+  rate?: T;
+  isDefault?: T;
+  enabled?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory-reservations_select".
+ */
+export interface InventoryReservationsSelect<T extends boolean = true> {
+  paymentIntentID?: T;
+  cart?: T;
+  status?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        variant?: T;
+        quantity?: T;
+        lineType?: T;
+        id?: T;
+      };
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses_select".
  */
 export interface AddressesSelect<T extends boolean = true> {
@@ -1666,6 +1856,12 @@ export interface CartsSelect<T extends boolean = true> {
   status?: T;
   subtotal?: T;
   currency?: T;
+  discountCode?: T;
+  shippingCountry?: T;
+  discountTotal?: T;
+  shippingTotal?: T;
+  taxTotal?: T;
+  total?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1714,6 +1910,11 @@ export interface OrdersSelect<T extends boolean = true> {
   status?: T;
   amount?: T;
   currency?: T;
+  subtotal?: T;
+  discountTotal?: T;
+  shippingTotal?: T;
+  taxTotal?: T;
+  discountCode?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1752,6 +1953,12 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  discountCounted?: T;
+  discountCodeApplied?: T;
+  totalsSnapshot?: T;
+  inventoryProgress?: T;
+  inventoryComplete?: T;
+  settlementToken?: T;
   updatedAt?: T;
   createdAt?: T;
 }

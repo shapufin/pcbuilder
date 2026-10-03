@@ -38,13 +38,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const cat = category as CategoryWithBlocks
 
   const { and, sort, page } = productFilters(sp)
-  const products = await payload.find({
+  const [products, brands] = await Promise.all([
+    payload.find({
     collection: 'products',
     where: { and: [{ 'category.slug': { equals: categorySlug } } as Where, ...and] },
-    sort,
-    page,
-    limit: 12,
-  })
+      sort,
+      page,
+      limit: 12,
+    }),
+    // Facet options come from the brands collection — a hardcoded slug list
+    // silently renders dead filters the moment seed/admin data diverges.
+    payload.find({ collection: 'brands', limit: 100, sort: 'name' }),
+  ])
 
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
   const currentBrand = first(sp.brand)
@@ -64,13 +69,13 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       <aside>
         <h3 style={{ fontSize: 16, marginBottom: 8 }}>Brand</h3>
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
-          {['intel', 'amd', 'nvidia', 'asus', 'corsair', 'samsung'].map((b) => (
-            <li key={b}>
+          {brands.docs.map((b) => (
+            <li key={b.slug}>
               <Link
-                href={currentBrand === b ? qs({ brand: undefined }) : qs({ brand: b })}
-                style={{ color: currentBrand === b ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none', textTransform: 'capitalize' }}
+                href={currentBrand === b.slug ? qs({ brand: undefined }) : qs({ brand: b.slug })}
+                style={{ color: currentBrand === b.slug ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none' }}
               >
-                {b}
+                {b.name}
               </Link>
             </li>
           ))}
@@ -93,6 +98,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
           <li><Link href={qs({ sort: 'price_asc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↑</Link></li>
           <li><Link href={qs({ sort: 'price_desc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↓</Link></li>
+          <li><Link href={qs({ sort: 'title' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Name A–Z</Link></li>
+          <li><Link href={qs({ sort: 'newest' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Newest</Link></li>
         </ul>
       </aside>
 
@@ -100,7 +107,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>{category.title}</h1>
         <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>{products.totalDocs} products</p>
         {products.docs.length === 0 ? (
-          <p style={{ color: 'var(--color-text-muted)' }}>No products match these filters.</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            No products match these filters.{' '}
+            <Link href={`/shop/${categorySlug}`} style={{ color: 'var(--color-primary-hover)' }}>
+              Clear filters
+            </Link>
+          </p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
             {products.docs.map((p) => (

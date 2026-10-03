@@ -1,0 +1,43 @@
+diff --git a/dist/collections/carts/createCartsCollection.js b/dist/collections/carts/createCartsCollection.js
+index 8a7184e20bc612216af5023e0810d4cfcb227b84..16d2ebc979770e49932297dc6601afa79dc726b1 100644
+--- a/dist/collections/carts/createCartsCollection.js
++++ b/dist/collections/carts/createCartsCollection.js
+@@ -149,6 +149,7 @@ export const createCartsCollection = (props)=>{
+             }),
+             // mergeCartEndpoint uses its own matcher that handles CartItemData for both items
+             mergeCartEndpoint({
++                cartItemMatcher,
+                 cartsSlug
+             }),
+             removeItemEndpoint({
+diff --git a/dist/payments/adapters/stripe/initiatePayment.js b/dist/payments/adapters/stripe/initiatePayment.js
+--- a/dist/payments/adapters/stripe/initiatePayment.js
++++ b/dist/payments/adapters/stripe/initiatePayment.js
+@@ -6,6 +6,9 @@
+         const customerEmail = data.customerEmail;
+         const currency = data.currency;
+         const cart = data.cart;
+-        const amount = cart.subtotal;
++        // BuildMyRig: charge the server-computed total (subtotal - discount +
++        // shipping, VAT-inclusive). Type-based fallback only: a `> 0` guard
++        // would silently overcharge a legitimately free cart with subtotal.
++        const amount = typeof cart.total === 'number' ? cart.total : cart.subtotal;
+         const billingAddressFromData = data.billingAddress;
+         const shippingAddressFromData = data.shippingAddress;
+diff --git a/dist/endpoints/confirmOrder.js b/dist/endpoints/confirmOrder.js
+--- a/dist/endpoints/confirmOrder.js
++++ b/dist/endpoints/confirmOrder.js
+@@ -311,4 +311,12 @@
+         if (!isRecord(item) || typeof item.quantity !== 'number' || !Number.isFinite(item.quantity) || item.quantity <= 0) {
+             throw new Error('Inventory item quantity is missing or invalid.');
+         }
++        if (item.lineType && item.lineType !== 'standard') {
++            // BuildMyRig: composite lines have no product/variant of their own --
++            // their stock settles via the registered line types in the webhook
++            // (reservation conversion). Skipping avoids the hard crash that
++            // aborted settlement after the order was already created.
++            req.payload.logger.warn('[ecommerce-patch] composite line skipped by decrementInventory -- settled via reservations');
++            continue;
++        }
+         const hasVariant = item.variant !== null && item.variant !== undefined;
+         const id = hasVariant ? item.variant : item.product;

@@ -19,6 +19,8 @@ import { JsonLd, organizationJsonLd } from '@/lib/jsonld'
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
 
 export const metadata: Metadata = {
+  // Without metadataBase, relative OG image URLs resolve to nothing absolute.
+  metadataBase: new URL(process.env.BMR_URL || 'http://localhost:3000'),
   // Pages that don't define generateMetadata fall back here; pages that do
   // own their full title (existing routes already append " | BuildMyRig").
   title: 'BuildMyRig — custom PCs, configured your way',
@@ -36,6 +38,9 @@ export default async function RootLayout({
     <html lang="en">
       <body className="bg-slate-900 text-slate-100 min-h-screen">
         <style id="theme-vars" dangerouslySetInnerHTML={{ __html: themeCss }} />
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         <JsonLd data={organizationJsonLd()} />
         {plausibleDomain ? (
           <Script src="https://plausible.io/js/script.js" data-domain={plausibleDomain} strategy="afterInteractive" />
@@ -103,7 +108,7 @@ export default async function RootLayout({
             </Link>
           </header>
           <CartDrawer />
-          {children}
+          <div id="main-content">{children}</div>
           <SiteFooter />
         </EcommerceShell>
       </body>

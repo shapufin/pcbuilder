@@ -10,7 +10,7 @@
 import { z } from 'zod'
 import { rateLimit } from '@buildmyrig/lib'
 import { contactFormHtml } from '@buildmyrig/plugin-shop/emails'
-import { clientIp, isAllowedOrigin } from './auth'
+import { clientIp, defaultAllowedOrigins, isAllowedOrigin } from './auth'
 
 export type ContactDeps = {
   sendEmail: (args: {
@@ -29,13 +29,6 @@ export const contactSchema = z.object({
 
 /** 5 messages/min/IP — contact-form spam (11-access-security.md). */
 export const contactLimiter = rateLimit({ windowMs: 60_000, max: 5 })
-
-const defaultAllowedOrigins = (): string[] => {
-  const list = ['http://localhost:3000', 'http://127.0.0.1:3000']
-  const base = (process.env.BMR_URL ?? '').replace(/\/+$/, '')
-  if (base) list.push(base)
-  return list
-}
 
 export const handleContactSubmission = async (
   deps: ContactDeps,

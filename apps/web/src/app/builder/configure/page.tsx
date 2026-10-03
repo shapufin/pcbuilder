@@ -8,6 +8,11 @@ type TemplateSlotDoc = {
   component?: { id: string | number } | string | number | null
 }
 
+type BuildSlotDoc = {
+  category?: { id: string | number } | string | number | null
+  components?: ({ id: string | number } | string | number)[] | null
+}
+
 export type ConfigureTemplate = {
   id: string
   name: string
@@ -51,24 +56,33 @@ export default async function ConfiguratorPage({ searchParams }: Props) {
       }
     }
   } else if (sharedBuildId) {
-    // Public share link → hydrate the draft from the shared build (read via shareId,
-    // which is the public capability — no owner check needed).
+    // Public share link → hydrate the draft from the shared build. The value is
+    // the build's shareId (unguessable capability), NOT the numeric id — a raw
+    // findByID here would let anyone enumerate every saved build.
     const { getPayloadClient } = await import('@/lib/shop')
     const payload = await getPayloadClient()
-    const doc = (await payload.findByID({
-      collection: 'configured-builds',
-      id: sharedBuildId,
-      overrideAccess: true,
-      depth: 1,
-    })) as
-      | { id: string | number; name: string; shareId?: string; slots?: TemplateSlotDoc[] | null }
-      | null
+    const doc = (
+      await payload.find({
+        collection: 'configured-builds',
+        where: { shareId: { equals: sharedBuildId } },
+        limit: 1,
+        depth: 1,
+        overrideAccess: true,
+      })
+    ).docs[0] as
+      | { id: string | number; name: string; shareId?: string; slots?: BuildSlotDoc[] | null }
+      | undefined
     if (doc) {
+      // configured-builds store `components[]` (hasMany), not the singular
+      // `component` of build-templates — expand one row per component so
+      // multi-select slots hydrate correctly.
       template = {
         id: `shared:${doc.shareId ?? sharedBuildId}`,
         name: doc.name,
         slots: (doc.slots ?? [])
-          .map((s) => ({ categoryId: idOf(s.category), componentId: idOf(s.component) }))
+          .flatMap((s) =>
+            (s.components ?? []).map((c) => ({ categoryId: idOf(s.category), componentId: idOf(c) })),
+          )
           .filter((s): s is { categoryId: string; componentId: string } => Boolean(s.categoryId && s.componentId)),
       }
     }

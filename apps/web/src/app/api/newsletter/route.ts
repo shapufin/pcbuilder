@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { rateLimit } from '@buildmyrig/lib'
 import { newsletterWelcomeHtml, sendResendEmail } from '@buildmyrig/plugin-shop/emails'
+import { clientIp, defaultAllowedOrigins, isAllowedOrigin } from '@/lib/auth'
 
 const limiter = rateLimit({ windowMs: 60_000, max: 5 })
 
@@ -14,7 +15,11 @@ const logger = {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local'
+  // Same gate stack as register/contact: Origin allowlist → IP limiter.
+  if (!isAllowedOrigin(req.headers.get('origin'), defaultAllowedOrigins())) {
+    return NextResponse.json({ error: 'Origin not allowed' }, { status: 403 })
+  }
+  const ip = clientIp(req.headers)
   const rl = limiter.check(ip)
   if (!rl.ok) {
     return NextResponse.json(

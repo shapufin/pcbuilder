@@ -29,7 +29,9 @@ export const isAllowedOrigin = (origin: string | null, allowed: string[]): boole
   return allowed.includes(origin.replace(/\/+$/, ''))
 }
 
-const defaultAllowedOrigins = (): string[] => {
+/** Origin allowlist shared by register/forgot/reset/contact/newsletter —
+ * mirrors the Payload CSRF allowlist (BMR_URL + localhost dev origins). */
+export const defaultAllowedOrigins = (): string[] => {
   const list = ['http://localhost:3000', 'http://127.0.0.1:3000']
   const base = (process.env.BMR_URL ?? '').replace(/\/+$/, '')
   if (base) list.push(base)

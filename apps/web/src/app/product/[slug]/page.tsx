@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { AddToCartButton } from './AddToCartButton'
+import { ViewItemTracker } from './ViewItemTracker'
 import { WishlistButton } from '@/components/WishlistButton'
 
 type Props = {
@@ -31,6 +32,14 @@ export default async function ProductPage({ params }: Props) {
     limit: 10,
   })
   const specs = (product as { specsJson?: Record<string, unknown> | null }).specsJson
+  // plugin-ecommerce `inventory: true` adds `inventory` to variants; null =
+  // untracked = treat as in stock (don't lie to buyers or schema.org).
+  const inStock =
+    variants.docs.length === 0 ||
+    variants.docs.some((v) => {
+      const inv = (v as { inventory?: number | null }).inventory
+      return inv == null || inv > 0
+    })
 
   return (
     <main style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
@@ -74,7 +83,10 @@ export default async function ProductPage({ params }: Props) {
         </section>
 
         <aside style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 24, background: 'var(--color-bg)', alignSelf: 'start' }}>
-          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-primary-hover)', marginBottom: 8 }}>{formatPrice(product as never)}</p>
+          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-primary-hover)', marginBottom: 4 }}>{formatPrice(product as never)}</p>
+          <p style={{ color: inStock ? 'var(--color-text-muted)' : 'var(--color-danger)', fontSize: 13, marginBottom: 4 }}>
+            {inStock ? 'In stock' : 'Out of stock'}
+          </p>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 16 }}>VAT included. Shipping calculated at checkout.</p>
           <AddToCartButton
             productId={product.id}
@@ -107,7 +119,11 @@ export default async function ProductPage({ params }: Props) {
         </aside>
       </div>
 
-      <JsonLd data={productJsonLd(product as never)} />
+      <ViewItemTracker
+        item={product.title}
+        priceCents={(product as { priceInEUR?: number | null }).priceInEUR ?? undefined}
+      />
+      <JsonLd data={productJsonLd({ ...product, inStock } as never)} />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: 'Home', url: '/' },

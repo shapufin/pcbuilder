@@ -20,7 +20,9 @@ export const DiscountCodes: CollectionConfig = {
     { name: 'type', type: 'select', required: true, options: ['percentage', 'fixed', 'freeShipping'], defaultValue: 'percentage' },
     { name: 'value', type: 'number', admin: { description: 'Percent (0-100) for percentage; cents for fixed' } },
     { name: 'maxUses', type: 'number' },
-    { name: 'usedCount', type: 'number', defaultValue: 0, access: { update: ({ req }) => Boolean(req.user) } },
+    // Pass-2 audit: was `Boolean(req.user)` — any logged-in customer could
+    // inflate usedCount to maxUses and kill a code. Manager+ only.
+    { name: 'usedCount', type: 'number', defaultValue: 0, access: { update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null) } },
     { name: 'minSubtotal', type: 'number', admin: { description: 'Cents; applies when cart subtotal >= this' } },
     { name: 'validFrom', type: 'date', admin: { position: 'sidebar' } },
     { name: 'validUntil', type: 'date', admin: { position: 'sidebar' } },

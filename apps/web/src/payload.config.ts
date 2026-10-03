@@ -16,6 +16,13 @@ const dirname = path.dirname(filename)
 const databaseUri = process.env.DATABASE_URI || 'file:./payload.db'
 const isPostgres = databaseUri.startsWith('postgres')
 
+// Fail fast on a missing/placeholder secret in prod — the literal fallback is a
+// dev convenience only; shipping it would let anyone forge session cookies.
+const payloadSecret = process.env.PAYLOAD_SECRET || 'YOUR_SECRET_HERE'
+if (process.env.NODE_ENV === 'production' && payloadSecret === 'YOUR_SECRET_HERE') {
+  throw new Error('PAYLOAD_SECRET must be set in production')
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -35,7 +42,7 @@ export default buildConfig({
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ].filter((o): o is string => Boolean(o)),
-  secret: process.env.PAYLOAD_SECRET || 'YOUR_SECRET_HERE',
+  secret: payloadSecret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

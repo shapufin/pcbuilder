@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { createRuleEngine, type ComponentSpecEntry } from '@buildmyrig/lib'
+import { trackBeginBuilder, trackBuildStepCompleted } from '@/lib/analytics'
 import { useBuilderIndex } from '../useBuilderIndex'
 import { useBuilderStore } from '../builder-store'
 import type { ConfigureTemplate } from './page'
@@ -39,6 +40,14 @@ export function Configurator({ template }: { template: ConfigureTemplate | null 
       applyTemplate(template.id, template.slots)
     }
   }, [hydrated, template, applyTemplate])
+
+  // Funnel: one begin_builder per configurator session (audit gap P5-X3).
+  const beganRef = useRef(false)
+  useEffect(() => {
+    if (!hydrated || beganRef.current) return
+    beganRef.current = true
+    trackBeginBuilder(template?.name)
+  }, [hydrated, template])
 
   const categories = useMemo(
     () => (index ? [...index.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
@@ -141,7 +150,11 @@ export function Configurator({ template }: { template: ConfigureTemplate | null 
             onClearSlot={() => clearSlot(category.id)}
             onRemove={removeComponent}
             onPrev={prevStep}
-            onNext={() => nextStep(categories.length - 1)}
+            onNext={() => {
+              // Funnel: advancing means this step is done (audit gap P5-X3).
+              trackBuildStepCompleted(category.name, stepIndex, selectedIds.length)
+              nextStep(categories.length - 1)
+            }}
             isFirst={stepIndex === 0}
             isLast={stepIndex === categories.length - 1}
           />
