@@ -45,3 +45,6 @@ AGENTS.local.md
 .devin/config.local.json
 .devin/mcp_config.local.json
 .devin/tracking/*.jsonl
+
+# Generated scratch project (not part of the monorepo)
+RIG_model1/
