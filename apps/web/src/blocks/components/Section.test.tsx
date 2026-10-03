@@ -13,11 +13,12 @@ vi.mock('../registry', async () => {
 
 /**
  * Step D (entry 22) - Section container: nested blocks render through the
- * registry; layout tab values map onto closed CSS-var lookups (never raw
- * editor input into styles).
+ * registry; layout tab values are validated against closed allowlists and
+ * emitted as data-* attributes (styled by blocks.css) — never raw editor
+ * input into styles.
  */
 describe('Section block renderer', () => {
-  it('#152 applies layout values as CSS vars and renders nested blocks', () => {
+  it('#152 applies layout values as data attributes and renders nested blocks', () => {
     const html = renderToStaticMarkup(
       <Section
         block={{
@@ -27,9 +28,9 @@ describe('Section block renderer', () => {
         }}
       />,
     )
-    expect(html).toContain('var(--space-8)') // lg
-    expect(html).toContain('var(--color-surface)') // alt
-    expect(html).toContain('1440px') // wide
+    expect(html).toContain('data-padding="lg"')
+    expect(html).toContain('data-bg="alt"')
+    expect(html).toContain('data-width="wide"')
     expect(html).toContain('<h1>Nested heading</h1>')
   })
 
@@ -44,13 +45,13 @@ describe('Section block renderer', () => {
       />,
     )
     expect(html).not.toContain('<script>')
-    expect(html).toContain('var(--space-7)') // md default
-    expect(html).toContain('transparent') // page default
-    expect(html).toContain('1200px') // container default
+    expect(html).toContain('data-padding="md"')
+    expect(html).toContain('data-bg="page"')
+    expect(html).toContain('data-width="container"')
 
     const bare = renderToStaticMarkup(<Section block={{ blockType: 'section' }} />)
-    expect(bare).toContain('var(--space-7)')
-    expect(bare).toContain('1200px')
+    expect(bare).toContain('data-padding="md"')
+    expect(bare).toContain('data-width="container"')
   })
 
   it('#157b nested unknown blockTypes warn with the [Section] label (not [PageRenderer])', () => {

@@ -2,17 +2,6 @@
 
 import { useState } from 'react'
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 15,
-  fontFamily: 'inherit',
-}
-
 export function ContactFormClient({
   heading,
   intro,
@@ -50,11 +39,9 @@ export function ContactFormClient({
 
   if (state === 'done') {
     return (
-      <section style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 8px' }}>
-          {heading ?? 'Send us a message'}
-        </h2>
-        <p style={{ color: 'var(--color-success)', fontWeight: 700 }}>
+      <section className="blk blk--narrow">
+        <h2 className="blk__title">{heading ?? 'Send us a message'}</h2>
+        <p className="state-msg state-msg--success">
           Thanks — your message is on its way. We reply within one working day.
         </p>
       </section>
@@ -62,18 +49,12 @@ export function ContactFormClient({
   }
 
   return (
-    <section style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px' }}>
-      <h2 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 8px' }}>
-        {heading ?? 'Send us a message'}
-      </h2>
-      {intro ? (
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 15, margin: '0 0 20px' }}>
-          {intro}
-        </p>
-      ) : null}
-      <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, fontWeight: 600 }}>
-          Your name
+    <section className="blk blk--narrow">
+      <h2 className="blk__title">{heading ?? 'Send us a message'}</h2>
+      {intro ? <p className="blk__lead">{intro}</p> : null}
+      <form onSubmit={submit} className="contact-form">
+        <label className="field">
+          <span className="field__label">Your name</span>
           <input
             type="text"
             required
@@ -82,22 +63,22 @@ export function ContactFormClient({
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
-            style={fieldStyle}
+            className="input"
           />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, fontWeight: 600 }}>
-          Email
+        <label className="field">
+          <span className="field__label">Email</span>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
-            style={fieldStyle}
+            className="input"
           />
         </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, fontWeight: 600 }}>
-          Message
+        <label className="field">
+          <span className="field__label">Message</span>
           <textarea
             required
             minLength={10}
@@ -105,30 +86,16 @@ export function ContactFormClient({
             rows={6}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            style={{ ...fieldStyle, resize: 'vertical' }}
+            className="input"
           />
         </label>
         <div>
-          <button
-            type="submit"
-            disabled={state === 'busy'}
-            style={{
-              padding: '12px 22px',
-              borderRadius: 10,
-              border: 0,
-              background: 'var(--color-primary-strong)',
-              color: 'var(--color-on-primary)',
-              fontWeight: 700,
-              cursor: state === 'busy' ? 'wait' : 'pointer',
-            }}
-          >
+          <button type="submit" disabled={state === 'busy'} className="btn btn--primary">
             {state === 'busy' ? 'Sending…' : 'Send message'}
           </button>
         </div>
       </form>
-      {state === 'error' ? (
-        <p style={{ color: 'var(--color-danger)', fontSize: 14, marginTop: 12 }}>{error}</p>
-      ) : null}
+      {state === 'error' ? <p className="state-msg state-msg--error">{error}</p> : null}
     </section>
   )
 }

@@ -13,43 +13,21 @@ export function FeaturedCategory({
 }) {
   const { category, image, heading, copy, ctaLabel } = block
   return (
-    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
-      <div
-        style={{
-          display: 'flex',
-          gap: 40,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          border: '1px solid var(--color-surface)',
-          borderRadius: 14,
-          padding: 32,
-          background: 'linear-gradient(120deg, var(--color-surface) 0%, var(--color-bg) 60%)',
-        }}
-      >
-        <div style={{ flex: '1 1 320px' }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 10px' }}>{heading ?? category?.title}</h2>
-          {copy ? <p style={{ color: 'var(--color-text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>{copy}</p> : null}
+    <section className="blk">
+      <div className="feat-cat">
+        <div className="feat-cat__copy">
+          <h2 className="blk__title">{heading ?? category?.title}</h2>
+          {copy ? <p className="blk__lead">{copy}</p> : null}
           {category?.slug ? (
-            <Link
-              href={`/shop/${category.slug}`}
-              style={{
-                display: 'inline-block',
-                background: 'var(--color-primary-strong)',
-                color: 'var(--color-on-primary)',
-                padding: '10px 22px',
-                borderRadius: 10,
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
+            <Link href={`/shop/${category.slug}`} className="btn btn--primary">
               {ctaLabel || 'Shop now'}
             </Link>
           ) : null}
         </div>
         {image?.url ? (
-          <div style={{ flex: '1 1 280px' }}>
+          <div className="feat-cat__img-wrap">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={image.url} alt={image.alt ?? ''} style={{ width: '100%', borderRadius: 12 }} />
+            <img src={image.url} alt={image.alt ?? ''} className="feat-cat__img" />
           </div>
         ) : null}
       </div>

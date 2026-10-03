@@ -9,24 +9,15 @@ export function LogosStrip({
   const brands = block.brands ?? []
   if (brands.length === 0) return null
   return (
-    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', textAlign: 'center' }}>
-      {block.heading ? (
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 18 }}>
-          {block.heading}
-        </p>
-      ) : null}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'center', alignItems: 'center' }}>
+    <section className="blk logos">
+      {block.heading ? <p className="logos__heading">{block.heading}</p> : null}
+      <div className="logos__row">
         {brands.map((brand, i) =>
           brand.logo?.url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={brand.id ?? i}
-              src={brand.logo.url}
-              alt={brand.name ?? ''}
-              style={{ height: 32, width: 'auto', opacity: 0.75 }}
-            />
+            <img key={brand.id ?? i} src={brand.logo.url} alt={brand.name ?? ''} className="logos__img" />
           ) : (
-            <span key={brand.id ?? i} style={{ color: 'var(--color-text-muted)', fontWeight: 700, fontSize: 15 }}>
+            <span key={brand.id ?? i} className="logos__name">
               {brand.name}
             </span>
           ),

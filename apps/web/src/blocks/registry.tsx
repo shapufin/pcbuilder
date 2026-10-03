@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import './blocks.css'
 import { Hero } from './components/Hero'
 import { RichTextBlock } from './components/RichTextBlock'
 import { ProductGrid } from './components/ProductGrid'

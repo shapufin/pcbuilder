@@ -64,7 +64,7 @@ export async function TemplatesCarousel({
   if (items.length === 0) return null
 
   return (
-    <section style={{ padding: '48px 0' }}>
+    <section className="tpl-carousel">
       <TemplatesCarouselClient heading={block.heading ?? 'Ready-to-go builds'} templates={items} autoplay={Boolean(block.autoplay)} />
     </section>
   )

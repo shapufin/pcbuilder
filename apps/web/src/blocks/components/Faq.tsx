@@ -8,19 +8,14 @@ export function Faq({ block }: { block: { heading?: string | null; items?: FaqIt
   const items = block.items ?? []
   if (items.length === 0) return null
   return (
-    <section style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px' }}>
-      <h2 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 20px' }}>
-        {block.heading ?? 'Frequently asked questions'}
-      </h2>
-      <div style={{ display: 'grid', gap: 12 }}>
+    <section className="blk blk--narrow">
+      <h2 className="blk__title">{block.heading ?? 'Frequently asked questions'}</h2>
+      <div className="faq">
         {items.map((item, i) => (
-          <details
-            key={i}
-            style={{ border: '1px solid var(--color-surface)', borderRadius: 10, padding: '14px 18px', background: 'var(--color-bg)' }}
-          >
-            <summary style={{ cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>{item.question}</summary>
+          <details key={i} className="faq__item">
+            <summary className="faq__q">{item.question}</summary>
             {item.answer ? (
-              <div style={{ color: 'var(--color-text-muted)', marginTop: 10, lineHeight: 1.6, fontSize: 15 }}>
+              <div className="faq__a">
                 <LexicalRichText data={item.answer as never} />
               </div>
             ) : null}

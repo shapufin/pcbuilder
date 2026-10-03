@@ -9,25 +9,20 @@ export function Testimonials({
   const items = block.items ?? []
   if (items.length === 0) return null
   return (
-    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
-      <h2 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 20px' }}>{block.heading ?? 'What builders say'}</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+    <section className="blk">
+      <h2 className="blk__title">{block.heading ?? 'What builders say'}</h2>
+      <div className="testimonials">
         {items.map((item, i) => (
-          <figure
-            key={i}
-            style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 22, margin: 0, background: 'var(--color-bg)' }}
-          >
-            <blockquote style={{ margin: '0 0 16px', color: 'var(--color-border-strong)', lineHeight: 1.6, fontSize: 15 }}>
-              “{item.quote}”
-            </blockquote>
-            <figcaption style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <figure key={i} className="testimonial">
+            <blockquote className="testimonial__quote">“{item.quote}”</blockquote>
+            <figcaption className="testimonial__author">
               {item.avatar?.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.avatar.url} alt="" width={36} height={36} style={{ borderRadius: '50%' }} />
+                <img src={item.avatar.url} alt="" width={36} height={36} className="testimonial__avatar" />
               ) : null}
               <div>
-                <strong style={{ display: 'block', fontSize: 14 }}>{item.name}</strong>
-                {item.role ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{item.role}</span> : null}
+                <strong className="testimonial__name">{item.name}</strong>
+                {item.role ? <span className="testimonial__role">{item.role}</span> : null}
               </div>
             </figcaption>
           </figure>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useBuilderStore } from '@/app/builder/builder-store'
+import { formatEUR } from '@/components/ui/Price'
 
 type CarouselTemplate = {
   id: string
@@ -15,8 +16,6 @@ type CarouselTemplate = {
   image: string | null
   slots: { categoryId: string; componentId: string }[]
 }
-
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 
 export function TemplatesCarouselClient({
   heading,
@@ -64,22 +63,19 @@ export function TemplatesCarouselClient({
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 800, margin: 0 }}>{heading}</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" aria-label="Scroll left" onClick={() => scrollByCard(-1)} style={arrowBtn}>
+    <div className="blk">
+      <div className="tpl-carousel__head">
+        <h2 className="tpl-carousel__title">{heading}</h2>
+        <div className="tpl-carousel__arrows">
+          <button type="button" aria-label="Scroll left" onClick={() => scrollByCard(-1)} className="tpl-arrow">
             ←
           </button>
-          <button type="button" aria-label="Scroll right" onClick={() => scrollByCard(1)} style={arrowBtn}>
+          <button type="button" aria-label="Scroll right" onClick={() => scrollByCard(1)} className="tpl-arrow">
             →
           </button>
         </div>
       </div>
-      <div
-        ref={trackRef}
-        style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8, scrollSnapType: 'x mandatory' }}
-      >
+      <div ref={trackRef} className="tpl-carousel__track">
         {templates.map((t, i) => (
           <motion.button
             key={t.id}
@@ -89,44 +85,23 @@ export function TemplatesCarouselClient({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: i * 0.03 }}
-            style={{
-              flex: '0 0 280px',
-              scrollSnapAlign: 'start',
-              textAlign: 'left',
-              border: '1px solid var(--color-surface)',
-              borderRadius: 12,
-              padding: 16,
-              background: 'var(--color-bg)',
-              color: 'inherit',
-              cursor: 'pointer',
-            }}
+            className="tpl-card"
           >
             {t.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.image} alt="" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />
+              <img src={t.image} alt="" className="tpl-card__img" />
             ) : null}
-            <strong style={{ display: 'block', marginBottom: 6 }}>{t.name}</strong>
+            <strong className="tpl-card__name">{t.name}</strong>
             {t.description ? (
-              <span style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+              <span className="tpl-card__desc">
                 {t.description.slice(0, 90)}
                 {t.description.length > 90 ? '…' : ''}
               </span>
             ) : null}
-            <span style={{ color: 'var(--color-primary-hover)', fontWeight: 700 }}>from {eur(t.basePriceCents)}</span>
+            <span className="tpl-card__price">from {formatEUR(t.basePriceCents)}</span>
           </motion.button>
         ))}
       </div>
     </div>
   )
-}
-
-const arrowBtn: React.CSSProperties = {
-  width: 36,
-  height: 36,
-  borderRadius: 8,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  cursor: 'pointer',
-  fontSize: 16,
 }

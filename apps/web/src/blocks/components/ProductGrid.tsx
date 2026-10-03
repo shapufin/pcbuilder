@@ -1,36 +1,7 @@
 import Link from 'next/link'
-import { getPayloadClient, formatPrice } from '@/lib/shop'
-
-type ProductDoc = {
-  id: number | string
-  title: string
-  slug: string
-  priceInEUR?: number | null
-  brand?: { name?: string } | null
-}
-
-function ProductCard({ product }: { product: ProductDoc }) {
-  return (
-    <Link
-      href={`/product/${product.slug}`}
-      style={{
-        display: 'block',
-        border: '1px solid var(--color-surface)',
-        borderRadius: 12,
-        padding: 16,
-        background: 'var(--color-bg)',
-        textDecoration: 'none',
-        color: 'inherit',
-      }}
-    >
-      <strong style={{ display: 'block', marginBottom: 8 }}>{product.title}</strong>
-      {product.brand?.name ? <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{product.brand.name}</span> : null}
-      <span style={{ display: 'block', color: 'var(--color-primary-hover)', marginTop: 8, fontWeight: 700 }}>
-        {formatPrice(product)}
-      </span>
-    </Link>
-  )
-}
+import { getPayloadClient } from '@/lib/shop'
+import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
+import '@/app/shop/shop.css'
 
 export async function ProductGrid({
   block,
@@ -58,25 +29,25 @@ export async function ProductGrid({
   const cols = Number(block.columns ?? 3) || 3
 
   return (
-    <section style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 800, margin: 0 }}>
+    <section className="page">
+      <div className="block-head">
+        <h2 className="block-head__title">
           {block.heading ?? block.category?.title ?? 'Latest products'}
         </h2>
         {block.category?.slug ? (
-          <Link href={`/shop/${block.category.slug}`} style={{ color: 'var(--color-primary-hover)', fontSize: 14, textDecoration: 'none' }}>
+          <Link href={`/shop/${block.category.slug}`} className="block-head__link">
             {block.viewAllLabel || 'View all'} →
           </Link>
         ) : null}
       </div>
       {products.docs.length === 0 ? (
-        <p style={{ color: 'var(--color-text-muted)' }}>No products yet.</p>
+        <p className="page__lead">No products yet.</p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 16 }}>
-          {products.docs.map((p) => (
-            <ProductCard key={p.id} product={p as ProductDoc} />
+        <ProductCardGrid cols={cols}>
+          {products.docs.map((p, i) => (
+            <ProductCard key={p.id} product={p} priority={i < 4} />
           ))}
-        </div>
+        </ProductCardGrid>
       )}
     </section>
   )

@@ -3,25 +3,6 @@ import { embedUrlFor } from '@buildmyrig/lib'
 
 type Cta = { label: string; url: string; style?: 'primary' | 'secondary' }
 
-const primary: React.CSSProperties = {
-  display: 'inline-block',
-  background: 'var(--color-primary-strong)',
-  color: 'var(--color-on-primary)',
-  padding: '12px 24px',
-  borderRadius: 10,
-  fontWeight: 700,
-  textDecoration: 'none',
-}
-const secondary: React.CSSProperties = {
-  display: 'inline-block',
-  border: '1px solid var(--color-border)',
-  color: 'var(--color-text)',
-  padding: '12px 24px',
-  borderRadius: 10,
-  fontWeight: 600,
-  textDecoration: 'none',
-}
-
 export function Hero({
   block,
 }: {
@@ -38,18 +19,21 @@ export function Hero({
   const { heading, subheading, image, videoUrl, variant = 'image', align = 'center', ctas } = block
   const centered = align === 'center'
   const copy = (
-    <div style={{ flex: '1 1 320px', textAlign: centered ? 'center' : 'left' }}>
-      <h1 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 800, margin: '0 0 12px' }}>{heading}</h1>
-      {subheading ? <p style={{ color: 'var(--color-text-muted)', fontSize: 18, lineHeight: 1.6, margin: '0 0 24px' }}>{subheading}</p> : null}
+    <div className={`hero__copy${centered ? '' : ' hero__copy--left'}`}>
+      <h1 className="hero__title">{heading}</h1>
+      {subheading ? <p className="hero__sub">{subheading}</p> : null}
       {ctas?.length ? (
-        <div style={{ display: 'flex', gap: 12, justifyContent: centered ? 'center' : 'flex-start', flexWrap: 'wrap' }}>
+        <div className={`hero__ctas${centered ? '' : ' hero__ctas--left'}`}>
           {ctas.map((cta, i) => {
-            const style = cta.style === 'secondary' ? secondary : primary
-            const inner = <span style={style}>{cta.label}</span>
+            const cls = cta.style === 'secondary' ? 'btn btn--secondary btn--lg' : 'btn btn--primary btn--lg'
             return cta.url.startsWith('/') ? (
-              <Link key={i} href={cta.url}>{inner}</Link>
+              <Link key={i} href={cta.url} className={cls}>
+                {cta.label}
+              </Link>
             ) : (
-              <a key={i} href={cta.url} target="_blank" rel="noreferrer">{inner}</a>
+              <a key={i} href={cta.url} target="_blank" rel="noreferrer" className={cls}>
+                {cta.label}
+              </a>
             )
           })}
         </div>
@@ -58,42 +42,30 @@ export function Hero({
   )
   const embed = variant === 'video' && videoUrl ? embedUrlFor(videoUrl) : null
   const media = embed ? (
-    <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9' }}>
+    <div className="hero__media hero__media--framed">
       <iframe
         src={embed}
         title={heading || 'Video'}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, borderRadius: 14 }}
+        className="hero__iframe"
       />
     </div>
   ) : image?.url ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={image.url}
-      alt={image.alt ?? ''}
-      style={{ width: '100%', borderRadius: 14, border: '1px solid var(--color-surface)' }}
-    />
+    <img src={image.url} alt={image.alt ?? ''} className="hero__img" />
   ) : null
 
   return (
-    <section
-      style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        padding: variant === 'split' ? '64px 24px' : '80px 24px',
-      }}
-    >
+    <section className={`hero${variant === 'split' ? ' hero--split' : ''}`}>
       {variant === 'split' ? (
-        <div style={{ display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="hero__split-inner">
           {copy}
           {media}
         </div>
       ) : (
-        <div style={{ textAlign: 'center' }}>
-          {media && (align === 'center' || embed) ? (
-            <div style={{ maxWidth: 900, margin: '0 auto 32px' }}>{media}</div>
-          ) : null}
+        <div className="hero--center">
+          {media && (align === 'center' || embed) ? <div className="hero__media-wrap">{media}</div> : null}
           {copy}
         </div>
       )}
