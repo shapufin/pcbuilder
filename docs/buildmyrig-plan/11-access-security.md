@@ -9,23 +9,24 @@
 | Collection | Public (unauthenticated) | Customer | Staff | Manager | Admin |
 | --- | --- | --- | --- | --- | --- |
 | products / categories / brands / attributes | read published | read published | read | write | write |
-| variants | read published | read published | read + stock write | write | write |
+| variants | read published | read published | read (stock write stays manager+ — decision, entry 43) | write | write |
 | prices / inventory | `inStock` boolean only via product view | same | read exact + write stock | write | write |
 | discountCodes | none (validate endpoint only) | none | read | write | write |
 | carts | create/update own guest cart (cart token) | own | read | read | write |
 | orders | none | read own (IDOR-checked; also guest orders by `customerEmail` — entry 15) | read + status→fulfilled/shipped | read + status write | full |
 | transactions | none | read own (via order) | read | read | write (refund) |
-| shipments | none | read own | write | write | write |
+| shipments | none | read own | write | write | write — **not built (entry 43 decision: status-only fulfilment via `orders.status` + shipping email until a carrier/3PL need exists)** |
 | addresses | none | own CRUD | read | read | write |
-| customers | none | own (basics) | read | write | write |
+| customers | none | own (basics) | read | write | write — **collapsed into `users` (plugin `customers.slug='users'`; entry 43: staff-list keeps `users`-collection rules, i.e. none below manager)** |
 | componentCategories / components / buildTemplates | read | read | read | write | write |
 | compatibilityRules / derivedPowerRules | read (engine index only — raw REST hidden) | read index | read | write | write |
 | configuredBuilds | create (guest), read by shareId | own CRUD | read | read | write |
 | media | read | read | write | write | write |
-| pages / redirects | read published | read published | read | write | write |
+| pages | read published | read published | read | write | write |
+| ~~redirects~~ | — | — | — | — | — **not built (entry 43: out of scope until a URL-migration need exists; the one redirect needed, `/search`→`/shop/search`, is a `next.config` redirect)** |
 | users | none | self read | none | none | write |
 
-Field-level: customers.notes staff+only; configuredBuilds.user read by owner/staff only (share view excludes it); inventory.quantity masked for public (boolean inStock + low flag only). Implemented with Payload field-level `access` + `read: ownerOrStaff` patterns.
+Field-level: customers.notes staff+only; configuredBuilds.user read by owner/staff only (share view excludes it); inventory.quantity masked for public (boolean inStock + low flag only — implemented entry 42 via `maskInventoryRead` on products + variants). Implemented with Payload field-level `access` + `read: ownerOrStaff` patterns.
 
 Entry 20 review round: the orders staff row is enforced in three layers in `packages/plugin-shop/src/collections/orders.ts` — collection `update` admits staff+, field access pins every field but `status` to manager+ (recursing tabs/groups/rows; pre-existing stricter rules such as transactions: admin-only are preserved untouched), and `restrictStaffStatus` (beforeChange) rejects staff status values outside `processing|completed` with 400. Entry 21 review round: the hook is transition-aware — an unchanged `status` is a no-op (a whole-form save on a terminal order doesn't 400) and moving *out of* `cancelled`/`refunded` is manager-only (staff can't resurrect terminal orders). Unit-tested as #128–130 + #143; staff status flip + resurrect-reject + no-op-save probe-verified live (entry 21 review).
 
@@ -69,6 +70,29 @@ First full pass done with the `security-review` skill; 5 findings fixed (see pro
 `clientIp` (`apps/web/src/lib/auth.ts`) and the two sibling keyers (`plugin-pc-builder/src/endpoints.ts`, `plugin-shop/src/endpoints.ts`) take the **leftmost `X-Forwarded-For` hop**, which is client-controlled whenever the origin is reachable directly (this app's self-hosted `pnpm start` path has no proxy). Consequence: all IP-keyed limiters (register, builds, use-template, claim, …) are spoofable with a forged header. Not fixable in-app — Next.js route handlers don't expose the socket peer address — so the limits are treated as abuse **defense-in-depth, not a security boundary**, and the real boundary is independent: payload's per-account `maxLoginAttempts` lockout, origin allowlist/CSRF, and role scoping.
 
 **Required production configuration**: deploy behind a reverse proxy/CDN that **overwrites** `X-Forwarded-For` and `X-Real-IP` and never expose the origin directly. On serverless multi-instance hosts the in-memory limiter itself swaps to Upstash (12-integrations-ops.md), which keys on the platform's request IP instead.
+
+## Deployment checklist (entry 41 — plan item C10)
+
+Everything the code assumes about a production environment, gathered from the
+sections above + entries 11–40. Nothing here is implemented by the app —
+each line is an operator action.
+
+| # | Action | Why / where |
+| --- | --- | --- |
+| 1 | Set `PAYLOAD_SECRET` to a real value | `payload.config.ts` throws when `NODE_ENV=production` and the secret is the placeholder (entry 28) |
+| 2 | Set `BMR_URL` (no trailing slash) | CSRF origin allowlist; without it cookie-authed requests lacking `Origin`/`Sec-Fetch-Site` are rejected |
+| 3 | Point `DATABASE_URI` at Postgres and run **`payload migrate`**, never `push` | `push: true` is dev-only; migration files are untested locally (owner step B3) |
+| 4 | Migrate the `transactions` schema **before** enabling Stripe keys | `paymentMethod` + `stripe` columns exist only when an adapter is configured; the webhook 500s `no such column` otherwise (entry 13) |
+| 5 | Add every new env var to `turbo.json` `env` allowlists | strict env mode silently drops undeclared vars from `dev`/`build` tasks (entry 24) |
+| 6 | Deploy behind a proxy/CDN that **overwrites** `X-Forwarded-For` + `X-Real-IP`; never expose the origin | rate-limit keying contract above (VULN-01) |
+| 7 | Swap the in-memory limiter for Upstash on multi-instance/serverless hosts | single-instance limiter is ineffective across instances (entry 11 deviation) |
+| 8 | Harden the build-claim write to a CAS (`where: { user: { exists: false } }`) | VERIFY-001 TOCTOU above |
+| 9 | Register the Stripe webhook endpoint (`/api/payments/stripe/webhooks`) + set `STRIPE_WEBHOOK_SECRET` | the webhook is the reliable settlement path (CAS-idempotent); the client poll is best-effort |
+| 10 | Optional: schedule a reservations sweeper | holds self-expire (30-min TTL) and are swept lazily on the next `initiatePayment`; a cron just tidies low-traffic stores |
+| 11 | Set `RESEND_API_KEY` + `EMAIL_FROM` (+ `STAFF_ALERT_EMAIL` for low-stock/contact) | without them every send is a logged dry-run (entry 23) |
+| 12 | Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | funnel events are silent no-ops without it (entry 34) |
+| 13 | Wire Sentry DSN + alerting | not implemented — plan-level (12-integrations-ops.md) |
+| 14 | Run the OWASP re-pass on the payment paths with live keys | checklist #10 above, deferred until keys land (owner step B1) |
 
 ## Open security notes (entry 15 review)
 

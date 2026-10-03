@@ -51,3 +51,20 @@
 - Build "fork" (duplicate + edit shared builds) — v1 has duplicate only.
 - Native mobile app / PWA offline builder.
 - GA4 if ads attribution demanded; server-side tag manager.
+
+## Audit-deferred (entries 26–29 — see `19-feature-audit.md` gap register for detail)
+
+**Blocking** (feature-sized, need dedicated rounds):
+- Stripe embedded checkout (`confirmPayment` + `paymentIntentID` wiring) — the adapter is PI/embedded, not the hosted Checkout A17 describes; plan doc stale.
+- Discount apply path end-to-end (validate endpoint → cart/order `discountCode` → `usedCount` increment) — A6.
+- Shipping flat bands (A18) + tax static table (A19) — both doc-only today.
+- Inventory reservations/holds + merge stock caps (A10 partial) + `payment_intent.canceled` release + negative-`$inc` guard.
+- `plugin-ecommerce` `confirmOrder` composite-line decrement crash — unpatched upstream path (webhook CAS usually wins; fix upstream or override).
+
+**Minor / matrix-deviation** (safe-direction, revisit before launch):
+- `transactions` staff-read; public `inventory` masking to boolean; variant stock-write for staff; `customers` staff-read/manager-write rows; addresses staff-read; `redirects` collection (matrix row 25).
+- Analytics funnel events `view_item`/`begin_builder`/`build_step_completed` (12-integrations-ops.md:25-29).
+- Wishlist product-validity re-check on render (stale snapshot/404 risk).
+- Seed spec undershoot: case-fan slot category, 3rd template, 20 ordinary products, customer user, seeded media, product attributeValues; true upsert idempotency + `--drop` flag.
+- ~~Multiple `derived-power-rules` uniqueness; A9 index gzip measurement at scale; `BMR_PREVIEW_URL` doc'd but unread; bare `/search` alias.~~ **All closed (entries 37–41)**: singleton guard + index warning; index measured (23.3 KB raw / 2.9 KB gzip at 33 components → ~43 KB gzip at 500); `BMR_PREVIEW_URL` dropped from the env docs; `/search` → `/shop/search` redirect.
+- Claim TOCTOU (VERIFY-001) and XFF spoofability (VULN-01) — open by deferral; both live before prod without an XFF-overwriting proxy.

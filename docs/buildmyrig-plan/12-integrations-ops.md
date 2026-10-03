@@ -59,7 +59,7 @@ Complete env var list:
 
 ```
 DATABASE_URI=postgres://...            PAYLOAD_SECRET=<random 32+>
-BMR_URL=https://buildmyrig.com         BMR_PREVIEW_URL= (optional)
+BMR_URL=https://buildmyrig.com
 STRIPE_SECRET_KEY=sk_...               STRIPE_WEBHOOK_SECRET=whsec_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
 RESEND_API_KEY=re_...                  EMAIL_FROM=orders@buildmyrig.com
@@ -70,6 +70,15 @@ UPSTASH_REDIS_REST_URL= / UPSTASH_REDIS_REST_TOKEN=
 SENTRY_DSN= / SENTRY_ENV= (local|preview|production)
 NEXT_PUBLIC_PLAUSIBLE_DOMAIN=
 ```
+
+## Deployment checklist
+
+Before the first production deploy (and for every new env var / collection),
+work through **[11-access-security.md § Deployment checklist](11-access-security.md#deployment-checklist-entry-41--plan-item-c10)**
+(entry 41, plan item C10): prod secret guard, `BMR_URL`, Postgres `migrate`
+(not push) + the `transactions`-before-keys ordering, turbo `env` allowlists,
+proxy XFF overwrite, Upstash limiter swap, claim CAS, webhook registration,
+Resend/Plausible keys, Sentry.
 
 ## Monitoring
 

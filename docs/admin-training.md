@@ -57,14 +57,14 @@ Notes:
 - **Contact form block** (Content group): drop it on a page and submissions go to the staff inbox email (`STAFF_ALERT_EMAIL`, else the configured sender) — no admin UI list. If no email is configured, submissions are logged instead of sent (dry-run).
 - **Homepage**: exactly one page can have the **is Homepage** flag (ticking it clears the flag from any other page). The `/` route renders that page — with a built-in fallback landing if no homepage page exists yet. Revalidation is automatic on publish (no redeploy).
 - SEO fields (meta title/description, social image) sit on each page/product; sitemap and JSON-LD regenerate from them.
-- Newsletter signups from the storefront footer go straight to **Resend** (API-key based); there is no admin subscriber list.
+- Newsletter signups (the **Newsletter signup** block — currently on the homepage) go straight to **Resend** (API-key based); there is no admin subscriber list.
 
 ## 6. PC builder operations
 
 - **Components** + **Component Categories**: the parts catalogue shown in the configurator. `required`/`maxSelectable` per category controls the guided flow.
 - **Compatibility Rules** (slot-conflict grid): conflicts, requirements (e.g. cooler socket), cosmetic constraints. Messages shown to shoppers are interpolated — use `{component}` placeholders as authored.
 - **Derived Power Rules** (Wattage): PSU recommendation math (`recommended PSU = GPU TDP + CPU TDP + headroom` style rules).
-- **CSV import** (`/admin` → builder rules import endpoint): staff+/manager only, zod-validated rows — bad rows are rejected with row-level errors; valid rows land immediately in the live index (no redeploy needed). Export the grid before a large import so you can roll back.
+- **CSV import** (`/admin` → builder rules import endpoint): manager/admin only, zod-validated rows — bad rows are rejected with row-level errors; valid rows land immediately in the live index (no redeploy needed). Export the grid before a large import so you can roll back.
 - **Build Templates**: the "Start from a template" cards on `/builder`; each slot pins a component; base price shown to shoppers.
 - **Configured Builds**: customer build submissions. Staff can read all builds; only admins can edit/delete another person's build (deleting a customer's build is recoverable only from backups — prefer read-only).
 - The public **builder index** (components + rules powering `/builder/configure`) is intentionally public; internal fields (prices of unpublished items, user data) are not exposed.

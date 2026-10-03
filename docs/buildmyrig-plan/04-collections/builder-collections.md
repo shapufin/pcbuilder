@@ -50,7 +50,7 @@ A purchasable part. **Relationship choice (A1): a Component references a Product
 | storageInterface | select: NVMe / SATA (indexed) | storage, motherboard (nvme count flag) |
 | pcieVersion | select: 3.0/4.0/5.0 | gpu, motherboard (warning-level) |
 
-Access: public read, admin/manager write. Hooks: `afterChange` → rebuild server spec index + bump client rule index version (cache tag `builder-index`).
+Access: **staff read** (deviation from this doc's original "public read" — deliberate: the builder index endpoint is the public surface, raw rules are internal; see the entry-27 audit note), admin/manager write. Hooks: `afterChange` → rebuild server spec index + bump client rule index version (cache tag `builder-index`).
 
 ## BuildTemplate (pre-built PCs)
 
@@ -71,7 +71,7 @@ Access: public read, manager write. Drafts on. `POST /api/builder/templates/:id/
 | Field | Type | Notes |
 | --- | --- | --- |
 | user | rel → users (nullable) | guest = null (A4: share URL works for guests) |
-| shareId | text unique indexed (nanoid) | `/build/[shareId]` read-only view |
+| shareId | text unique indexed (**base64url randomBytes**, 96-bit — spec originally said nanoid; equivalent entropy) | `/build/[shareId]` read-only view |
 | slots | array: { category rel → componentCategories, components: array rel → components } | maxSelectable > 1 slots |
 | priceSnapshot | number | display-only, recomputed server-side at checkout |
 | validationSnapshot | json: { errors: [...], warnings: [...], rulesVersion } | engine output at save time |
