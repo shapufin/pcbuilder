@@ -5,6 +5,7 @@ import {
   builderConflictsEndpoint,
   builderRulesImportEndpoint,
   builderSaveBuildEndpoint,
+  builderShareBuildEndpoint,
   builderUseTemplateEndpoint,
 } from './endpoints.ts'
 import { invalidateBuilderIndex } from './lib/builder-index.ts'
@@ -343,6 +344,113 @@ describe('save endpoint — audit pass 3 (required/maxSelectable enforced server
     const res = await save({ slots: [{ categoryId: '4', componentIds: ['31'] }] }, payload)
     expect(res.status).toBe(422)
     expect(await res.json()).toMatchObject({ error: 'build is incomplete' })
+    expect(payload.created).toHaveLength(0)
+  })
+})
+
+describe('save endpoint — entry 50 (rgbColor passthrough + over-cap warnings)', () => {
+  const save = (body: unknown, payload: { find: unknown; create: unknown; update: unknown }) =>
+    builderSaveBuildEndpoint.handler!(makeReq(body, payload as ReturnType<typeof makePayload>, ['customer']))
+
+  const slotCapPayload = () => {
+    const created: Doc[] = []
+    const collections: Record<string, Doc[]> = {
+      'component-categories': [
+        { id: 1, slug: 'motherboard', name: 'Motherboard', required: true, maxSelectable: 1, sortOrder: 0 },
+        { id: 2, slug: 'ram', name: 'Memory', required: true, maxSelectable: 4, sortOrder: 1 },
+      ],
+      components: [
+        { id: 11, name: 'ITX Board', category: { id: 1 }, ramSlots: 2, productVariant: { id: 90, priceInEUR: 10000 } },
+        { id: 21, name: 'DIMM A', category: { id: 2 }, productVariant: { id: 91, priceInEUR: 5000 } },
+        { id: 22, name: 'DIMM B', category: { id: 2 }, productVariant: { id: 92, priceInEUR: 5000 } },
+        { id: 23, name: 'DIMM C', category: { id: 2 }, productVariant: { id: 93, priceInEUR: 5000 } },
+      ],
+      'compatibility-rules': [],
+      'derived-power-rules': [],
+    }
+    return {
+      created,
+      find: vi.fn(async ({ collection }: { collection: string }) => ({ docs: collections[collection] ?? [] })),
+      create: vi.fn(async ({ data }: { data: Doc }) => {
+        const doc = { id: 100, ...data }
+        created.push(doc)
+        return doc
+      }),
+      update: vi.fn(async ({ id, data }: { id: string | number; data: Doc }) => ({ id, ...data })),
+    }
+  }
+
+  it('#307 a valid rgbColor persists on the created build and response', async () => {
+    invalidateBuilderIndex()
+    const payload = templatePayload(null)
+    const res = await save(
+      { slots: [{ categoryId: 'os', componentIds: ['31'] }], rgbColor: '#7df4ff' },
+      payload,
+    )
+    expect(res.status).toBe(200)
+    expect(payload.created[0].rgbColor).toBe('#7df4ff')
+    expect(await res.json()).toMatchObject({ rgbColor: '#7df4ff' })
+  })
+
+  it('#308 a non-hex rgbColor is rejected at the schema boundary', async () => {
+    invalidateBuilderIndex()
+    const payload = templatePayload(null)
+    const res = await save(
+      { slots: [{ categoryId: 'os', componentIds: ['31'] }], rgbColor: 'notacolor' },
+      payload,
+    )
+    expect(res.status).toBe(400)
+    expect(payload.created).toHaveLength(0)
+  })
+
+  it('#309 over-cap selections save with a non-blocking validationSnapshot warning', async () => {
+    invalidateBuilderIndex()
+    const payload = slotCapPayload()
+    const res = await save(
+      {
+        slots: [
+          { categoryId: '1', componentIds: ['11'] },
+          { categoryId: '2', componentIds: ['21', '22', '23'] },
+        ],
+      },
+      payload,
+    )
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    const warnings = (data.validationSnapshot?.warnings ?? []) as { message?: string }[]
+    expect(warnings.some((w) => /2.*ramSlots|ramSlots/i.test(String(w.message)))).toBe(true)
+  })
+
+  it('#312 share endpoint returns the saved rgbColor', async () => {
+    const payload = {
+      find: vi.fn(async () => ({
+        docs: [{ id: 9, name: 'RGB rig', shareId: 's1', rgbColor: '#fb923c', slots: [] }],
+      })),
+    }
+    const res = await builderShareBuildEndpoint.handler!(
+      makeReq(null, payload as unknown as ReturnType<typeof makePayload>, ['customer'], {
+        shareId: 's1',
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).rgbColor).toBe('#fb923c')
+  })
+
+  it('#316 duplicate categoryId slots cannot evade maxSelectable (counts are summed)', async () => {
+    invalidateBuilderIndex()
+    const payload = templatePayload(null)
+    // 'os' has maxSelectable 1 — two separate rows of 1 component each must
+    // still be refused (per-row checks would see each within the limit).
+    const res = await save(
+      {
+        slots: [
+          { categoryId: 'os', componentIds: ['31'] },
+          { categoryId: 'os', componentIds: ['31'] },
+        ],
+      },
+      payload,
+    )
+    expect(res.status).toBe(422)
     expect(payload.created).toHaveLength(0)
   })
 })

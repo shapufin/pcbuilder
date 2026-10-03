@@ -59,6 +59,9 @@ interface ComponentRow {
   coolerSocketSupport?: RuleCriticalSpec['coolerSocketSupport']
   storageInterface?: RuleCriticalSpec['storageInterface']
   pcieVersion?: RuleCriticalSpec['pcieVersion']
+  ramSlots?: number
+  m2Slots?: number
+  hasRgb?: boolean
   updatedAt?: string
 }
 
@@ -120,6 +123,7 @@ const displayOf = (c: ComponentRow): ComponentDisplay => {
   const display: ComponentDisplay = { name: c.name }
   const brand = nameOf(c.brand)
   if (brand) display.brand = brand
+  if (c.hasRgb) display.hasRgb = true
   const image = c.images?.find((img) => img?.url)?.url
   if (image) display.image = image
   if (c.description) display.description = c.description
@@ -161,6 +165,8 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     if (c.coolerSocketSupport?.length) specs.coolerSocketSupport = c.coolerSocketSupport
     if (c.storageInterface) specs.storageInterface = c.storageInterface
     if (c.pcieVersion) specs.pcieVersion = c.pcieVersion
+    if (typeof c.ramSlots === 'number') specs.ramSlots = c.ramSlots
+    if (typeof c.m2Slots === 'number') specs.m2Slots = c.m2Slots
     const variant = c.productVariant
     const priceCents =
       variant && typeof variant === 'object' && typeof variant.priceInEUR === 'number' ? variant.priceInEUR : 0

@@ -4,6 +4,7 @@ import { getBuilderIndex } from '../lib/builder-index'
 import {
   buildDocSlotsToBuildSlots,
   findIncompleteSlotReasons,
+  findOverCapWarnings,
   findUnknownSlotRefs,
   newShareId,
   priceBuildFromIndex,
@@ -80,7 +81,11 @@ const validateConfiguredBuild = async ({
   }
   const componentIds = slots.flatMap((s) => s.componentIds)
   data.priceSnapshot = priceBuildFromIndex(index, componentIds)
-  data.validationSnapshot = { errors: [], warnings, rulesVersion: index.rulesVersion }
+  data.validationSnapshot = {
+    errors: [],
+    warnings: [...warnings, ...findOverCapWarnings(index, slots)],
+    rulesVersion: index.rulesVersion,
+  }
 }
 
 export const ConfiguredBuilds: CollectionConfig = {
@@ -135,6 +140,22 @@ export const ConfiguredBuilds: CollectionConfig = {
       type: 'json',
       access: serverManaged,
       admin: { readOnly: true, description: '{ errors, warnings, rulesVersion } from the rule engine at save time' },
+    },
+    {
+      name: 'rgbColor',
+      type: 'text',
+      access: serverManaged,
+      // Staff creates bypass the endpoint's zod schema — enforce the hex
+      // contract at the field too so the share endpoint never echoes garbage.
+      validate: (value: unknown) =>
+        value == null ||
+        (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) ||
+        'rgbColor must be a #RRGGBB hex color',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Builder-design accent saved with the build (#RRGGBB)',
+      },
     },
     {
       name: 'status',

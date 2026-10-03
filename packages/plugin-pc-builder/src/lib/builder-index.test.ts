@@ -141,6 +141,21 @@ describe('buildBuilderIndex → derived power config (entry 10 wiring)', () => {
   })
 })
 
+describe('buildBuilderIndex — entry 50 studio fields', () => {
+  it('#310 hasRgb reaches ComponentSpecEntry.display (blueprint lighting flag)', async () => {
+    const rgb = { ...componentDoc, id: 7, hasRgb: true }
+    const index = await buildBuilderIndex(fakePayload({ components: [rgb] }))
+    expect(index.components[0].display?.hasRgb).toBe(true)
+  })
+
+  it('#311 ramSlots/m2Slots reach specs (slot-cap inputs)', async () => {
+    const mobo = { ...componentDoc, id: 8, ramSlots: 2, m2Slots: 3 }
+    const index = await buildBuilderIndex(fakePayload({ components: [mobo] }))
+    expect(index.components[0].specs.ramSlots).toBe(2)
+    expect(index.components[0].specs.m2Slots).toBe(3)
+  })
+})
+
 describe('getBuilderIndex cache + rulesVersion coverage (entry 14)', () => {
   afterEach(() => {
     invalidateBuilderIndex()

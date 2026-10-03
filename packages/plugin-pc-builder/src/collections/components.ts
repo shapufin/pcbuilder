@@ -75,6 +75,16 @@ export const Components: CollectionConfig = {
         { name: 'coolerSocketSupport', type: 'select', hasMany: true, options: [...SOCKET_OPTIONS] },
         { name: 'storageInterface', type: 'select', options: [...STORAGE_INTERFACE_OPTIONS], index: true },
         { name: 'pcieVersion', type: 'select', options: [...PCIE_OPTIONS] },
+        { name: 'ramSlots', type: 'number', min: 0, admin: { description: 'Physical DIMM slots (motherboards) — caps RAM picks via resolveSlotLimits' } },
+        { name: 'm2Slots', type: 'number', min: 0, admin: { description: 'M.2 sockets (motherboards) — caps NVMe storage picks via resolveSlotLimits' } },
+      ],
+    },
+    {
+      type: 'collapsible',
+      label: 'Studio display (builder-design cosmetic flags)',
+      admin: { description: 'Read by visual builder designs — never rule-evaluated' },
+      fields: [
+        { name: 'hasRgb', type: 'checkbox', defaultValue: false, admin: { description: 'RGB-capable part — lights its blueprint zone under RGB sync' } },
       ],
     },
     { name: 'specsJson', type: 'json', admin: { description: 'Cosmetic specs; display + whitelisted filters' } },

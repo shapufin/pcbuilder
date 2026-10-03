@@ -33,6 +33,7 @@ import { ConflictsField as ConflictsField_1bd77adaa65caae8a5a9ede1e03f3bc6 } fro
 import { BlocksFeatureClient as BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { RuleManagerNavLink as RuleManagerNavLink_cc5dcd71ea6cf9cab20daa0f5e612528 } from '../../../../../../packages/plugin-pc-builder/src/admin/RuleManagerNavLink'
 import { BuildStatsNavLink as BuildStatsNavLink_e52e99f8162cbe3261eea9b34a47cad0 } from '../../../../../../packages/plugin-pc-builder/src/admin/BuildStatsNavLink'
+import { BuilderSettingsNavLink as BuilderSettingsNavLink_1d6147cb9f3c41b8acaa45479c60f85b } from '../../../../../../packages/plugin-pc-builder/src/admin/BuilderSettingsNavLink'
 import { RuleManagerView as RuleManagerView_adbc9f4ba531d28d30ae371f970fcca8 } from '../../../../../../packages/plugin-pc-builder/src/admin/RuleManagerView'
 import { BuildStatsView as BuildStatsView_2892846be7975cb9941a550c8ffe97cf } from '../../../../../../packages/plugin-pc-builder/src/admin/BuildStatsView'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -74,6 +75,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BlocksFeatureClient": BlocksFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "../../../packages/plugin-pc-builder/src/admin/RuleManagerNavLink#RuleManagerNavLink": RuleManagerNavLink_cc5dcd71ea6cf9cab20daa0f5e612528,
   "../../../packages/plugin-pc-builder/src/admin/BuildStatsNavLink#BuildStatsNavLink": BuildStatsNavLink_e52e99f8162cbe3261eea9b34a47cad0,
+  "../../../packages/plugin-pc-builder/src/admin/BuilderSettingsNavLink#BuilderSettingsNavLink": BuilderSettingsNavLink_1d6147cb9f3c41b8acaa45479c60f85b,
   "../../../packages/plugin-pc-builder/src/admin/RuleManagerView#RuleManagerView": RuleManagerView_adbc9f4ba531d28d30ae371f970fcca8,
   "../../../packages/plugin-pc-builder/src/admin/BuildStatsView#BuildStatsView": BuildStatsView_2892846be7975cb9941a550c8ffe97cf,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

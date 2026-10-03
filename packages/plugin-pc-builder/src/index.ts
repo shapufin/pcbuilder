@@ -6,6 +6,7 @@ import { CompatibilityRules } from './collections/compatibility-rules.ts'
 import { DerivedPowerRules } from './collections/derived-power-rules.ts'
 import { BuildTemplates } from './collections/build-templates.ts'
 import { ConfiguredBuilds } from './collections/configured-builds.ts'
+import { BuilderSettings } from './globals/builder-settings.ts'
 import {
   builderIndexEndpoint,
   builderConflictsEndpoint,
@@ -22,6 +23,13 @@ import { setPowerDefaults } from './lib/builder-index.ts'
 import { withBuilderTab } from './lib/products-builder-tab.ts'
 
 export { syncAllProductLinks } from './lib/product-sync.ts'
+export {
+  BUILDER_DESIGNS,
+  builderDesignOptions,
+  DEFAULT_BUILDER_DESIGN,
+  resolveBuilderDesign,
+} from './lib/builder-designs.ts'
+export type { BuilderDesign } from './lib/builder-designs.ts'
 
 /**
  * plugin-pc-builder — component catalog, compatibility rules, build templates.
@@ -61,6 +69,7 @@ export const pcBuilderPlugin =
         BuildTemplates,
         ConfiguredBuilds,
       ],
+      globals: [...(incomingConfig.globals ?? []), BuilderSettings],
       endpoints: [
         ...(incomingConfig.endpoints || []),
         builderIndexEndpoint,
@@ -83,6 +92,7 @@ export const pcBuilderPlugin =
             ...(incomingConfig.admin?.components?.afterNavLinks ?? []),
             '../../../packages/plugin-pc-builder/src/admin/RuleManagerNavLink#RuleManagerNavLink',
             '../../../packages/plugin-pc-builder/src/admin/BuildStatsNavLink#BuildStatsNavLink',
+            '../../../packages/plugin-pc-builder/src/admin/BuilderSettingsNavLink#BuilderSettingsNavLink',
           ],
           views: {
             ...incomingConfig.admin?.components?.views,

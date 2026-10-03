@@ -12,6 +12,7 @@ import {
 } from './lib/rule-import.ts'
 import {
   findIncompleteSlotReasons,
+  findOverCapWarnings,
   findUnknownSlotRefs,
   newShareId,
   priceBuildFromIndex,
@@ -142,6 +143,10 @@ const buildsSchema = z.object({
     .min(1)
     .max(64),
   name: z.string().max(120).optional(),
+  rgbColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
 })
 
 /** Category ids may arrive as numeric ids or slugs; component ids as numeric strings. */
@@ -174,6 +179,7 @@ const createBuildFromSlots = async (
   slots: BuildSlot[],
   name: string | undefined,
   user: PayloadRequest['user'],
+  rgbColor?: string,
 ): Promise<CreateResult> => {
   const index = await getBuilderIndex(payload)
   const engine = createRuleEngine(index)
@@ -211,6 +217,7 @@ const createBuildFromSlots = async (
   }
   const componentIds = slots.flatMap((s) => s.componentIds)
   const price = priceBuildFromIndex(index, componentIds)
+  const allWarnings = [...warnings, ...findOverCapWarnings(index, slots)]
   let doc: JsonObject & TypeWithID & { shareId: string }
   try {
     doc = (await payload.create({
@@ -223,8 +230,9 @@ const createBuildFromSlots = async (
           category: numericId(s.categoryId),
           components: s.componentIds.map(numericId),
         })),
+        ...(rgbColor ? { rgbColor } : {}),
         priceSnapshot: price,
-        validationSnapshot: { errors: [], warnings, rulesVersion: index.rulesVersion },
+        validationSnapshot: { errors: [], warnings: allWarnings, rulesVersion: index.rulesVersion },
         status: 'draft',
       } as never,
       overrideAccess: true,
@@ -244,8 +252,9 @@ const createBuildFromSlots = async (
     body: {
       id: doc.id,
       shareId: doc.shareId,
+      ...(rgbColor ? { rgbColor } : {}),
       priceSnapshot: price,
-      validationSnapshot: { errors: [], warnings, rulesVersion: index.rulesVersion },
+      validationSnapshot: { errors: [], warnings: allWarnings, rulesVersion: index.rulesVersion },
     },
   }
 }
@@ -265,7 +274,13 @@ export const builderSaveBuildEndpoint: Endpoint = {
     const parsed = buildsSchema.safeParse(body)
     if (!parsed.success) return bad(400, 'invalid build', parsed.error.flatten())
     const slots = await normalizeSlots(req.payload, parsed.data.slots)
-    const result = await createBuildFromSlots(req.payload, slots, parsed.data.name, req.user)
+    const result = await createBuildFromSlots(
+      req.payload,
+      slots,
+      parsed.data.name,
+      req.user,
+      parsed.data.rgbColor,
+    )
     if (!result.ok) return result.error
     return ok(result.body)
   },
@@ -349,6 +364,7 @@ export const builderShareBuildEndpoint: Endpoint = {
       | {
           id: string | number
           name: string
+          rgbColor?: string | null
           priceSnapshot?: number | null
           validationSnapshot?: { warnings?: unknown[] } | null
           slots?: { category?: { id: string | number; name?: string } | string | number; components?: ({ id: string | number; name?: string } | string | number)[] }[] | null
@@ -358,6 +374,7 @@ export const builderShareBuildEndpoint: Endpoint = {
     const build = doc as unknown as {
       id: string | number
       name: string
+      rgbColor?: string | null
       priceSnapshot?: number | null
       validationSnapshot?: { warnings?: unknown[] } | null
       slots?: { category?: { id: string | number; name?: string } | string | number; components?: { id: string | number; name?: string }[] | string[] }[] | null
@@ -365,6 +382,7 @@ export const builderShareBuildEndpoint: Endpoint = {
     return ok({
       id: build.id,
       name: build.name,
+      rgbColor: build.rgbColor ?? null,
       priceSnapshot: build.priceSnapshot ?? 0,
       warnings: build.validationSnapshot?.warnings ?? [],
       slots: (build.slots ?? []).map((slot) => ({

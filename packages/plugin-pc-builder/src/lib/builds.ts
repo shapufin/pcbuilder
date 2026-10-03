@@ -3,9 +3,11 @@ import { APIError } from 'payload'
 import type { Payload } from 'payload'
 import {
   createRuleEngine,
+  resolveSlotLimits,
   type BuilderIndex,
   type ResolvedLine,
   type StockUnit,
+  type Warning,
 } from '@buildmyrig/lib'
 import { getBuilderIndex } from './builder-index'
 
@@ -26,7 +28,10 @@ export const newShareId = (): string => randomBytes(12).toString('base64url')
 export const slotsToSelections = (slots: BuildSlot[]): Record<string, string[]> => {
   const selections: Record<string, string[]> = {}
   for (const slot of slots) {
-    selections[slot.categoryId] = [...slot.componentIds]
+    selections[slot.categoryId] = [
+      ...(selections[slot.categoryId] ?? []),
+      ...slot.componentIds,
+    ]
   }
   return selections
 }
@@ -75,7 +80,12 @@ export const findUnknownSlotRefs = (index: BuilderIndex, slots: BuildSlot[]): st
  */
 export const findIncompleteSlotReasons = (index: BuilderIndex, slots: BuildSlot[]): string[] => {
   const reasons: string[] = []
-  const filled = new Map(slots.map((s) => [s.categoryId, s.componentIds.length]))
+  // Duplicate slot rows for the same category are summed — last-wins would let
+  // two sub-max rows evade maxSelectable entirely.
+  const filled = new Map<string, number>()
+  for (const s of slots) {
+    filled.set(s.categoryId, (filled.get(s.categoryId) ?? 0) + s.componentIds.length)
+  }
   for (const category of index.categories) {
     const count = filled.get(category.id) ?? 0
     if (category.required && count === 0) {
@@ -88,6 +98,37 @@ export const findIncompleteSlotReasons = (index: BuilderIndex, slots: BuildSlot[
     }
   }
   return reasons
+}
+
+/**
+ * Non-blocking over-cap surface (entry 50): spec-driven caps (mobo ramSlots /
+ * m2Slots via resolveSlotLimits) are enforced client-side in every builder
+ * design; the REST path can't hard-block them yet (server slot-count rules are
+ * future work), so an over-cap build saves with these warnings in its
+ * validationSnapshot instead of silently passing — Deploy surfaces them.
+ */
+export const findOverCapWarnings = (index: BuilderIndex, slots: BuildSlot[]): Warning[] => {
+  const limits = resolveSlotLimits(index, slotsToSelections(slots))
+  const nameOfCat = new Map(index.categories.map((c) => [c.id, c.name ?? c.slug]))
+  // Same aggregation as findIncompleteSlotReasons — counts are per-category
+  // totals so duplicate slot rows cannot evade the cap.
+  const counts = new Map<string, number>()
+  for (const s of slots) {
+    counts.set(s.categoryId, (counts.get(s.categoryId) ?? 0) + s.componentIds.length)
+  }
+  const warnings: Warning[] = []
+  for (const [categoryId, count] of counts) {
+    const limit = limits[categoryId]
+    if (!limit?.cappedBy || count <= limit.max) continue
+    warnings.push({
+      ruleId: `slot-cap:${limit.cappedBy.field}`,
+      severity: 'warning',
+      componentIdA: limit.cappedBy.componentId,
+      componentIdB: null,
+      message: `Slot "${nameOfCat.get(categoryId) ?? categoryId}" holds ${count} of ${limit.max} allowed by "${limit.cappedBy.componentName ?? limit.cappedBy.componentId}" (${limit.cappedBy.field})`,
+    })
+  }
+  return warnings
 }
 
 const idOf = (v: unknown): string | null => {
@@ -165,7 +206,11 @@ export const resolveConfiguredBuildLine = async (
     overrideAccess: true,
     data: {
       priceSnapshot: price,
-      validationSnapshot: { errors: [], warnings, rulesVersion: index.rulesVersion },
+      validationSnapshot: {
+        errors: [],
+        warnings: [...warnings, ...findOverCapWarnings(index, slots)],
+        rulesVersion: index.rulesVersion,
+      },
       status: 'addedToCart',
     } as never,
   })

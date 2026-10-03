@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { Payload } from 'payload'
 import {
   findIncompleteSlotReasons,
+  findOverCapWarnings,
   findUnknownSlotRefs,
   newShareId,
   priceBuildFromIndex,
@@ -171,6 +172,81 @@ describe('findUnknownSlotRefs (rejects phantom ids before they hit the DB)', () 
       { categoryId: '5', componentIds: ['999'] },
     ])
     expect(reasons).toHaveLength(2)
+  })
+})
+
+describe('findOverCapWarnings — entry 50 (spec-driven caps, non-blocking)', () => {
+  const capCollections = () =>
+    indexCollections({
+      'component-categories': [
+        { id: 5, slug: 'motherboard', name: 'Motherboard', required: true, maxSelectable: 1, sortOrder: 0 },
+        { id: 6, slug: 'ram', name: 'Memory', required: true, maxSelectable: 4, sortOrder: 1 },
+      ],
+      components: [
+        { id: 2, name: 'ITX Board', category: { id: 5 }, ramSlots: 2, productVariant: { id: 12, priceInEUR: 24900 } },
+        { id: 7, name: 'DIMM A', category: { id: 6 }, productVariant: { id: 17, priceInEUR: 5000 } },
+        { id: 8, name: 'DIMM B', category: { id: 6 }, productVariant: { id: 18, priceInEUR: 5000 } },
+        { id: 9, name: 'DIMM C', category: { id: 6 }, productVariant: { id: 19, priceInEUR: 5000 } },
+      ],
+      'compatibility-rules': [],
+    })
+
+  const capIndex = async () => {
+    const { buildBuilderIndex } = await import('./builder-index')
+    return buildBuilderIndex(fakePayload(null, capCollections()))
+  }
+
+  it('#313 flags over-cap picks with Warning-shaped entries; duplicate slot rows cannot evade', async () => {
+    const index = await capIndex()
+    const single = findOverCapWarnings(index, [
+      { categoryId: '5', componentIds: ['2'] },
+      { categoryId: '6', componentIds: ['7', '8', '9'] },
+    ])
+    expect(single).toHaveLength(1)
+    expect(single[0]).toMatchObject({
+      ruleId: 'slot-cap:ramSlots',
+      severity: 'warning',
+      componentIdA: '2',
+      componentIdB: null,
+    })
+    expect(single[0].message).toMatch(/3 of 2/)
+
+    // Two rows for the same category (2+1 picks) must still trip the cap —
+    // per-row checks would see each row under the limit.
+    const dup = findOverCapWarnings(index, [
+      { categoryId: '5', componentIds: ['2'] },
+      { categoryId: '6', componentIds: ['7', '8'] },
+      { categoryId: '6', componentIds: ['9'] },
+    ])
+    expect(dup).toHaveLength(1)
+
+    // Under cap → silent.
+    expect(
+      findOverCapWarnings(index, [
+        { categoryId: '5', componentIds: ['2'] },
+        { categoryId: '6', componentIds: ['7'] },
+      ]),
+    ).toEqual([])
+  })
+
+  it('#315 cart resolution keeps over-cap warnings in the rewritten snapshot', async () => {
+    const { invalidateBuilderIndex } = await import('./builder-index')
+    invalidateBuilderIndex() // earlier tests primed the cache with other collections
+    const overCapBuild = {
+      id: 'build-1',
+      name: 'Over-cap rig',
+      slots: [
+        { category: { id: 5 }, components: [{ id: 2 }] },
+        { category: { id: 6 }, components: [{ id: 7 }, { id: 8 }, { id: 9 }] },
+      ],
+    }
+    const payload = fakePayload(overCapBuild, capCollections())
+    await resolveConfiguredBuildLine({ configuredBuild: 'build-1', quantity: 1 }, payload)
+    const updates = (payload as unknown as { __updates: { data: Record<string, unknown> }[] }).__updates
+    const warnings = (updates[0].data.validationSnapshot as { warnings: { message: string }[] })
+      .warnings
+    expect(warnings.some((w) => /3 of 2/.test(w.message))).toBe(true)
+    invalidateBuilderIndex() // leave the cache empty for later tests
   })
 })
 

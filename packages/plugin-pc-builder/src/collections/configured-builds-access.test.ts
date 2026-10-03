@@ -64,3 +64,18 @@ describe('configured-builds shareId — entry 44 (#274–275)', () => {
     expect((data.shareId as string).length).toBe(16) // 96-bit base64url
   })
 })
+
+describe('configured-builds rgbColor — entry 50', () => {
+  it('#317 field-level validate accepts only #RRGGBB (staff creates included)', () => {
+    const field = ConfiguredBuilds.fields.find(
+      (f) => 'name' in f && f.name === 'rgbColor',
+    ) as { validate?: (v: unknown) => unknown }
+    expect(typeof field.validate).toBe('function')
+    const validate = field.validate!
+    expect(validate('#7df4ff')).toBe(true)
+    expect(validate('notacolor')).not.toBe(true)
+    expect(validate('#12345')).not.toBe(true)
+    expect(validate(undefined)).toBe(true)
+    expect(validate(null)).toBe(true)
+  })
+})

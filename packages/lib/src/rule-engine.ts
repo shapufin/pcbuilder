@@ -21,6 +21,10 @@ export type RuleCriticalSpec = {
   coolerSocketSupport?: Socket[]
   storageInterface?: 'NVMe' | 'SATA'
   pcieVersion?: '3.0' | '4.0' | '5.0'
+  /** Physical DIMM slots on a motherboard — caps RAM picks via resolveSlotLimits. */
+  ramSlots?: number
+  /** M.2 sockets on a motherboard — caps NVMe storage picks via resolveSlotLimits. */
+  m2Slots?: number
   [key: string]: unknown
 }
 
@@ -33,6 +37,8 @@ export interface ComponentDisplay {
   description?: string
   /** Cosmetic (specsJson) key/values for spec chips — never rule-evaluated. */
   specs?: Record<string, string | number | boolean | (string | number)[]>
+  /** RGB-capable part — visual designs light its zone under RGB sync. */
+  hasRgb?: boolean
 }
 
 export interface ComponentSpecEntry {

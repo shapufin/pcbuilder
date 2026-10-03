@@ -163,10 +163,12 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'builder-settings': BuilderSetting;
     'site-settings': SiteSetting;
     theme: Theme;
   };
   globalsSelect: {
+    'builder-settings': BuilderSettingsSelect<false> | BuilderSettingsSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     theme: ThemeSelect<false> | ThemeSelect<true>;
   };
@@ -831,6 +833,18 @@ export interface Component {
   storageInterface?: ('NVMe' | 'SATA') | null;
   pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
   /**
+   * Physical DIMM slots (motherboards) — caps RAM picks via resolveSlotLimits
+   */
+  ramSlots?: number | null;
+  /**
+   * M.2 sockets (motherboards) — caps NVMe storage picks via resolveSlotLimits
+   */
+  m2Slots?: number | null;
+  /**
+   * RGB-capable part — lights its blueprint zone under RGB sync
+   */
+  hasRgb?: boolean | null;
+  /**
    * Cosmetic specs; display + whitelisted filters
    */
   specsJson?:
@@ -1057,6 +1071,10 @@ export interface ConfiguredBuild {
     | number
     | boolean
     | null;
+  /**
+   * Builder-design accent saved with the build (#RRGGBB)
+   */
+  rgbColor?: string | null;
   status?: ('draft' | 'addedToCart' | 'ordered') | null;
   updatedAt: string;
   createdAt: string;
@@ -2001,6 +2019,9 @@ export interface ComponentsSelect<T extends boolean = true> {
   coolerSocketSupport?: T;
   storageInterface?: T;
   pcieVersion?: T;
+  ramSlots?: T;
+  m2Slots?: T;
+  hasRgb?: T;
   specsJson?: T;
   compatTags?:
     | T
@@ -2087,6 +2108,7 @@ export interface ConfiguredBuildsSelect<T extends boolean = true> {
       };
   priceSnapshot?: T;
   validationSnapshot?: T;
+  rgbColor?: T;
   status?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2133,6 +2155,19 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "builder-settings".
+ */
+export interface BuilderSetting {
+  id: number;
+  /**
+   * Storefront renderer for /builder/configure. Options come from the code-side BUILDER_DESIGNS registry — swap takes effect on next render, no deploy.
+   */
+  design: 'classic' | 'rig-studio';
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
  */
 export interface SiteSetting {
@@ -2164,9 +2199,9 @@ export interface SiteSetting {
 export interface Theme {
   id: number;
   /**
-   * Empty color fields fall back to this preset.
+   * Design swap — empty fields fall back to this preset.
    */
-  preset?: ('dark' | 'light') | null;
+  preset?: ('dark' | 'light' | 'midnight' | 'rig-dark') | null;
   /**
    * Leave a field empty to use the preset value.
    */
@@ -2208,6 +2243,16 @@ export interface Theme {
   };
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "builder-settings_select".
+ */
+export interface BuilderSettingsSelect<T extends boolean = true> {
+  design?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
