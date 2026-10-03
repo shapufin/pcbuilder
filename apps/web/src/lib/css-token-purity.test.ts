@@ -12,6 +12,18 @@ import path from 'node:path'
 const APP_CSS = [
   path.resolve(__dirname, '../app/globals.css'),
   path.resolve(__dirname, '../app/builder/builder.css'),
+  // Phase-0 redesign stylesheets — same contract.
+  path.resolve(__dirname, '../components/shell.css'),
+  path.resolve(__dirname, '../components/ui/primitives.css'),
+  // Phase-1 storefront stylesheets — same contract.
+  path.resolve(__dirname, '../components/product-card.css'),
+  path.resolve(__dirname, '../app/shop/shop.css'),
+  path.resolve(__dirname, '../app/product/[slug]/product.css'),
+  path.resolve(__dirname, '../app/cart/cart.css'),
+  path.resolve(__dirname, '../app/checkout/checkout.css'),
+  // Phase-2/3 stylesheets — same contract.
+  path.resolve(__dirname, '../app/auth/auth.css'),
+  path.resolve(__dirname, '../blocks/blocks.css'),
 ]
 
 describe('app CSS token purity', () => {

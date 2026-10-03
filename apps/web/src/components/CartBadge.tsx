@@ -22,20 +22,7 @@ export function CartBadge() {
       initial={reduced ? false : { scale: 0.5 }}
       animate={{ scale: 1 }}
       transition={{ type: 'spring', stiffness: 600, damping: 18, duration: 0.15 }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 20,
-        height: 20,
-        padding: '0 6px',
-        borderRadius: 999,
-        background: 'var(--color-primary-strong)',
-        color: 'var(--color-on-primary)',
-        fontSize: 12,
-        fontWeight: 700,
-        marginLeft: 6,
-      }}
+      className="nav-badge"
     >
       {count}
     </motion.span>

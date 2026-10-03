@@ -12,19 +12,7 @@ export function WishlistButton({ item }: { item: WishlistItem }) {
       type="button"
       aria-pressed={saved}
       onClick={() => toggle(item)}
-      style={{
-        display: 'block',
-        width: '100%',
-        marginTop: 10,
-        padding: '10px 16px',
-        borderRadius: 10,
-        border: '1px solid var(--color-border)',
-        background: 'transparent',
-        color: saved ? 'var(--color-primary-hover)' : 'var(--color-text)',
-        fontWeight: 600,
-        fontSize: 14,
-        cursor: 'pointer',
-      }}
+      className={`btn btn--secondary btn--full wishlist-toggle${saved ? ' wishlist-toggle--saved' : ''}`}
     >
       {saved ? '♥ Saved to wishlist' : '♡ Save to wishlist'}
     </button>

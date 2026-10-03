@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { drawerMotion, prefersReducedMotion } from '@/lib/motion'
+import { Price } from '@/components/ui/Price'
 
 export type DrawerItem = {
   id?: string | number
@@ -17,15 +18,6 @@ export type DrawerItem = {
 
 type DrawerCart = { items?: DrawerItem[]; subtotal?: number }
 
-const linkBtnBase: React.CSSProperties = {
-  padding: '10px 12px',
-  borderRadius: 8,
-  textAlign: 'center',
-  textDecoration: 'none',
-  fontWeight: 600,
-  fontSize: 14,
-}
-
 const titleOf = (item: DrawerItem): string => {
   if (item.lineType === 'configured-build') return item.buildName || 'Configured build'
   return typeof item.product === 'object' && item.product ? item.product.title ?? 'Product' : 'Product'
@@ -35,6 +27,8 @@ const titleOf = (item: DrawerItem): string => {
  * Entry 23 item 3 - cart drawer (07-ux-plan): slide-out from the right over
  * a backdrop, opened by the product/builder add-to-cart success paths.
  * Escape + backdrop click close it; reduced motion fades instead of slides.
+ * Phase-0 redesign: styles live in shell.css (same class names — e2e and
+ * the render tests select them).
  *
  * Split: `CartDrawer` gates on the store (zustand v5 snapshots initial
  * state during SSR, so the presentational `CartDrawerOverlay` is exported
@@ -92,73 +86,48 @@ export function CartDrawerOverlay({
         onClick={(e) => e.stopPropagation()}
         {...drawerMotion(prefersReducedMotion())}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>Your cart</h2>
+        <div className="cart-drawer__header">
+          <h2 className="cart-drawer__title">Your cart</h2>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label="Close cart"
-            style={{
-              border: 0,
-              background: 'transparent',
-              color: 'var(--color-text-muted)',
-              fontSize: 18,
-              cursor: 'pointer',
-              padding: '4px 8px',
-            }}
+            className="cart-drawer__close"
           >
             ✕
           </button>
         </div>
 
         {items.length === 0 ? (
-          <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+          <p className="cart-drawer__empty">
             Your cart is empty.{' '}
-            <Link href="/" onClick={onClose} style={{ color: 'var(--color-primary-hover)' }}>
+            <Link href="/" onClick={onClose}>
               Browse products
             </Link>
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12, alignContent: 'start', overflowY: 'auto' }}>
+          <ul className="cart-drawer__list">
             {items.map((item, i) => (
-              <li
-                key={item.id ?? i}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  fontSize: 14,
-                  borderBottom: '1px solid var(--color-border)',
-                  paddingBottom: 8,
-                }}
-              >
+              <li key={item.id ?? i} className="cart-drawer__item">
                 <span>{titleOf(item)}</span>
-                <span style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>× {item.quantity ?? 1}</span>
+                <span className="cart-drawer__item-qty">× {item.quantity ?? 1}</span>
               </li>
             ))}
           </ul>
         )}
 
         {items.length > 0 && (
-          <footer style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16 }}>
+          <footer className="cart-drawer__footer">
+            <div className="cart-drawer__subtotal">
               <span>Subtotal</span>
-              <span>€{(subtotal / 100).toFixed(2)}</span>
+              <Price cents={subtotal} />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Link
-                href="/cart"
-                onClick={onClose}
-                style={{ ...linkBtnBase, flex: 1, background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-              >
+            <div className="cart-drawer__actions">
+              <Link href="/cart" onClick={onClose} className="btn btn--secondary">
                 View cart
               </Link>
-              <Link
-                href="/checkout"
-                onClick={onClose}
-                style={{ ...linkBtnBase, flex: 1, background: 'var(--color-primary-strong)', color: 'var(--color-on-primary)' }}
-              >
+              <Link href="/checkout" onClick={onClose} className="btn">
                 Checkout
               </Link>
             </div>

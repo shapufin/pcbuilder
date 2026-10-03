@@ -7,12 +7,5 @@ import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
  * Lives inside EcommerceShell, so useEcommerce() is available. */
 export function AccountNav() {
   const { user } = useEcommerce()
-  return (
-    <Link
-      href={user ? '/account' : '/auth/login'}
-      style={{ color: 'var(--color-text-muted)', textDecoration: 'none', marginLeft: 'auto' }}
-    >
-      {user ? 'Account' : 'Sign in'}
-    </Link>
-  )
+  return <Link href={user ? '/account' : '/auth/login'}>{user ? 'Account' : 'Sign in'}</Link>
 }

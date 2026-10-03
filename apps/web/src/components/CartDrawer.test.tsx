@@ -73,7 +73,7 @@ describe('CartDrawer', () => {
     expect(html).toContain('Your cart')
     expect(html).toContain('Ryzen 7 7800X3D')
     expect(html).toContain('Falcon X')
-    expect(html).toContain('€1234.56')
+    expect(html).toContain('€1,234.56')
     expect(html).toContain('href="/cart"')
     expect(html).toContain('href="/checkout"')
     expect(html).toContain('Close cart')
