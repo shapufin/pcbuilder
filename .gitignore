@@ -4,7 +4,9 @@ node_modules/
 
 # Build outputs
 dist/
-build/
+# Root-anchored: a bare `build/` also ignored apps/web/src/app/build/ (the
+# share-link route) — the page existed on disk but was invisible to git.
+/build/
 .next/
 .turbo/
 *.tsbuildinfo
@@ -37,3 +39,9 @@ apps/web/playwright-report/
 
 # trace-mcp local index
 .trace-mcp/
+
+# Personal/local AI-workflow config + machine-written tracking ledgers
+AGENTS.local.md
+.devin/config.local.json
+.devin/mcp_config.local.json
+.devin/tracking/*.jsonl

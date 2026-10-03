@@ -10,7 +10,8 @@
                     "test":  "turbo test",
                     "seed":  "pnpm --filter @buildmyrig/web seed",
                     "payload":  "pnpm --filter @buildmyrig/web payload",
-                    "loadtest":  "node scripts/load-test.mjs"
+                    "loadtest":  "node scripts/load-test.mjs",
+                    "workflow:check":  "node scripts/check-workflow.mjs"
                 },
     "devDependencies":  {
                             "turbo":  "^2.3.3"

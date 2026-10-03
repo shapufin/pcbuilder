@@ -1,0 +1,27 @@
+{
+  // BuildMyRig project config — committed, shared by all sessions.
+  // Personal overrides go in .devin/config.local.json (gitignored).
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(git status)",
+      "Exec(git diff*)",
+      "Exec(git log*)",
+      "Exec(git show*)",
+      "Exec(pnpm test*)",
+      "Exec(pnpm -r test*)",
+      "Exec(pnpm -r typecheck)",
+      "Exec(pnpm lint)",
+      "Exec(pnpm workflow:check)",
+      "Exec(pnpm seed)",
+      "Exec(node scripts/*)",
+      "Exec(pnpm payload -- *)"
+    ]
+  },
+  "read_config_from": {
+    "agents_standard": true,
+    "cursor": true,
+    "windsurf": true,
+    "claude": true
+  }
+}

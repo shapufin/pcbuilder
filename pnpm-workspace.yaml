@@ -12,3 +12,5 @@ onlyBuiltDependencies:
   - bcrypt
   - unrs-resolver
 dangerouslyAllowAllBuilds: true
+patchedDependencies:
+  '@payloadcms/plugin-ecommerce@3.90.2': patches/@payloadcms__plugin-ecommerce@3.90.2.patch
