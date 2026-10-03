@@ -6,13 +6,7 @@
   color: var(--color-text);
 }
 
-.builder-page button:focus-visible,
-.builder-page a:focus-visible,
-.builder-page input:focus-visible,
-.builder-page select:focus-visible {
-  outline: 2px solid var(--color-primary-hover);
-  outline-offset: 2px;
-}
+/* Focus-visible is global (globals.css) — no scoped override needed. */
 
 /* ---------- Landing ---------- */
 
@@ -25,7 +19,8 @@
 
 .landing-hero h1 {
   font-size: var(--text-3xl);
-  font-weight: 800;
+  font-weight: var(--weight-black);
+  letter-spacing: var(--tracking-tight);
   margin-bottom: var(--space-2);
 }
 
@@ -53,12 +48,14 @@
   background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .choice-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
 }
 
 .choice-card strong {
@@ -68,11 +65,22 @@
 .choice-card span {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
-  line-height: 1.5;
+  line-height: var(--leading-snug);
 }
 
 .choice-card--primary {
   border-color: var(--color-primary);
+}
+
+.landing-hero--flush {
+  text-align: left;
+  padding-top: 0;
+}
+
+.landing-hero h2 {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-4);
 }
 
 .template-rail {
@@ -109,61 +117,62 @@
   flex-wrap: wrap;
 }
 
-.tag {
-  font-size: var(--text-xs);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-surface-raised);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-}
-
-.btn {
-  font: inherit;
-  font-weight: 600;
-  padding: var(--space-2) var(--space-4);
+.template-card__placeholder {
+  height: 140px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
 }
 
-.btn:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+.template-card__desc {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.template-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
-.btn--primary {
-  background: var(--color-primary-strong);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+.template-card__price {
+  color: var(--color-primary-hover);
+  font-weight: var(--weight-bold);
 }
 
-.btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-hover-strong);
-  border-color: var(--color-primary-hover-strong);
+/* Guided-questions suggestion card + dialog button rows. */
+.guided-suggestion {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.btn--ghost {
-  background: transparent;
+.guided-suggestion__card {
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 
-.btn--full {
-  width: 100%;
+.guided-suggestion__meta {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
+
+.dialog__actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* .tag, .btn, .btn--*, .state-msg now live in components/ui/primitives.css
+   (loaded globally — they were unstyled on /cart, error, not-found where
+   builder.css isn't imported). Builder-only classes stay below. */
 
 /* ---------- Dialog ---------- */
 
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.72);
+  background: var(--color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -187,14 +196,15 @@
   font-size: var(--text-xl);
 }
 
-.field {
-  display: grid;
-  gap: var(--space-1);
-}
-
+/* .field base lives in primitives.css; builder dialogs mark up <label>
+   descendants rather than .field__label — keep the descendant style. */
 .field label {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+.field--grow {
+  flex: 1 1 220px;
 }
 
 .field input,
@@ -266,6 +276,14 @@
   color: var(--color-warning);
 }
 
+.step-badge--done {
+  color: var(--color-success);
+}
+
+.step-badge--optional {
+  color: var(--color-text-muted);
+}
+
 .panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -319,6 +337,23 @@
 .current-selection .meta span {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+.current-selection__actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.selection-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.step-panel__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .filter-bar {
@@ -415,9 +450,9 @@
 }
 
 .option-card .option-name {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-size: var(--text-sm);
-  line-height: 1.35;
+  line-height: var(--leading-snug);
 }
 
 .option-card .option-brand {
@@ -427,8 +462,22 @@
 
 .option-card .option-price {
   color: var(--color-primary-hover);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: var(--text-sm);
+}
+
+.option-card .option-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.option-card .option-flags {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .spec-chips {
@@ -449,22 +498,11 @@
 .option-reason {
   font-size: var(--text-xs);
   color: var(--color-danger);
-  line-height: 1.4;
+  line-height: var(--leading-snug);
 }
 
-.badge {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  border-radius: var(--radius-full);
-  padding: 1px var(--space-2);
-  border: 1px solid transparent;
-}
-
-.badge--warning {
-  color: var(--color-warning);
-  border-color: var(--color-warning);
-}
-
+/* .badge base + semantic variants live in primitives.css; --selected is
+   builder-specific and stays here. */
 .badge--selected {
   color: var(--color-primary-hover);
   border-color: var(--color-primary);
@@ -525,8 +563,9 @@
 
 .rail-slot-x {
   font: inherit;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   line-height: 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
@@ -562,6 +601,16 @@
   letter-spacing: 0.04em;
 }
 
+.rail-slot-x-group {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.rail-price__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
 .rail-price {
   display: flex;
   align-items: baseline;
@@ -573,7 +622,7 @@
 
 .rail-price .amount {
   font-size: var(--text-2xl);
-  font-weight: 800;
+  font-weight: var(--weight-black);
 }
 
 .power-chip {
@@ -592,32 +641,27 @@
 
 .warning-item {
   font-size: var(--text-sm);
-  line-height: 1.45;
+  line-height: var(--leading-snug);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-warning);
-  background: rgba(251, 191, 36, 0.08);
+  background: var(--color-warning-soft);
   color: var(--color-text);
 }
 
 .warning-item--info {
   border-color: var(--color-info);
-  background: rgba(56, 189, 248, 0.08);
+  background: var(--color-info-soft);
 }
 
 .warning-item--error {
   border-color: var(--color-danger);
-  background: rgba(248, 113, 113, 0.08);
-}
-
-.state-msg {
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  background: var(--color-danger-soft);
 }
 
 .error-banner {
   border: 1px solid var(--color-danger);
-  background: rgba(248, 113, 113, 0.08);
+  background: var(--color-danger-soft);
   color: var(--color-text);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -627,23 +671,40 @@
   flex-wrap: wrap;
 }
 
-.skeleton {
-  border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-surface-raised) 50%, var(--color-surface) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-sweep 1.2s infinite linear;
-}
-
-@keyframes skeleton-sweep {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
+/* .skeleton + shimmer live in primitives.css (global). */
 
 /* ---------- Summary ---------- */
+
+.summary__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.summary__title {
+  margin: 0;
+  font-size: var(--text-3xl);
+}
+
+.summary__head > .btn {
+  margin-left: auto;
+}
+
+.summary__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.summary-table .price {
+  text-align: right;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
 
 .summary {
   max-width: 860px;
@@ -668,7 +729,7 @@
 
 .summary-table th {
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -678,10 +739,23 @@
   text-align: right;
   white-space: nowrap;
   color: var(--color-primary-hover);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 /* ---------- Responsive ---------- */
+
+/* Touch devices get full-height tap targets; desktop keeps compact chips. */
+@media (pointer: coarse) {
+  .step-chip,
+  .chip,
+  .rail-slot {
+    min-height: var(--tap-target);
+  }
+
+  .filter-bar input[type='search'] {
+    min-height: var(--tap-target);
+  }
+}
 
 @media (max-width: 900px) {
   .choice-grid {

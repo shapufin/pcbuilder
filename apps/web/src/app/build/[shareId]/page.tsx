@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPayloadClient } from '@/lib/shop'
+import { formatEUR } from '@/components/ui/Price'
 import '../../builder/builder.css'
 
 export const metadata: Metadata = {
@@ -54,10 +55,10 @@ export default async function SharedBuildPage({ params }: Props) {
 
   return (
     <main className="builder-page summary">
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-3xl)' }}>{build.name}</h1>
+      <header className="summary__head">
+        <h1 className="summary__title">{build.name}</h1>
         <span className="tag">shared build</span>
-        <Link href={`/builder/configure?build=${shareId}`} className="btn btn--primary" style={{ marginLeft: 'auto' }}>
+        <Link href={`/builder/configure?build=${shareId}`} className="btn btn--primary">
           Duplicate this build
         </Link>
       </header>
@@ -83,8 +84,8 @@ export default async function SharedBuildPage({ params }: Props) {
         </table>
 
         <div className="rail-price">
-          <span style={{ color: 'var(--color-text-muted)' }}>Components total (snapshot)</span>
-          <span className="amount">€{((build.priceSnapshot ?? 0) / 100).toFixed(2)}</span>
+          <span className="muted">Components total (snapshot)</span>
+          <span className="amount">{formatEUR(build.priceSnapshot ?? 0)}</span>
         </div>
 
         {(build.validationSnapshot?.warnings?.length ?? 0) > 0 && (

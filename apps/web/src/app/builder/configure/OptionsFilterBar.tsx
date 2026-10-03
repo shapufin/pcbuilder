@@ -12,7 +12,7 @@ export function OptionsFilterBar({ query, brand, brands, onQuery, onBrand }: Pro
   const dirty = query.trim().length > 0 || brand !== null
   return (
     <div className="filter-bar">
-      <div className="field" style={{ flex: '1 1 220px' }}>
+      <div className="field field--grow">
         <label htmlFor="option-search">Search</label>
         <input
           id="option-search"

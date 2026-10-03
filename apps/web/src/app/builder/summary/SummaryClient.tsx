@@ -9,11 +9,10 @@ import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { flyToCart } from '@/lib/fly-to-cart'
 import { track } from '@/lib/analytics'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
+import { formatEUR } from '@/components/ui/Price'
 import { useBuilderIndex } from '../useBuilderIndex'
 import { useBuilderStore } from '../builder-store'
 import { WarningsPanel } from '../configure/WarningsPanel'
-
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 
 type SavedBuild = { buildId: string; shareId: string }
 
@@ -224,10 +223,10 @@ export function SummaryClient() {
 
   return (
     <main className="builder-page summary">
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-3xl)' }}>Build summary</h1>
+      <header className="summary__head">
+        <h1 className="summary__title">Build summary</h1>
         {templateId && <span className="tag">template draft</span>}
-        <Link href="/builder/configure" className="btn btn--ghost" style={{ marginLeft: 'auto' }}>
+        <Link href="/builder/configure" className="btn btn--ghost">
           Keep editing
         </Link>
       </header>
@@ -238,7 +237,7 @@ export function SummaryClient() {
             <tr>
               <th scope="col">Slot</th>
               <th scope="col">Part</th>
-              <th scope="col" style={{ textAlign: 'right' }}>Price</th>
+              <th scope="col" className="price">Price</th>
             </tr>
           </thead>
           <tbody>
@@ -250,22 +249,22 @@ export function SummaryClient() {
                     <>
                       {entry.display?.name ?? entry.id}
                       {entry.display?.brand ? (
-                        <span style={{ color: 'var(--color-text-muted)' }}> · {entry.display.brand}</span>
+                        <span className="muted"> · {entry.display.brand}</span>
                       ) : null}
                     </>
                   ) : (
-                    <span style={{ color: 'var(--color-text-muted)' }}>Unavailable part</span>
+                    <span className="muted">Unavailable part</span>
                   )}
                 </td>
-                <td className="price">{entry ? eur(entry.priceCents) : '—'}</td>
+                <td className="price">{entry ? formatEUR(entry.priceCents) : '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         <div className="rail-price">
-          <span style={{ color: 'var(--color-text-muted)' }}>Components total</span>
-          <span className="amount">{eur(total)}</span>
+          <span className="muted">Components total</span>
+          <span className="amount">{formatEUR(total)}</span>
         </div>
 
         <p className="state-msg">
@@ -282,7 +281,7 @@ export function SummaryClient() {
         <WarningsPanel result={result} />
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="summary__actions">
         <button
           type="button"
           className="btn"
@@ -346,7 +345,7 @@ export function SummaryClient() {
           </Link>
         )}
         {cartState === 'error' && (
-          <span className="state-msg" style={{ color: 'var(--color-danger)' }}>
+          <span className="state-msg state-msg--error">
             Could not save the build — check required slots and try again.
           </span>
         )}

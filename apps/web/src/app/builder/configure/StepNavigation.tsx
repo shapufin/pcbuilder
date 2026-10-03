@@ -26,11 +26,11 @@ export function StepNavigation({ categories, selections, stepIndex, onSelect }: 
           >
             {i + 1}. {category.name}
             {category.required ? (
-              done ? <span className="step-badge" style={{ color: 'var(--color-success)' }}>✓</span> : (
+              done ? <span className="step-badge step-badge--done">✓</span> : (
                 <span className="step-badge">required</span>
               )
             ) : (
-              <span className="step-badge" style={{ color: 'var(--color-text-muted)' }}>optional</span>
+              <span className="step-badge step-badge--optional">optional</span>
             )}
           </button>
         )

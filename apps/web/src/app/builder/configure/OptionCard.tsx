@@ -1,8 +1,7 @@
 'use client'
 
 import type { ComponentSpecEntry } from '@buildmyrig/lib'
-
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
+import { formatEUR } from '@/components/ui/Price'
 
 const prettyKey = (key: string): string => key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())
 
@@ -23,7 +22,7 @@ export function OptionCard({ entry, selected, excludedReason, warned, onToggle }
     ([key]) => !typed.some(([typedKey]) => typedKey === key),
   )
   const specs = [...typed, ...cosmetic].slice(0, 6)
-  const label = `${entry.display?.name ?? entry.id} — ${eur(entry.priceCents)}${selected ? ', selected' : ''}${
+  const label = `${entry.display?.name ?? entry.id} — ${formatEUR(entry.priceCents)}${selected ? ', selected' : ''}${
     excluded ? ', incompatible' : ''
   }`
 
@@ -44,11 +43,11 @@ export function OptionCard({ entry, selected, excludedReason, warned, onToggle }
           // eslint-disable-next-line @next/next/no-img-element
           <img src={entry.display.image} alt="" />
         ) : null}
-        <div style={{ display: 'grid', gap: 2, minWidth: 0, flex: 1 }}>
+        <div className="option-meta">
           <span className="option-name">{entry.display?.name ?? entry.id}</span>
           {entry.display?.brand && <span className="option-brand">{entry.display.brand}</span>}
         </div>
-        <span className="option-price">{eur(entry.priceCents)}</span>
+        <span className="option-price">{formatEUR(entry.priceCents)}</span>
       </div>
 
       {specs.length > 0 && (
@@ -61,7 +60,7 @@ export function OptionCard({ entry, selected, excludedReason, warned, onToggle }
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="option-flags">
         {selected && <span className="badge badge--selected">Selected</span>}
         {warned && !excluded && <span className="badge badge--warning">Heads-up</span>}
         {excluded && <span className="option-reason">{excludedReason}</span>}

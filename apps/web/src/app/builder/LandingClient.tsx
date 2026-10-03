@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useBuilderStore } from './builder-store'
 import { dialogMotion, prefersReducedMotion } from '@/lib/motion'
 import type { LandingTemplate } from './page'
+import { formatEUR } from '@/components/ui/Price'
 
 const USE_CASES = ['gaming', 'editing', 'streaming', 'workstation'] as const
 const TIERS = [
@@ -13,8 +14,6 @@ const TIERS = [
   { id: 'balanced', label: 'Balanced', factor: 1 },
   { id: 'flagship', label: 'No compromises', factor: 1.3 },
 ] as const
-
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 
 type Props = { templates: LandingTemplate[] }
 
@@ -64,10 +63,8 @@ export function LandingClient({ templates }: Props) {
         </div>
       </section>
 
-      <section className="landing-hero" id="templates" ref={carouselRef} style={{ textAlign: 'left', paddingTop: 0 }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>
-          Build templates
-        </h2>
+      <section className="landing-hero landing-hero--flush" id="templates" ref={carouselRef}>
+        <h2>Build templates</h2>
         {templates.length === 0 ? (
           <p className="state-msg">
             No templates yet — <button type="button" className="btn btn--primary" onClick={startScratch}>start from scratch</button>
@@ -86,19 +83,19 @@ export function LandingClient({ templates }: Props) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.image} alt={t.name} />
                 ) : (
-                  <div className="skeleton" style={{ height: 140 }} aria-hidden="true" />
+                  <div className="skeleton template-card__placeholder" aria-hidden="true" />
                 )}
                 <strong>{t.name}</strong>
                 {t.description && (
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>{t.description}</span>
+                  <span className="template-card__desc">{t.description}</span>
                 )}
                 <div className="template-tags">
                   {(t.tags ?? []).map((tag) => (
                     <span className="tag" key={tag}>{tag}</span>
                   ))}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
-                  <span style={{ color: 'var(--color-primary-hover)', fontWeight: 700 }}>{eur(t.basePriceCents)}</span>
+                <div className="template-card__foot">
+                  <span className="template-card__price">{formatEUR(t.basePriceCents)}</span>
                   <button type="button" className="btn btn--primary" onClick={() => applyLandingTemplate(t)}>
                     Use this build
                   </button>
@@ -182,7 +179,7 @@ function GuidedQuestionsDialog({ templates, onClose, onStart, onNoMatch }: Dialo
         <h2 id="guided-title">Find your starting point</h2>
 
         <div className="field">
-          <label htmlFor="budget">Budget: {eur(budget * 100)}</label>
+          <label htmlFor="budget">Budget: {formatEUR(budget * 100)}</label>
           <input
             id="budget"
             type="range"
@@ -213,14 +210,14 @@ function GuidedQuestionsDialog({ templates, onClose, onStart, onNoMatch }: Dialo
         </div>
 
         {suggestion ? (
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            <div style={{ border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)' }}>
+          <div className="guided-suggestion">
+            <div className="guided-suggestion__card">
               <strong>{suggestion.name}</strong>
-              <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                {eur(suggestion.basePriceCents)} · {(suggestion.tags ?? []).join(', ') || 'starter build'}
+              <div className="guided-suggestion__meta">
+                {formatEUR(suggestion.basePriceCents)} · {(suggestion.tags ?? []).join(', ') || 'starter build'}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+            <div className="dialog__actions">
               <button type="button" className="btn btn--ghost" onClick={onNoMatch}>
                 Start from scratch instead
               </button>
@@ -230,7 +227,7 @@ function GuidedQuestionsDialog({ templates, onClose, onStart, onNoMatch }: Dialo
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <div className="dialog__actions">
             <button type="button" className="btn" onClick={onClose}>Close</button>
             <button type="button" className="btn btn--primary" onClick={onNoMatch}>Start from scratch</button>
           </div>

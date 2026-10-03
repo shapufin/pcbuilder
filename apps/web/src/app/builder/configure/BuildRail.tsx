@@ -66,7 +66,7 @@ export function BuildRail({
                   {ids.map((id) => nameOf(index, id)).join(', ')}
                 </span>
               </button>
-              <span style={{ display: 'flex', gap: 4 }}>
+              <span className="rail-slot-x-group">
                 {ids.map((id) => (
                   <button
                     key={id}
@@ -85,7 +85,7 @@ export function BuildRail({
       </div>
 
       <div className="rail-price">
-        <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>Total</span>
+        <span className="rail-price__label">Total</span>
         <LivePrice cents={totalCents} />
       </div>
 

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { BuilderIndex, ComponentSpecEntry } from '@buildmyrig/lib'
 import { OptionsFilterBar } from './OptionsFilterBar'
 import { OptionCard } from './OptionCard'
+import { formatEUR } from '@/components/ui/Price'
 
 type Category = BuilderIndex['categories'][number]
 
@@ -28,8 +29,6 @@ interface Props {
   isFirst: boolean
   isLast: boolean
 }
-
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
 
 export function StepPanel(props: Props) {
   const {
@@ -74,7 +73,7 @@ export function StepPanel(props: Props) {
         </header>
 
         {selectedEntries.length > 0 && (
-          <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+          <div className="selection-list">
             {selectedEntries.map((entry) => (
               <div className="current-selection" key={entry.id}>
                 {entry.display?.image ? (
@@ -83,9 +82,9 @@ export function StepPanel(props: Props) {
                 ) : null}
                 <div className="meta">
                   <strong>{entry.display?.name ?? entry.id}</strong>
-                  <span>{eur(entry.priceCents)}</span>
+                  <span>{formatEUR(entry.priceCents)}</span>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--space-2)' }}>
+                <div className="current-selection__actions">
                   <button type="button" className="btn btn--ghost" onClick={() => onRemove(category.id, entry.id)}>
                     Remove
                   </button>
@@ -144,7 +143,7 @@ export function StepPanel(props: Props) {
           </div>
         )}
 
-        <footer style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
+        <footer className="step-panel__footer">
           <button type="button" className="btn" onClick={onPrev} disabled={isFirst}>
             Back
           </button>
