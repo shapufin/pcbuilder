@@ -97,7 +97,10 @@ describe('CartDrawer wiring', () => {
     const addBtn = fs.readFileSync(path.join(SRC, 'src/app/product/[slug]/AddToCartButton.tsx'), 'utf8')
     expect(addBtn).toContain('useCartDrawerStore')
 
-    const summary = fs.readFileSync(path.join(SRC, 'src/app/builder/summary/SummaryClient.tsx'), 'utf8')
+    // The builder's add-to-cart → drawer wiring lives in the shared action
+    // hook (extracted from SummaryClient in entry 50 P2) — that's the source
+    // of truth now.
+    const summary = fs.readFileSync(path.join(SRC, 'src/app/builder/kit/useBuildActions.ts'), 'utf8')
     expect(summary).toContain('useCartDrawerStore')
   })
 

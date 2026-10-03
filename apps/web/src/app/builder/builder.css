@@ -674,6 +674,49 @@
 
 /* .skeleton + shimmer live in primitives.css (global). */
 
+/* ---------- Design kit: toasts ---------- */
+
+.builder-toasts {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* sopra i drawer (60): un toast di conferma non finisce dietro il cart */
+  z-index: 70;
+}
+
+.builder-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+
+.builder-toast--success {
+  border-color: var(--color-success);
+}
+
+.builder-toast--error {
+  border-color: var(--color-danger);
+}
+
+.builder-toast__dismiss {
+  background: none;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding: var(--space-1);
+}
+
 /* ---------- Summary ---------- */
 
 .summary__head {

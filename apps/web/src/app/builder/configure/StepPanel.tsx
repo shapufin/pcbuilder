@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import type { BuilderIndex, ComponentSpecEntry } from '@buildmyrig/lib'
+import type { BuilderIndex, ComponentSpecEntry, SlotLimit } from '@buildmyrig/lib'
 import { OptionsFilterBar } from './OptionsFilterBar'
 import { OptionCard } from './OptionCard'
 import { formatEUR } from '@/components/ui/Price'
@@ -10,6 +10,9 @@ type Category = BuilderIndex['categories'][number]
 
 interface Props {
   category: Category
+  /** Resolved (spec-driven) cap — e.g. a 2-DIMM ITX board tightens RAM picks.
+   *  Show `limit.max` + `cappedBy`, never the raw `category.maxSelectable`. */
+  slotLimit?: SlotLimit
   options: ComponentSpecEntry[]
   totalOptions: number
   selectedIds: string[]
@@ -33,6 +36,7 @@ interface Props {
 export function StepPanel(props: Props) {
   const {
     category,
+    slotLimit,
     options,
     totalOptions,
     selectedIds,
@@ -68,7 +72,12 @@ export function StepPanel(props: Props) {
           <h1 id="step-title">{category.name}</h1>
           <span className="helper">
             {category.helperText ?? (category.required ? 'Required step' : 'Optional step')}
-            {category.maxSelectable > 1 ? ` · choose up to ${category.maxSelectable}` : ''}
+            {(slotLimit?.max ?? category.maxSelectable) > 1
+              ? ` · choose up to ${slotLimit?.max ?? category.maxSelectable}`
+              : ''}
+            {slotLimit?.cappedBy
+              ? ` (limited by ${slotLimit.cappedBy.componentName ?? 'selected motherboard'})`
+              : ''}
           </span>
         </header>
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { DEFAULT_RGB_ACCENT } from '@buildmyrig/lib'
 
 /** Draft persisted in localStorage so a half-finished build survives a refresh (07-ux-plan §2). */
 
@@ -18,11 +19,14 @@ interface BuilderState {
   shareId: string | null
   /** categoryId -> componentIds (multi-select slots keep order) */
   selections: Record<string, string[]>
+  /** RGB accent scelto dall'utente (cosmetico — hex-6 validato). */
+  rgbColor: string
   stepIndex: number
   query: string
   brand: string | null
   startFresh: (mode?: BuilderMode) => void
-  applyTemplate: (templateId: string, slots: TemplateSlot[], mode?: BuilderMode) => void
+  applyTemplate: (templateId: string, slots: TemplateSlot[], mode?: BuilderMode, rgbColor?: string) => void
+  setRgbColor: (hex: string) => void
   saveBuild: (buildId: string, shareId: string) => void
   goToStep: (index: number) => void
   nextStep: (lastIndex: number) => void
@@ -34,6 +38,17 @@ interface BuilderState {
   setBrand: (brand: string | null) => void
 }
 
+/** Campi che entrano nel draft persistito (localStorage). */
+export const builderDraftPartialize = (s: BuilderState) => ({
+  mode: s.mode,
+  templateId: s.templateId,
+  buildId: s.buildId,
+  shareId: s.shareId,
+  selections: s.selections,
+  rgbColor: s.rgbColor,
+  stepIndex: s.stepIndex,
+})
+
 export const useBuilderStore = create<BuilderState>()(
   persist(
     (set) => ({
@@ -42,14 +57,15 @@ export const useBuilderStore = create<BuilderState>()(
       buildId: null,
       shareId: null,
       selections: {},
+      rgbColor: DEFAULT_RGB_ACCENT,
       stepIndex: 0,
       query: '',
       brand: null,
 
       startFresh: (mode = 'scratch') =>
-        set({ mode, templateId: null, buildId: null, shareId: null, selections: {}, stepIndex: 0, query: '', brand: null }),
+        set({ mode, templateId: null, buildId: null, shareId: null, selections: {}, rgbColor: DEFAULT_RGB_ACCENT, stepIndex: 0, query: '', brand: null }),
 
-      applyTemplate: (templateId, slots, mode = 'template') => {
+      applyTemplate: (templateId, slots, mode = 'template', rgbColor) => {
         const selections: Record<string, string[]> = {}
         for (const slot of slots) {
           if (!selections[slot.categoryId]) selections[slot.categoryId] = []
@@ -57,7 +73,18 @@ export const useBuilderStore = create<BuilderState>()(
             selections[slot.categoryId].push(slot.componentId)
           }
         }
-        set({ mode, templateId, buildId: null, shareId: null, selections, stepIndex: 0, query: '', brand: null })
+        // rgbColor absent → default: un template senza accento non deve
+        // ereditare quello del template precedente (stale-accent bleed).
+        set({
+          mode, templateId, buildId: null, shareId: null, selections,
+          rgbColor: rgbColor && /^#[0-9a-fA-F]{6}$/.test(rgbColor) ? rgbColor : DEFAULT_RGB_ACCENT,
+          stepIndex: 0, query: '', brand: null,
+        })
+      },
+
+      // Cosmetico: NON tocca buildId/shareId (#93 riguarda solo gli slot).
+      setRgbColor: (hex) => {
+        if (/^#[0-9a-fA-F]{6}$/.test(hex)) set({ rgbColor: hex })
       },
 
       saveBuild: (buildId, shareId) => set({ buildId, shareId }),
@@ -121,14 +148,7 @@ export const useBuilderStore = create<BuilderState>()(
     }),
     {
       name: 'buildmyrig-draft-v1',
-      partialize: (s) => ({
-        mode: s.mode,
-        templateId: s.templateId,
-        buildId: s.buildId,
-        shareId: s.shareId,
-        selections: s.selections,
-        stepIndex: s.stepIndex,
-      }),
+      partialize: builderDraftPartialize,
     },
   ),
 )
