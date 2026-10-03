@@ -60,7 +60,7 @@ interface RuleDraft {
 }
 
 const CSV_HEADER =
-  'subject,subjectType,type,operator,field,value,targetType,targetCategory,severity,message'
+  'subject,subjectType,type,operator,field,value,targetType,targetCategory,severity,message,bidirectional,enabled'
 
 const RULE_TYPES = ['requires', 'excludes', 'supports', 'warns']
 const OPERATORS = ['equals', 'in', 'gte', 'lte', 'contains']
@@ -74,10 +74,12 @@ const toCsvRow = (r: RuleRecord): string =>
     r.operator,
     r.field,
     r.value,
-    nameOf(r.targetComponent) ?? nameOf(r.targetCategory),
-    r.targetType === 'component' ? '' : (nameOf(r.targetCategory) ?? ''),
+    r.targetType,
+    nameOf(r.targetComponent) ?? nameOf(r.targetCategory) ?? '',
     r.severity,
     r.message ?? '',
+    String(r.bidirectional === true),
+    String(r.enabled !== false),
   ]
     .map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`)
     .join(',')
@@ -295,6 +297,8 @@ export const RuleManagerView: React.FC = () => {
         targetCategory: clean(7),
         severity: clean(8) || 'error',
         message: clean(9),
+        bidirectional: clean(10),
+        enabled: clean(11),
       }
     })
   }

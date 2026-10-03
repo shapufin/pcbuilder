@@ -34,3 +34,33 @@ describe('configured-builds access — entry 11 matrix alignment', () => {
     expect(call(access.update, asReq({ id: 9 }))).toEqual({ user: { equals: 9 } })
   })
 })
+
+/**
+ * Entry 44 review (R3-C1): `data` in a beforeChange update is the *partial*
+ * incoming payload — minting shareId when absent rotated the token on every
+ * claim/add-to-cart write, 404ing the share link. Minting is create-only.
+ */
+describe('configured-builds shareId — entry 44 (#274–275)', () => {
+  const hook = (ConfiguredBuilds.hooks?.beforeChange?.[0]) as (args: {
+    data: Record<string, unknown>
+    req: unknown
+    operation?: string
+    originalDoc?: Record<string, unknown>
+  }) => Promise<unknown>
+
+  it('#274 update without shareId does NOT rotate it (claim / add-to-cart writes)', async () => {
+    const data: Record<string, unknown> = { status: 'addedToCart' }
+    await hook({ data, req: { payload: {} }, operation: 'update', originalDoc: { shareId: 'abc123' } })
+    expect(data.shareId).toBeUndefined()
+    // and even without an originalDoc hint, an update never mints
+    await hook({ data, req: { payload: {} }, operation: 'update' })
+    expect(data.shareId).toBeUndefined()
+  })
+
+  it('#275 create without shareId still mints one', async () => {
+    const data: Record<string, unknown> = {}
+    await hook({ data, req: { payload: {} }, operation: 'create' })
+    expect(typeof data.shareId).toBe('string')
+    expect((data.shareId as string).length).toBe(16) // 96-bit base64url
+  })
+})

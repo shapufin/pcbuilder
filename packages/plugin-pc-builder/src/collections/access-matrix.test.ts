@@ -20,9 +20,15 @@ const contentCollections: Array<[string, CollectionConfig]> = [
 
 describe('builder access matrix — entry 14 (11-access-security.md rows 21-22)', () => {
   it('#59 content collections: public/staff read, write is manager+ only (staff is read-only)', () => {
+    // Draft-enabled collections gate public reads to _status=published
+    // (anonymous ?draft=true must not leak unpublished docs).
+    const publishedOnly = { _status: { equals: 'published' } }
     for (const [name, col] of contentCollections) {
       const a = accessOf(col)
-      expect(call(a.read, asReq(null)), `${name}: public read`).toBe(true)
+      const hasDrafts = typeof col.versions === 'object' && Boolean(col.versions.drafts)
+      const expected = hasDrafts ? publishedOnly : true
+      expect(call(a.read, asReq(null)), `${name}: public read`).toEqual(expected)
+      expect(call(a.read, asReq({ roles: ['customer'] })), `${name}: customer read`).toEqual(expected)
       expect(call(a.read, asReq({ roles: ['staff'] })), `${name}: staff read`).toBe(true)
       expect(call(a.create, asReq(null)), `${name}: guest create`).toBe(false)
       expect(call(a.create, asReq({ roles: ['staff'] })), `${name}: staff create`).toBe(false)

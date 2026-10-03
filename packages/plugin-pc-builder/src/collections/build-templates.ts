@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isManager } from '../lib/access.ts'
+import { isManager, isStaff } from '../lib/access.ts'
 import { slotComponentIds, templateBasePrice, type PricedComponent } from '../lib/template-price.ts'
 
 /** ISR pages that render build templates (both revalidate = 60). */
@@ -16,7 +16,12 @@ const revalidateTemplatePages = async (): Promise<void> => {
 export const BuildTemplates: CollectionConfig = {
   slug: 'build-templates',
   access: {
-    read: () => true,
+    // drafts:true needs the published read gate or anonymous ?draft=true
+    // reads expose unpublished templates (same pattern as Pages/categories).
+    read: ({ req }) => {
+      if (isStaff(req.user as { roles?: string[] | null } | null)) return true
+      return { _status: { equals: 'published' } }
+    },
     create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),

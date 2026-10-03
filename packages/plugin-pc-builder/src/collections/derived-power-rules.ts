@@ -1,6 +1,22 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import { APIError } from 'payload'
 import { isManager, isStaff } from '../lib/access.ts'
 import { invalidateBuilderIndex } from '../lib/builder-index.ts'
+
+/**
+ * Single global config (audit minor C8): the builder index reads `docs[0]`
+ * only, so a second doc used to be a silent no-op. Reject it loudly instead.
+ */
+const singletonGuard: CollectionBeforeValidateHook = async ({ req, operation }) => {
+  if (operation && operation !== 'create') return
+  const existing = await req.payload.find({ collection: 'derived-power-rules', limit: 1, depth: 0 })
+  if (existing.totalDocs > 0) {
+    throw new APIError(
+      'Derived power rules are a single global config — edit the existing doc instead of adding another.',
+      400,
+    )
+  }
+}
 
 export const DerivedPowerRules: CollectionConfig = {
   slug: 'derived-power-rules',
@@ -11,6 +27,7 @@ export const DerivedPowerRules: CollectionConfig = {
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   hooks: {
+    beforeValidate: [singletonGuard],
     afterChange: [() => invalidateBuilderIndex()],
     afterDelete: [() => invalidateBuilderIndex()],
   },

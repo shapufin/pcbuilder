@@ -5,6 +5,7 @@ import {
   createRuleEngine,
   type BuilderIndex,
   type ResolvedLine,
+  type StockUnit,
 } from '@buildmyrig/lib'
 import { getBuilderIndex } from './builder-index'
 
@@ -66,6 +67,29 @@ export const findUnknownSlotRefs = (index: BuilderIndex, slots: BuildSlot[]): st
   return reasons
 }
 
+/**
+ * Completeness/shape rules the UI enforces visually but the server must own:
+ * every `required` category filled, no slot above `maxSelectable`. Called at
+ * build save (endpoint + collection hook) and again at cart resolution so an
+ * incomplete or over-stuffed doc can never be ordered.
+ */
+export const findIncompleteSlotReasons = (index: BuilderIndex, slots: BuildSlot[]): string[] => {
+  const reasons: string[] = []
+  const filled = new Map(slots.map((s) => [s.categoryId, s.componentIds.length]))
+  for (const category of index.categories) {
+    const count = filled.get(category.id) ?? 0
+    if (category.required && count === 0) {
+      reasons.push(`Required slot "${category.name ?? category.slug}" is empty`)
+    }
+    if (count > category.maxSelectable) {
+      reasons.push(
+        `Slot "${category.name ?? category.slug}" allows max ${category.maxSelectable} component(s), got ${count}`,
+      )
+    }
+  }
+  return reasons
+}
+
 const idOf = (v: unknown): string | null => {
   if (v && typeof v === 'object' && 'id' in v) return String((v as { id: unknown }).id)
   if (v === null || v === undefined) return null
@@ -118,6 +142,13 @@ export const resolveConfiguredBuildLine = async (
       422,
     )
   }
+  const incomplete = findIncompleteSlotReasons(index, slots)
+  if (incomplete.length > 0) {
+    throw new APIError(
+      `Build "${build.name ?? buildId}" is incomplete: ${incomplete.join('; ')}`,
+      422,
+    )
+  }
   const { errors, warnings } = engine.validateSelections(slotsToSelections(slots))
   if (errors.length > 0) {
     throw new APIError(
@@ -144,4 +175,51 @@ export const resolveConfiguredBuildLine = async (
     subItems: componentIds.map((componentId) => ({ componentId, quantity: 1 })),
     fulfillmentUnits: componentIds.length,
   }
+}
+
+/**
+ * resolveStockUnits for 'configured-build' — the cart/order line carries no
+ * product/variant of its own, so settlement decrements each component's
+ * productVariant instead. Uses the line's stored subItems first, falling back
+ * to the build doc's slots for lines written before subItems were stored.
+ * Components without a productVariant contribute nothing (nothing to pick).
+ */
+export const resolveConfiguredBuildStockUnits = async (
+  line: { configuredBuild?: unknown; subItems?: unknown; [key: string]: unknown },
+  payload: Payload,
+): Promise<StockUnit[]> => {
+  const subItems = Array.isArray(line.subItems) ? (line.subItems as { component?: unknown; quantity?: unknown }[]) : []
+  let componentQuantities = subItems
+    .map((s) => ({ componentId: idOf(s.component), quantity: typeof s.quantity === 'number' && s.quantity > 0 ? s.quantity : 1 }))
+    .filter((s): s is { componentId: string; quantity: number } => Boolean(s.componentId))
+
+  if (componentQuantities.length === 0 && line.configuredBuild != null) {
+    const buildId = idOf(line.configuredBuild)
+    const build = buildId
+      ? ((await payload.findByID({
+          id: buildId,
+          collection: 'configured-builds',
+          depth: 1,
+          overrideAccess: true,
+        })) as BuildDoc | null)
+      : null
+    if (build) {
+      componentQuantities = buildDocSlotsToBuildSlots(build.slots)
+        .flatMap((s) => s.componentIds)
+        .map((componentId) => ({ componentId, quantity: 1 }))
+    }
+  }
+
+  const units: StockUnit[] = []
+  for (const { componentId, quantity } of componentQuantities) {
+    const component = (await payload.findByID({
+      id: componentId,
+      collection: 'components',
+      depth: 0,
+      overrideAccess: true,
+    })) as { productVariant?: unknown } | null
+    const variantId = component ? idOf(component.productVariant) : null
+    if (variantId) units.push({ variant: variantId, quantity })
+  }
+  return units
 }

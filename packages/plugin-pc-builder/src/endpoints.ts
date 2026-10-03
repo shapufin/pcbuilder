@@ -11,6 +11,7 @@ import {
   type ResolvedImportRow,
 } from './lib/rule-import.ts'
 import {
+  findIncompleteSlotReasons,
   findUnknownSlotRefs,
   newShareId,
   priceBuildFromIndex,
@@ -35,6 +36,9 @@ const importRowSchema = z.object({
   targetCategory: z.string().min(1),
   severity: z.enum(['error', 'warning', 'info']).default('error'),
   message: z.string().optional(),
+  // CSV round-trip columns ('true'/'false' strings or booleans from JSON callers)
+  bidirectional: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
+  enabled: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
 })
 const importSchema = z.object({
   rows: z.array(importRowSchema).min(1).max(2000),
@@ -58,6 +62,9 @@ export const builderConflictsEndpoint: Endpoint = {
   path: '/builder/rules/conflicts',
   method: 'get',
   handler: async (req: PayloadRequest) => {
+    // 08-api-surface: read-side introspection is staff-gated (rule internals
+    // + component names are operational data, not storefront content).
+    if (!isStaff(req.user as { roles?: string[] | null } | null)) return bad(401, 'staff role required')
     const parsed = conflictsSchema.safeParse(req.query)
     if (!parsed.success) return bad(400, 'componentId required', parsed.error.flatten())
     try {
@@ -178,6 +185,16 @@ const createBuildFromSlots = async (
       ok: false,
       error: Response.json(
         { error: 'build references unknown parts', reasons: unknown },
+        { status: 422 },
+      ),
+    }
+  }
+  const incomplete = findIncompleteSlotReasons(index, slots)
+  if (incomplete.length > 0) {
+    return {
+      ok: false,
+      error: Response.json(
+        { error: 'build is incomplete', reasons: incomplete },
         { status: 422 },
       ),
     }
@@ -383,6 +400,7 @@ export const builderUseTemplateEndpoint: Endpoint = {
       collection: 'build-templates',
       id: templateId,
       overrideAccess: true,
+      disableErrors: true,
     } as never)
     if (!template) return bad(404, 'template not found')
     // build-templates store a SINGULAR `component` relationship; configured-builds
@@ -407,15 +425,16 @@ export const builderUseTemplateEndpoint: Endpoint = {
       })
       .filter((s) => s.componentIds.length > 0)
     if (slots.length === 0) return bad(400, 'template has no components')
+    const normalized = await normalizeSlots(req.payload, slots)
+    const result = await createBuildFromSlots(req.payload, normalized, undefined, req.user)
+    if (!result.ok) return result.error
+    // Popularity counts successful uses only — a failed create must not bump it.
     await req.payload.update({
       collection: 'build-templates',
       id: template.id,
       overrideAccess: true,
       data: { popularity: ((template as { popularity?: number }).popularity ?? 0) + 1 } as never,
     })
-    const normalized = await normalizeSlots(req.payload, slots)
-    const result = await createBuildFromSlots(req.payload, normalized, undefined, req.user)
-    if (!result.ok) return result.error
     return ok({ buildId: result.doc.id, shareId: result.doc.shareId })
   },
 }
@@ -442,29 +461,19 @@ export const builderStockAlternativesEndpoint: Endpoint = {
       .filter(Boolean)
       .map((s) => Number(s))
       .filter((n) => Number.isFinite(n))
-    const docs = await req.payload.find({
-      collection: 'components',
-      where: {
-        category: { equals: categoryRel },
-        ...(excludeIds.length > 0 ? { id: { not_in: excludeIds } } : {}),
-      },
-      limit: 5,
-      depth: 1,
-    })
-    const alternatives = (docs.docs as unknown as {
-      id: string | number
-      name: string
-      brand?: { name?: string } | string | number | null
-      productVariant?: { priceInEUR?: number } | string | number | null
-    }[]).map((c) => ({
-      id: String(c.id),
-      name: c.name,
-      brand: c.brand && typeof c.brand === 'object' && 'name' in c.brand ? c.brand.name : undefined,
-      priceCents:
-        c.productVariant && typeof c.productVariant === 'object' && 'priceInEUR' in c.productVariant
-          ? (c.productVariant as { priceInEUR?: number }).priceInEUR ?? 0
-          : 0,
-    }))
+    // Spec: "in-stock alternatives" — served from the cached index so the
+    // stock flag matches what the configurator already enforces.
+    const index = await getBuilderIndex(req.payload)
+    const exclude = new Set(excludeIds.map(String))
+    const alternatives = index.components
+      .filter((c) => c.categoryId === String(categoryRel) && !exclude.has(c.id) && c.inStock !== false)
+      .slice(0, 5)
+      .map((c) => ({
+        id: c.id,
+        name: c.display?.name ?? c.id,
+        brand: c.display?.brand,
+        priceCents: c.priceCents,
+      }))
     return ok({ alternatives })
   },
 }
@@ -590,9 +599,9 @@ export const builderRulesImportEndpoint: Endpoint = {
             field: r.row.field,
             value: r.row.value,
             severity: r.row.severity,
-            bidirectional: false,
+            bidirectional: r.row.bidirectional === true || r.row.bidirectional === 'true',
             message: r.row.message ?? '',
-            enabled: true,
+            enabled: r.row.enabled === undefined ? true : r.row.enabled === true || r.row.enabled === 'true',
           } as never,
         })
         created++

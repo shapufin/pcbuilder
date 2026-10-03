@@ -826,3 +826,28 @@ describe('derived power-rule config wiring', () => {
     expect(engine.evaluate({ '2': ['cpu-a'], '5': ['psu-low'] }).powerWarnings).toHaveLength(1)
   })
 })
+
+describe('audit pass 3 — interpolation tokens + slot constraints', () => {
+  // #189 {socketA}/{socketB} tokens (spec 04-compatibility.md) resolve to the
+  // actual spec values, not literal passthrough
+  it('#189 {fieldA}/{fieldB} tokens resolve to subject/candidate spec values', () => {
+    const engine = createRuleEngine(
+      baseIndex(
+        [
+          comp('cpu-a', 'cpu', { socket: 'AM5' }),
+          comp('mb-lga', 'motherboard', { socket: 'LGA1700' }),
+        ],
+        [
+          rule({
+            id: 'r189',
+            message: '{componentA} uses {socketA} but {componentB} uses {socketB}',
+          }),
+        ],
+      ),
+    )
+    const res = engine.evaluate({ cpu: ['cpu-a'] })
+    const msg = res.categories.find((c) => c.categoryId === 'motherboard')!.excluded[0].message
+    expect(msg).toBe('cpu-a uses AM5 but mb-lga uses LGA1700')
+  })
+
+})

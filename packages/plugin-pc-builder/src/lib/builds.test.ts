@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { Payload } from 'payload'
 import {
+  findIncompleteSlotReasons,
   findUnknownSlotRefs,
   newShareId,
   priceBuildFromIndex,
@@ -170,5 +171,70 @@ describe('findUnknownSlotRefs (rejects phantom ids before they hit the DB)', () 
       { categoryId: '5', componentIds: ['999'] },
     ])
     expect(reasons).toHaveLength(2)
+  })
+})
+
+describe('findIncompleteSlotReasons — audit pass 3 (required/maxSelectable server-side)', () => {
+  const makeIndex = async () => {
+    const payload = fakePayload()
+    const { buildBuilderIndex } = await import('./builder-index')
+    return buildBuilderIndex(payload)
+  }
+
+  it('#190 rejects a build missing a required category', async () => {
+    const index = await makeIndex()
+    // cpu + motherboard are both required; only cpu filled
+    const reasons = findIncompleteSlotReasons(index, [
+      { categoryId: '4', componentIds: ['1'] },
+    ])
+    expect(reasons).toHaveLength(1)
+    expect(reasons[0]).toMatch(/motherboard/i)
+    expect(reasons[0]).toMatch(/required/i)
+  })
+
+  it('#191 rejects a slot that exceeds maxSelectable', async () => {
+    const index = await makeIndex()
+    const reasons = findIncompleteSlotReasons(index, [
+      { categoryId: '4', componentIds: ['1'] },
+      { categoryId: '5', componentIds: ['2', '3'] }, // maxSelectable 1
+    ])
+    expect(reasons).toHaveLength(1)
+    expect(reasons[0]).toMatch(/max/i)
+  })
+
+  it('#192 optional categories and in-limit multi-selects pass', async () => {
+    const payload = fakePayload(null, indexCollections({
+      'component-categories': [
+        { id: 4, slug: 'cpu', name: 'CPU', required: true, maxSelectable: 1, sortOrder: 0 },
+        { id: 6, slug: 'fans', name: 'Extra fans', required: false, maxSelectable: 3, sortOrder: 1 },
+      ],
+      components: [
+        { id: 1, name: 'Ryzen 7', category: { id: 4 }, productVariant: { id: 11, priceInEUR: 37900 } },
+        { id: 7, name: 'Fan A', category: { id: 6 }, productVariant: { id: 17, priceInEUR: 2000 } },
+        { id: 8, name: 'Fan B', category: { id: 6 }, productVariant: { id: 18, priceInEUR: 2500 } },
+      ],
+    }))
+    const { buildBuilderIndex } = await import('./builder-index')
+    const index = await buildBuilderIndex(payload)
+    expect(
+      findIncompleteSlotReasons(index, [
+        { categoryId: '4', componentIds: ['1'] },
+        { categoryId: '6', componentIds: ['7', '8'] },
+      ]),
+    ).toEqual([])
+    // and leaving the optional slot out entirely is fine
+    expect(findIncompleteSlotReasons(index, [{ categoryId: '4', componentIds: ['1'] }])).toEqual([])
+  })
+
+  it('#193 resolveConfiguredBuildLine refuses an incomplete saved build', async () => {
+    const incomplete = {
+      id: 'build-1',
+      name: 'Half build',
+      slots: [{ category: { id: 4 }, components: [{ id: 1 }] }], // motherboard missing
+    }
+    const payload = fakePayload(incomplete)
+    await expect(
+      resolveConfiguredBuildLine({ configuredBuild: 'build-1', quantity: 1 }, payload),
+    ).rejects.toThrow(/required|incomplete/i)
   })
 })

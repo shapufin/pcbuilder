@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PayloadRequest } from 'payload'
-import { builderClaimBuildEndpoint, builderRulesImportEndpoint, builderUseTemplateEndpoint } from './endpoints.ts'
+import {
+  builderClaimBuildEndpoint,
+  builderConflictsEndpoint,
+  builderRulesImportEndpoint,
+  builderSaveBuildEndpoint,
+  builderUseTemplateEndpoint,
+} from './endpoints.ts'
+import { invalidateBuilderIndex } from './lib/builder-index.ts'
 
 /**
  * Entry 14: CSV export writes category NAMES but the import endpoint resolved
@@ -60,15 +67,18 @@ const makePayload = (existing: Doc[] = []) => {
 
 const makeReq = (
   body: unknown,
-  payload: ReturnType<typeof makePayload>,
+  payload: ReturnType<typeof makePayload> | Record<string, unknown>,
   roles = ['admin'],
   routeParams?: Record<string, string>,
+  query?: Record<string, unknown>,
 ): PayloadRequest =>
   ({
     user: roles.length ? { id: 7, roles, collection: 'users' } : null,
     json: async () => body,
     payload,
     routeParams,
+    query,
+    headers: new Headers(),
   }) as unknown as PayloadRequest
 
 const row = (over: Partial<Record<string, unknown>> = {}): Record<string, unknown> => ({
@@ -219,7 +229,7 @@ describe('claim endpoint — entry 15 (anonymous save -> account)', () => {
 /** Entry 15 live probes: use-template created price-0 builds with 8 EMPTY slots —
  *  the endpoint read `slot.components` (configured-builds shape) but build-templates
  *  store a singular `component` relationship. */
-const templatePayload = (template: Doc) => {
+const templatePayload = (template: Doc | null) => {
   const created: Doc[] = []
   const collections: Record<string, Doc[]> = {
     'component-categories': [
@@ -280,5 +290,77 @@ describe('use template endpoint — entry 15 (live probe regressions)', () => {
     expect(await res.json()).toMatchObject({ error: expect.stringContaining('no components') })
     expect(payload.created).toHaveLength(0)
     expect(payload.update).not.toHaveBeenCalled()
+  })
+
+  it('#194 a template whose slots fail validation does NOT bump popularity (422 first)', async () => {
+    const payload = templatePayload({
+      id: 3,
+      name: 'Broken',
+      popularity: 0,
+      slots: [{ category: { id: 4 }, component: { id: 999 } }], // unknown component
+    })
+    const res = await useTemplate(payload, '3')
+    expect(res.status).toBe(422)
+    expect(payload.created).toHaveLength(0)
+    expect(payload.update).not.toHaveBeenCalled()
+  })
+})
+
+describe('save endpoint — audit pass 3 (required/maxSelectable enforced server-side)', () => {
+  const save = (body: unknown, payload: ReturnType<typeof templatePayload>) =>
+    builderSaveBuildEndpoint.handler!(makeReq(body, payload, ['customer']))
+
+  it('#195 unknown refs still -> 422 with reasons (slug + id forms)', async () => {
+    invalidateBuilderIndex()
+    const payload = templatePayload(null)
+    const res2 = await save({ slots: [{ categoryId: 'os', componentIds: ['999'] }] }, payload)
+    expect(res2.status).toBe(422) // unknown component
+    expect(payload.created).toHaveLength(0)
+
+    const res3 = await save(
+      { slots: [{ categoryId: 'os', componentIds: ['31'] }, { categoryId: '99', componentIds: ['31'] }] },
+      payload,
+    )
+    expect(res3.status).toBe(422) // '99' is not a category in the fixture
+    expect(payload.created).toHaveLength(0)
+  })
+
+  it('#196 a build missing a REQUIRED category is refused at save', async () => {
+    invalidateBuilderIndex()
+    // two required categories; only one filled
+    const payload = templatePayload(null)
+    payload.find.mockImplementation(async ({ collection }: { collection: string }) => ({
+      docs:
+        collection === 'component-categories'
+          ? [
+              { id: 4, slug: 'os', name: 'Operating System', required: true, maxSelectable: 1, sortOrder: 0 },
+              { id: 5, slug: 'cpu', name: 'CPU', required: true, maxSelectable: 1, sortOrder: 1 },
+            ]
+          : collection === 'components'
+            ? [{ id: 31, name: 'Windows 11', category: { id: 4 }, productVariant: { id: 90, priceInEUR: 11900 } }]
+            : [],
+    }))
+    const res = await save({ slots: [{ categoryId: '4', componentIds: ['31'] }] }, payload)
+    expect(res.status).toBe(422)
+    expect(await res.json()).toMatchObject({ error: 'build is incomplete' })
+    expect(payload.created).toHaveLength(0)
+  })
+})
+
+describe('conflicts endpoint — audit pass 3 (staff-gated per 08-api-surface)', () => {
+  const conflicts = (payload: Record<string, unknown>, roles: string[]) =>
+    builderConflictsEndpoint.handler!(
+      makeReq(null, payload, roles, undefined, { componentId: '31' }),
+    )
+
+  it('#197 anonymous and customer callers get 401; staff pass through to evaluation', async () => {
+    const payload = {
+      find: vi.fn(async () => ({ docs: [] })),
+      logger: { error: vi.fn() },
+    }
+    expect((await conflicts(payload, [])).status).toBe(401)
+    expect((await conflicts(payload, ['customer'])).status).toBe(401)
+    const staff = await conflicts(payload, ['staff'])
+    expect(staff.status).toBe(200)
   })
 })

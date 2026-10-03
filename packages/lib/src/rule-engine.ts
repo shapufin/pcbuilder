@@ -209,6 +209,7 @@ const buildInterp = (
   subjectEntry: ComponentSpecEntry | undefined,
   candidate: ComponentSpecEntry,
 ): InterpContext => {
+  const subjectSpec = subjectEntry?.specs?.[rule.field]
   const failingSpecValue = candidate.specs[rule.field]
   const ctx: InterpContext = {
     componentA: subjectEntry
@@ -218,6 +219,10 @@ const buildInterp = (
     failingSpecValue,
   }
   if (failingSpecValue !== undefined) ctx[rule.field] = String(failingSpecValue)
+  // 04-compatibility.md tokens: {socketA}/{socketB} = each side's value of the
+  // rule's field (generic: {<field>A} / {<field>B}).
+  if (subjectSpec !== undefined && subjectSpec !== null) ctx[`${rule.field}A`] = String(subjectSpec)
+  if (failingSpecValue !== undefined && failingSpecValue !== null) ctx[`${rule.field}B`] = String(failingSpecValue)
   return ctx
 }
 

@@ -45,6 +45,7 @@ interface ComponentRow {
   productVariant?: {
     id: string | number
     priceInEUR?: number
+    inventory?: number
   } | string | number | null
   socket?: RuleCriticalSpec['socket']
   ramType?: RuleCriticalSpec['ramType']
@@ -163,12 +164,18 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     const variant = c.productVariant
     const priceCents =
       variant && typeof variant === 'object' && typeof variant.priceInEUR === 'number' ? variant.priceInEUR : 0
+    // Stock flag only false when the populated variant reports inventory <= 0 —
+    // missing/unpopulated variant data must not hide sellable components.
+    const inStock =
+      variant && typeof variant === 'object' && typeof variant.inventory === 'number'
+        ? variant.inventory > 0
+        : true
     return {
       id: idOf(c.id),
       categoryId: idOf(c.category),
       specs,
       priceCents,
-      inStock: true, // per-variant inventory wiring lands with checkout integration
+      inStock,
       display: displayOf(c),
     }
   })
@@ -201,6 +208,12 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     targetCategory?: { id?: string | number; slug?: string } | string | number | null
   }
   const firstPower = powerRes.docs[0] as PowerRow | undefined
+  if (powerRes.docs.length > 1) {
+    // Pre-guard data (or a bypassed hook): only the first doc is honored.
+    payload.logger.warn(
+      `[builder-index] ${powerRes.docs.length} derived-power-rules docs found — only the first is applied (edit the existing doc, C8)`,
+    )
+  }
   const tcat = firstPower?.targetCategory
   const targetCategoryId =
     tcat == null ? undefined : typeof tcat === 'object' ? (tcat.id != null ? String(tcat.id) : undefined) : String(tcat)

@@ -16,6 +16,13 @@ export interface ResolvedLine {
   fulfillmentUnits: number
 }
 
+/** One inventory decrement target at settlement (variant wins over product). */
+export interface StockUnit {
+  variant?: string | number
+  product?: string | number
+  quantity: number
+}
+
 export interface LineItemType {
   slug: string
   label: string
@@ -24,6 +31,16 @@ export interface LineItemType {
     line: { configuredBuild?: unknown; quantity?: number; [key: string]: unknown },
     payload: Payload,
   ) => Promise<ResolvedLine>
+  /**
+   * Inventory units to decrement at settlement, per ONE unit of the line
+   * (callers multiply by line quantity). Composite lines have no
+   * product/variant of their own — without this hook the settlement loop
+   * cannot decrement their stock.
+   */
+  resolveStockUnits?: (
+    line: { configuredBuild?: unknown; quantity?: number; [key: string]: unknown },
+    payload: Payload,
+  ) => Promise<StockUnit[]>
   fulfillmentPickUnits?: (line: { configuredBuild?: unknown; [key: string]: unknown }) => { componentId: string; quantity: number }[]
 }
 

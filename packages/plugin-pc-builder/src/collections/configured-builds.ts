@@ -3,7 +3,9 @@ import type { CollectionConfig, PayloadRequest } from 'payload'
 import { getBuilderIndex } from '../lib/builder-index'
 import {
   buildDocSlotsToBuildSlots,
+  findIncompleteSlotReasons,
   findUnknownSlotRefs,
+  newShareId,
   priceBuildFromIndex,
   slotsToSelections,
 } from '../lib/builds'
@@ -42,13 +44,24 @@ const buildWriteAccess = ({
  * the price snapshot from live variant prices. Client snapshots are display-only.
  * Throws APIError(422) so REST callers get the reasons instead of a generic 500.
  */
+/** Server-managed fields — readOnly in admin is UI-only, so real field-level
+ *  access.update blocks owner REST writes (shareId/status/price spoofing).
+ *  Internal writes go through payload.update({overrideAccess:true}), which
+ *  bypasses field access, so claim/resolve/webhook paths are unaffected. */
+const serverManaged = { update: () => false } as const
+
 const validateConfiguredBuild = async ({
   data,
   req,
+  operation,
 }: {
   data: { slots?: { category?: unknown; components?: unknown[] }[] | null; [key: string]: unknown }
   req: PayloadRequest
+  operation?: string
 }) => {
+  // create-only: `data` is partial on update, so an absent shareId here would
+  // rotate the token and 404 every share link (review entry 44).
+  if (operation !== 'update' && (data.shareId == null || data.shareId === '')) data.shareId = newShareId()
   if (!data.slots) return
   const index = await getBuilderIndex(req.payload)
   const engine = createRuleEngine(index)
@@ -56,6 +69,10 @@ const validateConfiguredBuild = async ({
   const unknown = findUnknownSlotRefs(index, slots)
   if (unknown.length > 0) {
     throw new APIError(`Build references unknown parts: ${unknown.join('; ')}`, 422)
+  }
+  const incomplete = findIncompleteSlotReasons(index, slots)
+  if (incomplete.length > 0) {
+    throw new APIError(`Build is incomplete: ${incomplete.join('; ')}`, 422)
   }
   const { errors, warnings } = engine.validateSelections(slotsToSelections(slots))
   if (errors.length > 0) {
@@ -83,8 +100,21 @@ export const ConfiguredBuilds: CollectionConfig = {
   admin: { useAsTitle: 'name', defaultColumns: ['name', 'user', 'status', 'priceSnapshot'] },
   fields: [
     { name: 'name', type: 'text', required: true },
-    { name: 'user', type: 'relationship', relationTo: 'users', index: true },
-    { name: 'shareId', type: 'text', unique: true, index: true, admin: { readOnly: true, position: 'sidebar' } },
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      access: serverManaged,
+    },
+    {
+      name: 'shareId',
+      type: 'text',
+      unique: true,
+      index: true,
+      access: serverManaged,
+      admin: { readOnly: true, position: 'sidebar' },
+    },
     {
       name: 'slots',
       type: 'array',
@@ -94,12 +124,24 @@ export const ConfiguredBuilds: CollectionConfig = {
         { name: 'components', type: 'relationship', relationTo: 'components', hasMany: true },
       ],
     },
-    { name: 'priceSnapshot', type: 'number', admin: { readOnly: true, description: 'Display-only; recomputed server-side at checkout' } },
+    {
+      name: 'priceSnapshot',
+      type: 'number',
+      access: serverManaged,
+      admin: { readOnly: true, description: 'Display-only; recomputed server-side at checkout' },
+    },
     {
       name: 'validationSnapshot',
       type: 'json',
+      access: serverManaged,
       admin: { readOnly: true, description: '{ errors, warnings, rulesVersion } from the rule engine at save time' },
     },
-    { name: 'status', type: 'select', options: ['draft', 'addedToCart', 'ordered'], defaultValue: 'draft' },
+    {
+      name: 'status',
+      type: 'select',
+      options: ['draft', 'addedToCart', 'ordered'],
+      defaultValue: 'draft',
+      access: serverManaged,
+    },
   ],
 }

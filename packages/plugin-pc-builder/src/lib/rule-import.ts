@@ -13,6 +13,9 @@ export interface ImportRowInput {
   targetType: 'component' | 'category'
   severity: string
   message?: string
+  /** CSV round-trip columns — 'true'/'false' strings or booleans */
+  bidirectional?: boolean | 'true' | 'false'
+  enabled?: boolean | 'true' | 'false'
 }
 
 export interface ResolvedImportRow {

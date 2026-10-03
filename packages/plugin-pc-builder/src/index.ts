@@ -17,7 +17,7 @@ import {
   builderStockAlternativesEndpoint,
   builderStatsEndpoint,
 } from './endpoints.ts'
-import { resolveConfiguredBuildLine } from './lib/builds.ts'
+import { resolveConfiguredBuildLine, resolveConfiguredBuildStockUnits } from './lib/builds.ts'
 import { setPowerDefaults } from './lib/builder-index.ts'
 import { withBuilderTab } from './lib/products-builder-tab.ts'
 
@@ -45,6 +45,7 @@ export const pcBuilderPlugin =
       slug: 'configured-build',
       label: 'Configured build',
       resolveLine: resolveConfiguredBuildLine,
+      resolveStockUnits: resolveConfiguredBuildStockUnits,
     })
     setPowerDefaults(pluginOptions.powerDefaults)
 
