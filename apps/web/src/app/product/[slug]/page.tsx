@@ -13,10 +13,18 @@ type Props = {
   params: Promise<{ slug: string }>
 }
 
+export const revalidate = 3600
+
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params
   const payload = await getPayloadClient()
-  const product = (await payload.find({ collection: 'products', where: { slug: { equals: slug } }, limit: 1 })).docs[0]
+  const product = (
+    await payload.find({
+      collection: 'products',
+      where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] },
+      limit: 1,
+    })
+  ).docs[0]
   return {
     title: product ? `${product.title} | BuildMyRig` : 'Product | BuildMyRig',
     description: product?.description ?? undefined,
@@ -26,7 +34,14 @@ export async function generateMetadata({ params }: Props) {
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params
   const payload = await getPayloadClient()
-  const product = (await payload.find({ collection: 'products', where: { slug: { equals: slug } }, limit: 1, depth: 2 })).docs[0]
+  const product = (
+    await payload.find({
+      collection: 'products',
+      where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] },
+      limit: 1,
+      depth: 2,
+    })
+  ).docs[0]
   if (!product) notFound()
 
   const variants = await payload.find({

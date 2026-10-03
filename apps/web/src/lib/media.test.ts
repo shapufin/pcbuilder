@@ -33,6 +33,21 @@ describe('pickMedia', () => {
     expect(pick?.width).toBe(2000)
   })
 
+  it('returns the picked size dims, not the original dims, on cross-size fallback', () => {
+    const pick = pickMedia(
+      {
+        alt: 'x',
+        url: null,
+        width: 2000,
+        height: 1200,
+        sizes: { thumb: { url: '/media/thumb.png', width: 240, height: 240 } },
+      },
+      'card',
+      'x',
+    )
+    expect(pick).toMatchObject({ url: '/media/thumb.png', width: 240, height: 240 })
+  })
+
   it('uses configured dims when only an unknown-dims size exists', () => {
     const pick = pickMedia({ url: null, sizes: { card: { url: '/c.png' } } }, 'card', 'x')
     expect(pick).toMatchObject({ url: '/c.png', width: 600, height: 400 })

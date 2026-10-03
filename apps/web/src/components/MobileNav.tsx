@@ -34,13 +34,14 @@ export function MobileNav({ links }: { links: NavLink[] }) {
         type="button"
         className="mobile-nav__toggle"
         aria-expanded={open}
+        aria-controls="mobile-nav-drawer"
         aria-label={open ? 'Close menu' : 'Open menu'}
         onClick={() => setOpen((v) => !v)}
       >
         {open ? '✕' : '☰'}
       </button>
       {open && (
-        <nav className="mobile-nav__drawer" aria-label="Mobile">
+        <nav id="mobile-nav-drawer" className="mobile-nav__drawer" aria-label="Mobile">
           {links.map((l, i) => (
             <Link key={`${l.url}-${i}`} href={l.url} onClick={() => setOpen(false)}>
               {l.label}

@@ -43,16 +43,14 @@ export function StripePaymentForm({ onPaid, disabled }: { onPaid: () => void; di
   return (
     <form onSubmit={submit}>
       <PaymentElement />
-      <button type="submit" disabled={!stripe || !elements || busy || disabled} style={payBtn}>
+      <button
+        type="submit"
+        disabled={!stripe || !elements || busy || disabled}
+        className="btn btn--primary btn--full pay-btn"
+      >
         {busy ? 'Processing…' : 'Pay now'}
       </button>
       {error && <p className="state-msg state-msg--error">{error}</p>}
     </form>
   )
 }
-
-const payBtn = {
-  marginTop: 16, padding: '12px 32px', borderRadius: 8, border: 'none',
-  background: 'var(--color-primary-strong)', color: 'var(--color-on-primary)',
-  fontWeight: 600, cursor: 'pointer',
-} as const

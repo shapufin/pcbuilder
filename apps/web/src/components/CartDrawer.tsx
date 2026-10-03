@@ -60,12 +60,18 @@ export function CartDrawerOverlay({
   const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
+    // Stash the opener: unmounting the dialog drops focus to <body> unless
+    // it's explicitly restored (same contract as MobileNav).
+    const restoreTo = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     closeRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      restoreTo?.focus()
+    }
   }, [onClose])
 
   return (

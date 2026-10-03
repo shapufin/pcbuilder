@@ -18,8 +18,9 @@ const statusBadge = (status: string | null | undefined): { label: string; cls: s
     case 'processing':
       return { label: 'Processing', cls: 'badge badge--warning' }
     case 'cancelled':
+      return { label: 'Cancelled', cls: 'badge badge--danger' }
     case 'refunded':
-      return { label: status, cls: 'badge badge--danger' }
+      return { label: 'Refunded', cls: 'badge badge--danger' }
     default:
       return { label: status ?? 'Pending', cls: 'badge' }
   }

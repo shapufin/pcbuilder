@@ -85,7 +85,7 @@ const DEFAULT_RADIUS: Theme['radius'] = { sm: '4px', md: '8px', lg: '12px' }
 const DEFAULT_FONTS: Theme['fonts'] = {
   body: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
   heading: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
-  mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace",
+  mono: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace",
 }
 
 export const DEFAULT_THEME: Theme = {

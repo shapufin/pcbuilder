@@ -65,12 +65,14 @@
 
 .site-search__input {
   width: 11rem;
+  min-height: var(--tap-target);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: var(--text-sm);
+  /* ≥16px — smaller fonts trigger iOS auto-zoom on focus. */
+  font-size: var(--text-base);
   transition: width var(--duration-base) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
 }
@@ -78,10 +80,10 @@
 .site-search__input:focus {
   width: 15rem;
   border-color: var(--color-primary);
-  outline: none;
 }
 
 .site-search__btn {
+  min-height: var(--tap-target);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   border: 0;
@@ -191,6 +193,14 @@
 
 .mobile-nav__search .site-search__input {
   width: 100%;
+}
+
+/* A drawer left open while the viewport grows past the breakpoint would
+   linger as a full-screen overlay — collapse it on desktop. */
+@media (min-width: 769px) {
+  .mobile-nav__drawer {
+    display: none;
+  }
 }
 
 /* ---------- Footer ---------- */

@@ -10,7 +10,12 @@ export default async function NotFound() {
   let categories: { slug: string; title: string }[] = []
   try {
     const payload = await getPayloadClient()
-    const res = await payload.find({ collection: 'categories', limit: 6, sort: 'title' })
+    const res = await payload.find({
+      collection: 'categories',
+      where: { _status: { equals: 'published' } },
+      limit: 6,
+      sort: 'title',
+    })
     categories = res.docs as unknown as { slug: string; title: string }[]
   } catch {
     // fall through — the search/browse links below still work

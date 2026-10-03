@@ -90,7 +90,7 @@ export default function CartPage() {
                         >
                           −
                         </button>
-                        <span className="qty-stepper__value" aria-label={`Quantity ${item.quantity}`}>
+                        <span className="qty-stepper__value" role="status" aria-live="polite">
                           {item.quantity}
                         </span>
                         <button

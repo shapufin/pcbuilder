@@ -197,8 +197,9 @@
 }
 
 /* .field base lives in primitives.css; builder dialogs mark up <label>
-   descendants rather than .field__label — keep the descendant style. */
-.field label {
+   descendants rather than .field__label — keep the descendant style, but
+   only for UNCLASSED labels so .field__label isn't overridden. */
+.field > label:not([class]) {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
@@ -512,7 +513,7 @@
 
 .rail {
   position: sticky;
-  top: var(--space-4);
+  top: calc(var(--header-h) + var(--space-4));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -698,10 +699,6 @@
   align-items: center;
 }
 
-.summary-table .price {
-  text-align: right;
-}
-
 .muted {
   color: var(--color-text-muted);
 }
@@ -750,6 +747,12 @@
   .chip,
   .rail-slot {
     min-height: var(--tap-target);
+  }
+
+  .rail-slot-x {
+    width: var(--tap-target);
+    height: var(--tap-target);
+    flex-basis: var(--tap-target);
   }
 
   .filter-bar input[type='search'] {

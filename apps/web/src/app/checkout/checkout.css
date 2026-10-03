@@ -139,8 +139,8 @@
   color: var(--color-text-muted);
 }
 
-.checkout-msg--ok {
-  color: var(--color-success);
+.pay-btn {
+  margin-top: var(--space-4);
 }
 
 .checkout-msg--err {

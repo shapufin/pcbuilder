@@ -19,9 +19,17 @@ type ProductRel = { id: string | number } | string | number | null
 
 export default async function ShopIndexPage() {
   const payload = await getPayloadClient()
+  const published = { _status: { equals: 'published' } }
   const [categories, products] = await Promise.all([
-    payload.find({ collection: 'categories', limit: 50, sort: 'title', depth: 0 }),
-    payload.find({ collection: 'products', limit: 0, depth: 0, select: { id: true, category: true } }),
+    payload.find({ collection: 'categories', where: published, limit: 50, sort: 'title', depth: 0 }),
+    // limit:0 = all ids — counts only, fine at catalog scale.
+    payload.find({
+      collection: 'products',
+      where: published,
+      limit: 0,
+      depth: 0,
+      select: { id: true, category: true },
+    }),
   ])
 
   const counts = new Map<string, number>()

@@ -21,7 +21,9 @@ export async function ProductGrid({
   const products = await payload.find({
     collection: 'products',
     where,
-    limit: block.limit ?? 4,
+    // Payload limit:0 = unlimited — clamp so an editor's 0 can't dump the
+    // whole catalog into one block.
+    limit: block.limit && block.limit > 0 ? Math.floor(block.limit) : 4,
     sort: '-createdAt',
     depth: 1,
   })

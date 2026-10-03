@@ -29,13 +29,12 @@ export function ProductGallery({ images }: { images: MediaPick[] }) {
         decoding="async"
       />
       {images.length > 1 ? (
-        <div className="pdp-gallery__thumbs" role="listbox" aria-label="Product images">
+        <div className="pdp-gallery__thumbs" role="group" aria-label="Product images">
           {images.map((img, i) => (
             <button
               key={img.url}
               type="button"
-              role="option"
-              aria-selected={i === active}
+              aria-pressed={i === active}
               aria-label={`Image ${i + 1} of ${images.length}`}
               className={`pdp-gallery__thumb${i === active ? ' pdp-gallery__thumb--active' : ''}`}
               onClick={() => setActive(i)}

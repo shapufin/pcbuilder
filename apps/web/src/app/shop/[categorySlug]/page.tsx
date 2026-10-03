@@ -17,7 +17,11 @@ export async function generateMetadata({ params }: Props): Promise<import('next'
   const { categorySlug } = await params
   const payload = await getPayloadClient()
   const category = (
-    await payload.find({ collection: 'categories', where: { slug: { equals: categorySlug } }, limit: 1 })
+    await payload.find({
+      collection: 'categories',
+      where: { and: [{ slug: { equals: categorySlug } }, { _status: { equals: 'published' } }] },
+      limit: 1,
+    })
   ).docs[0]
   return {
     title: category ? `${category.title} | BuildMyRig` : 'Shop | BuildMyRig',
@@ -30,7 +34,7 @@ type FilterLink = { label: string; href: string; active?: boolean }
 function Filters({ brand, price, sort }: { brand: FilterLink[]; price: FilterLink[]; sort: FilterLink[] }) {
   return (
     <>
-      <h3 className="filter-group__title">Brand</h3>
+      <p className="filter-group__title">Brand</p>
       <ul className="filter-list">
         {brand.map((l) => (
           <li key={l.label}>
@@ -40,7 +44,7 @@ function Filters({ brand, price, sort }: { brand: FilterLink[]; price: FilterLin
           </li>
         ))}
       </ul>
-      <h3 className="filter-group__title">Price</h3>
+      <p className="filter-group__title">Price</p>
       <ul className="filter-list">
         {price.map((l) => (
           <li key={l.label}>
@@ -50,7 +54,7 @@ function Filters({ brand, price, sort }: { brand: FilterLink[]; price: FilterLin
           </li>
         ))}
       </ul>
-      <h3 className="filter-group__title">Sort</h3>
+      <p className="filter-group__title">Sort</p>
       <ul className="filter-list">
         {sort.map((l) => (
           <li key={l.label}>
@@ -70,7 +74,12 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const payload = await getPayloadClient()
 
   const category = (
-    await payload.find({ collection: 'categories', where: { slug: { equals: categorySlug } }, limit: 1, depth: 2 })
+    await payload.find({
+      collection: 'categories',
+      where: { and: [{ slug: { equals: categorySlug } }, { _status: { equals: 'published' } }] },
+      limit: 1,
+      depth: 2,
+    })
   ).docs[0]
   if (!category) notFound()
 
@@ -83,7 +92,13 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const [products, brands] = await Promise.all([
     payload.find({
       collection: 'products',
-      where: { and: [{ 'category.slug': { equals: categorySlug } } as Where, ...and] },
+      where: {
+        and: [
+          { 'category.slug': { equals: categorySlug } } as Where,
+          { _status: { equals: 'published' } } as Where,
+          ...and,
+        ],
+      },
       sort,
       page,
       limit: 12,
@@ -101,7 +116,9 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const currentPrice = `${first(sp.price_gte) ?? ''}-${first(sp.price_lte) ?? ''}`
   const qs = (patch: Record<string, string | undefined>) => {
     const q = new URLSearchParams()
-    for (const [k, v] of Object.entries({ ...sp, ...patch })) {
+    // `page` resets on any filter/sort change — carrying ?page=5 into a
+    // 1-page result set renders "No products match" instead of results.
+    for (const [k, v] of Object.entries({ ...sp, page: undefined, ...patch })) {
       const val = Array.isArray(v) ? v[0] : v
       if (val) q.set(k, val)
     }

@@ -10,28 +10,43 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  */
 export function FilterDrawer({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
+  const openRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
-  const close = useCallback(() => setOpen(false), [])
+  const close = useCallback(() => {
+    setOpen(false)
+    // Closing unmounts the dialog (and any focused element inside) — return
+    // focus to the trigger or it drops to <body>.
+    openRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     if (!open) return
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [open, close])
 
   return (
     <>
-      <button type="button" className="btn btn--secondary filter-drawer__open" onClick={() => setOpen(true)}>
+      <button
+        ref={openRef}
+        type="button"
+        className="btn btn--secondary filter-drawer__open"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls="filter-drawer-panel"
+        onClick={() => setOpen(true)}
+      >
         Filters
       </button>
       {open ? (
         <div className="filter-drawer__backdrop" onClick={close}>
           <div
+            id="filter-drawer-panel"
             role="dialog"
             aria-modal="true"
             aria-label="Product filters"

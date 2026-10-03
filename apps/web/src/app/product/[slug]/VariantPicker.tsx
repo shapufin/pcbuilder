@@ -57,7 +57,12 @@ export function VariantPicker({
       <p className={`buy-box__stock${inStock ? '' : ' buy-box__stock--out'}`}>
         {inStock ? 'In stock' : 'Out of stock'}
       </p>
-      <AddToCartButton productId={productId} variantId={variant?.id} label={productTitle} />
+      <AddToCartButton
+        productId={productId}
+        variantId={variant?.id}
+        label={productTitle}
+        disabled={!inStock}
+      />
     </>
   )
 }

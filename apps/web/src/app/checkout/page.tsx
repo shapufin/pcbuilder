@@ -47,6 +47,7 @@ export default function CheckoutPage() {
     returnFailed ? 'Payment was not completed — no charge was made. You can try again.' : '',
   )
   const [email, setEmail] = useState('')
+  const [emailInvalid, setEmailInvalid] = useState(false)
   const [discountInput, setDiscountInput] = useState('')
   const [discountMsg, setDiscountMsg] = useState('')
   const [applyingDiscount, setApplyingDiscount] = useState(false)
@@ -99,6 +100,7 @@ export default function CheckoutPage() {
     // emails (orderEmailsAfterChange); the plugin 400s guest confirm without it.
     const buyerEmail = email.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+      setEmailInvalid(true)
       setMessage('Enter a valid email for your order confirmation.')
       setState('error')
       return
@@ -159,6 +161,9 @@ export default function CheckoutPage() {
         throw new Error('Payment could not be started — missing client secret.')
       }
       setPaymentIntent({ clientSecret: result.clientSecret, paymentIntentID: result.paymentIntentID })
+      // Survives the 3DS redirect: the return-confirm needs the email for
+      // guest order finalization, and React state is rebuilt on return.
+      window.sessionStorage.setItem('checkout_email', buyerEmail)
       setState('paying')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Payment failed.')
@@ -224,7 +229,10 @@ export default function CheckoutPage() {
       setState('confirming')
       try {
         const confirmed = (await confirmOrder(method, {
-          additionalData: { paymentIntentID: stripeReturn.paymentIntentID },
+          additionalData: {
+            paymentIntentID: stripeReturn.paymentIntentID,
+            customerEmail: window.sessionStorage.getItem('checkout_email') ?? '',
+          },
         })) as { message?: string }
         setMessage(confirmed?.message ?? 'Order confirmed.')
         track('purchase', { currency: 'EUR' })
@@ -240,19 +248,33 @@ export default function CheckoutPage() {
     })()
   }, [stripeReturn, method, confirmOrder])
 
+  // Once payment is in flight the empty-cart view must never win:
+  // confirmOrder/webhook settlement empties the cart, which would otherwise
+  // swap "Order confirmed" (or a retryable error) for "Your cart is empty".
+  const paymentInFlight =
+    Boolean(paymentIntent?.paymentIntentID) || state === 'confirming' || state === 'done'
   // Empty-cart guard (review R2-I3): a cart doc with zero items can reach
   // checkout — nothing should be chargeable.
-  if (!cart || items.length === 0) {
-    return (
-      <main className="checkout-page checkout-page--narrow">
-        <div className="empty-state">
-          <p className="empty-state__title">Your cart is empty</p>
-          <Link href="/shop" className="btn btn--primary">
-            Browse products
-          </Link>
-        </div>
-      </main>
-    )
+  if (!paymentInFlight) {
+    if (cart === undefined) {
+      return (
+        <main className="checkout-page checkout-page--narrow">
+          <p className="checkout-msg checkout-msg--muted">Loading your cart…</p>
+        </main>
+      )
+    }
+    if (!cart || items.length === 0) {
+      return (
+        <main className="checkout-page checkout-page--narrow">
+          <div className="empty-state">
+            <p className="empty-state__title">Your cart is empty</p>
+            <Link href="/shop" className="btn btn--primary">
+              Browse products
+            </Link>
+          </div>
+        </main>
+      )
+    }
   }
 
   return (
@@ -273,10 +295,19 @@ export default function CheckoutPage() {
       ) : (
         <div className="checkout-layout">
           <div className="checkout-form">
-            {paymentIntent && elementsOptions ? (
-              <Elements stripe={stripePromise} options={elementsOptions}>
-                <StripePaymentForm onPaid={finalize} disabled={state === 'confirming'} />
-              </Elements>
+            {paymentIntent ? (
+              elementsOptions ? (
+                <Elements stripe={stripePromise} options={elementsOptions}>
+                  <StripePaymentForm onPaid={finalize} disabled={state === 'confirming'} />
+                </Elements>
+              ) : (
+                // 3DS return (clientSecret:''): the charge already exists at
+                // Stripe — render a status panel, NEVER the address form, so
+                // startPayment can't create a second PaymentIntent.
+                <p className="checkout-msg checkout-msg--muted">
+                  Payment received — finalizing your order…
+                </p>
+              )
             ) : isFree ? (
               <p className="checkout-msg checkout-msg--muted">
                 Your total is €0 — free orders can&apos;t be placed through card checkout yet. Contact
@@ -317,7 +348,11 @@ export default function CheckoutPage() {
                     required
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setEmailInvalid(false)
+                    }}
+                    aria-invalid={emailInvalid || undefined}
                     placeholder="you@example.com"
                     className="input"
                   />

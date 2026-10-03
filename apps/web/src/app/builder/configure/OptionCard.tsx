@@ -38,33 +38,33 @@ export function OptionCard({ entry, selected, excludedReason, warned, onToggle }
       }}
       aria-label={label}
     >
-      <div className="option-top">
+      <span className="option-top">
         {entry.display?.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={entry.display.image} alt="" />
         ) : null}
-        <div className="option-meta">
+        <span className="option-meta">
           <span className="option-name">{entry.display?.name ?? entry.id}</span>
           {entry.display?.brand && <span className="option-brand">{entry.display.brand}</span>}
-        </div>
+        </span>
         <span className="option-price">{formatEUR(entry.priceCents)}</span>
-      </div>
+      </span>
 
       {specs.length > 0 && (
-        <div className="spec-chips">
+        <span className="spec-chips">
           {specs.map(([key, value]) => (
             <span className="spec-chip" key={key}>
               {prettyKey(key)}: {Array.isArray(value) ? value.join(', ') : String(value)}
             </span>
           ))}
-        </div>
+        </span>
       )}
 
-      <div className="option-flags">
+      <span className="option-flags">
         {selected && <span className="badge badge--selected">Selected</span>}
         {warned && !excluded && <span className="badge badge--warning">Heads-up</span>}
         {excluded && <span className="option-reason">{excludedReason}</span>}
-      </div>
+      </span>
     </button>
   )
 }

@@ -10,10 +10,12 @@ export function AddToCartButton({
   productId,
   variantId,
   label,
+  disabled,
 }: {
   productId: number | string
   variantId?: number | string
   label?: string
+  disabled?: boolean
 }) {
   const { addItem } = useEcommerce()
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
@@ -40,11 +42,20 @@ export function AddToCartButton({
 
   return (
     <button
+      type="button"
       onClick={onAdd}
-      disabled={state === 'busy'}
+      disabled={disabled || state === 'busy'}
       className={`btn btn--full ${state === 'done' ? 'btn--success' : 'btn--primary'}`}
     >
-      {state === 'busy' ? 'Adding…' : state === 'done' ? 'Added to cart ✓' : state === 'error' ? 'Failed — retry' : 'Add to cart'}
+      {disabled
+        ? 'Out of stock'
+        : state === 'busy'
+          ? 'Adding…'
+          : state === 'done'
+            ? 'Added to cart ✓'
+            : state === 'error'
+              ? 'Failed — retry'
+              : 'Add to cart'}
     </button>
   )
 }

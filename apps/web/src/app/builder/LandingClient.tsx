@@ -113,7 +113,7 @@ export function LandingClient({ templates }: Props) {
             onClose={() => setGuidedOpen(false)}
             onStart={(t) => {
               setGuidedOpen(false)
-               applyLandingTemplate(t, 'guided')
+              applyLandingTemplate(t, 'guided')
             }}
             onNoMatch={startScratch}
           />

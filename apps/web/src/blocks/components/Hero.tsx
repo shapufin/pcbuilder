@@ -64,10 +64,10 @@ export function Hero({
           {media}
         </div>
       ) : (
-        <div className="hero--center">
-          {media && (align === 'center' || embed) ? <div className="hero__media-wrap">{media}</div> : null}
+        <>
+          {media ? <div className="hero__media-wrap">{media}</div> : null}
           {copy}
-        </div>
+        </>
       )}
     </section>
   )

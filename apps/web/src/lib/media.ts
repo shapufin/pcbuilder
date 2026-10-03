@@ -42,18 +42,25 @@ export function pickMedia(
   const doc = mediaDoc(media)
   if (!doc) return null
   const sized = doc.sizes?.[size]
-  const url = sized?.url ?? doc.url ?? firstSizedUrl(doc.sizes)
+  // Track which source produced the URL so width/height describe the actual
+  // image, not the original doc's dims (CLS guard).
+  const other = sized?.url || doc.url ? null : firstSized(doc.sizes)
+  const url = sized?.url ?? doc.url ?? other?.url
   if (!url) return null
-  const width = sized?.width ?? (sized ? undefined : doc.width) ?? SIZE_DIMS[size].width
-  const height = sized?.height ?? (sized ? undefined : doc.height) ?? SIZE_DIMS[size].height ?? Math.round((width * 2) / 3)
+  const src = sized?.url ? sized : other
+  const width = src?.width ?? doc.width ?? SIZE_DIMS[size].width
+  const height =
+    src?.height ?? doc.height ?? SIZE_DIMS[size].height ?? Math.round((width * 2) / 3)
   return { url, width, height, alt: doc.alt || fallbackAlt }
 }
 
-function firstSizedUrl(sizes: MediaDoc['sizes']): string | null {
+function firstSized(
+  sizes: MediaDoc['sizes'],
+): { url: string; width?: number | null; height?: number | null } | null {
   if (!sizes) return null
   for (const key of ['card', 'gallery', 'thumb', 'hero'] as const) {
-    const url = sizes[key]?.url
-    if (url) return url
+    const entry = sizes[key]
+    if (entry?.url) return { url: entry.url, width: entry.width, height: entry.height }
   }
   return null
 }
