@@ -2,13 +2,19 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-03 (46) — Pushed to origin/main; CI green after unpatched-advisory handling
+
+**Pushed** the full backlog (user go-ahead "do all"): `fb36388..a47381e` — entries 25–45 in 6 commits. First push's CI run **failed on `pnpm audit --prod --audit-level high`**: new advisory **GHSA-vfj7-8cjw-p6xm** — `braces <=3.0.3` stack-exhaustion DoS, **no patched release** (installed 3.0.3 is latest). Reachable only via `next>sass>chokidar` + `micromatch>fast-glob` build-time globbing with project-controlled patterns — not runtime user input. Handled with a documented `auditConfig.ignoreGhsas` entry in `pnpm-workspace.yaml` (`135b463`); re-run CI **all-8-gates green** (`37117923390`), including the Postgres schema push. Docs synced (`a47381e`).
+
+Round B owner-keyed items confirmed blocked locally: `.env` has only `DATABASE_URI`/`PAYLOAD_SECRET`/`STAFF_ALERT_EMAIL` — no Stripe/Resend/Sentry/Plausible keys; no `docker`/`psql` for the Postgres `migrate` dry-run.
+
 ## 2026-10-03 (45) — Self-review catch + fencing token; vercel-optimize scan; backlog committed
 
 **Brainstorming-check on entry 44** (bounded design review): found a real residual in my own settlement hardening — the stale-claim (>60 s) assumes the old worker is dead, but a merely-*stalled* worker resumes decrementing from its in-memory `startAt`, double-decrementing lines the re-claimer already did. Fixed with a **fencing token**: the claim writes `settlementToken` (hidden field), every decrement line re-asserts ownership via a CAS on it, and the final settle is conditional on still holding it — a stolen claim aborts instead of double-writing (#286). 
 
 **vercel-optimize**: the metric-backed audit is blocked (`not_linked` — no Vercel CLI or project; dev-first repo); the standalone codebase scanner ran clean — **0 findings across 1,764 files** on all 15 scanners (unoptimized images, force-dynamic, middleware matcher, prod source maps, oversized public assets, edge-heavy imports, turbo cache bypass, etc.).
 
-**Round A — backlog committed** (user go-ahead "do all"): the ~104-file backlog landed as 4 domain-scoped commits (the 8-way split's hunk-level staging wasn't feasible — several files span entries; the plan's documented fallback applied): `e728ba5` workflow layer + next 16.3.8 · `1392a36` builder/lib audit fixes · `80ceed8` shop+web commerce hardening · `fd05ffc` docs 25–44. Working tree clean. **Not pushed** (push not requested).
+**Round A — backlog committed** (user go-ahead "do all"): the ~104-file backlog landed as 4 domain-scoped commits (the 8-way split's hunk-level staging wasn't feasible — several files span entries; the plan's documented fallback applied): `e728ba5` workflow layer + next 16.3.8 · `1392a36` builder/lib audit fixes · `80ceed8` shop+web commerce hardening · `fd05ffc` docs 25–44. Working tree clean. **Pushed** in entry 46.
 
 **Gates**: 384 unit (plugin-shop 132: +1 #286) + 11 e2e, typecheck 6/6, lint 4/4, build OK.
 

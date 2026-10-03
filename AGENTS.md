@@ -88,8 +88,8 @@ manager, id3 staff `staff@buildmyrig.test`).
 ## Current status (2026-10-03)
 
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
-(36898140224). **Entries 25–45 committed + pushed to `origin/main`**
-(`11210f7`): `e728ba5` workflow+next 16.3.8 · `1392a36` builder fixes ·
+(37117923390). **Entries 25–45 committed + pushed to `origin/main`**
+(`135b463`): `e728ba5` workflow+next 16.3.8 · `1392a36` builder fixes ·
 `80ceed8` shop/web commerce hardening · `fd05ffc` docs 25–44 ·
 `11210f7` docs 45 — working tree clean. Entry 45: fencing `settlementToken` on webhook
 settlement (stolen-claim can't double-decrement, #286) +

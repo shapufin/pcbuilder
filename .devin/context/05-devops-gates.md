@@ -20,7 +20,10 @@ Gate trio after every change: `pnpm test` + `pnpm -r typecheck` +
 `pnpm lint` (+ `pnpm build` for build-relevant work; + `test:e2e` for
 route/UI changes). CI mirrors this as 8 blocking gates: install →
 secret-scan → lint → typecheck → test → Postgres schema-push dev boot →
-build → `pnpm audit --prod --audit-level high`.
+build → `pnpm audit --prod --audit-level high`. Advisory handling:
+unpatched GHSA → `auditConfig.ignoreGhsas` in `pnpm-workspace.yaml`
+with a reachability comment (precedent: `GHSA-vfj7-8cjw-p6xm` braces —
+build-time globbing only, no patched release).
 
 **Local gotchas for the gates** (entry 31/32 — CI is unaffected):
 - `pnpm test` (turbo, 6 packages parallel) can OOM the vitest forks on a
