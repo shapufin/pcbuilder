@@ -47,8 +47,8 @@ build green, `workflow:check` PASSED.
 Committed as 4 domain-scoped commits (the 8-way split needed hunk-level
 staging on files shared across entries — the documented fallback applied):
 `e728ba5` workflow layer + next 16.3.8 · `1392a36` builder/lib audit fixes ·
-`80ceed8` shop+web commerce hardening · `fd05ffc` docs entries 25–44.
-Working tree clean; **not pushed** (push not requested).
+`80ceed8` shop+web commerce hardening · `fd05ffc` docs entries 25–44 ·
+`11210f7` docs 45. **Pushed to `origin/main`** (2026-10-03); tree clean.
 
 <details><summary>Original split reference</summary>
 
@@ -78,6 +78,10 @@ Working tree clean; **not pushed** (push not requested).
 ## Round B — Owner-keyed live verifications (blocked on the user)
 
 Each is *verify-only*: no code change expected unless a probe fails.
+**Attempted 2026-10-03** — all blocked locally: `.env` has only
+`DATABASE_URI`/`PAYLOAD_SECRET`/`STAFF_ALERT_EMAIL` (no Stripe/Resend/
+Sentry/Plausible keys); no `docker`, no local `psql` (Postgres dry-run
+needs an external DB or container).
 
 | Item | Needs | What to prove |
 |---|---|---|
