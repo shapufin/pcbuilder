@@ -89,12 +89,12 @@ manager, id3 staff `staff@buildmyrig.test`).
 
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
 (37117923390). **Entries 25–45 committed + pushed to `origin/main`**
-(`135b463`): `e728ba5` workflow+next 16.3.8 · `1392a36` builder fixes ·
-`80ceed8` shop/web commerce hardening · `fd05ffc` docs 25–44 ·
-`11210f7` docs 45 — working tree clean. Entry 45: fencing `settlementToken` on webhook
-settlement (stolen-claim can't double-decrement, #286) +
-vercel-optimize scan (0 findings; metric audit blocked — repo isn't
-Vercel-linked). **The gap register is fully resolved** — all
+(`135b463`). **Entry 47: "Precision Dark" frontend redesign committed**
+in 6 domain commits (`ac3e6e1`..`9327fc9`), not pushed — tokens v2 + primitives/shell/product-card/shop/
+product/cart/checkout/auth/blocks CSS; all 14 blocks + builder retokenized;
+`style={{` 269→20; uisight mobile+desktop clean (15 findings → 0);
+107 web unit + e2e 11/11. Plan: `~/.devin/plans/plan-e7bb003c0cf36a76.md`.
+**The gap register is fully resolved** — all
 7 blocking items fixed (entries 30–32), every minor either fixed
 (entries 33–44: analytics funnel, C1 checkout address+country tax, C4
 reservations at scale, C5 wishlist staleness, C6 seed fidelity, C7 index
@@ -117,6 +117,8 @@ Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–42 verbatim).
 Tests numbered cumulatively (#1–#286 + e2e; per-package counts in 05).
+
+40. **Entry 47** — **"Precision Dark" frontend redesign, 6 domain commits** (`ac3e6e1`..`9327fc9`, not pushed): tokens v2 (`-soft` semantics, tracking, containers, tap-target); global focus/`color-scheme`; primitives (`.btn`/`.badge`/`.field`/`.input`/`.empty-state`/`.skeleton`/`.data-table`/`.list-card`/`.status-page`/`.nav-badge`, `Price`/`formatEUR` Intl); `SiteHeader`+`MobileNav`+`SiteFooter`+`shell.css`, `CartDrawer` class-based; `ProductCard` real media everywhere + `sharp` + `lib/media.ts`; `FilterDrawer` mobile; PDP gallery+`VariantPicker`; cart/checkout two-col; auth/account/wishlist classes; `blocks.css` via `registry.tsx` — all 14 blocks off inline styles, `Section`→data-attrs (#152 updated); `builder.css` deduped + `@media (pointer:coarse)` 44px floor. uisight clean 15→0 findings; `style={{` 269→20. e2e 11/11.
 
 39. **Entry 45** — **self-review catch + backlog committed**: brainstorming-check on entry 44 found a real residual — a *stalled* (not dead) settlement worker could double-decrement after a stale re-claim → **fencing `settlementToken`** field + per-line + final-settle CAS (#286); vercel-optimize scanner clean (0 findings / 1764 files; metric audit blocked — repo not Vercel-linked); **backlog committed** as 4 domain commits (`e728ba5`/`1392a36`/`80ceed8`/`fd05ffc`/`11210f7`), **pushed to `origin/main`**, tree clean. 384 tests, all gates green.
 
