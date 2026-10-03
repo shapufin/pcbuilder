@@ -93,6 +93,7 @@ each line is an operator action.
 | 12 | Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | funnel events are silent no-ops without it (entry 34) |
 | 13 | Wire Sentry DSN + alerting | not implemented — plan-level (12-integrations-ops.md) |
 | 14 | Run the OWASP re-pass on the payment paths with live keys | checklist #10 above, deferred until keys land (owner step B1) |
+| 15 | Trace skin files into standalone/serverless output | `getThemeSkinCss` resolves `packages/ui/skins/*` dynamically (`require.resolve` + `readFileSync`, cwd-anchored at `apps/web`) — invisible to output-file-tracing, so a standalone/Vercel deploy ships without them and presets silently lose their overlay. Add `outputFileTracingIncludes` for the skins dir (or switch skins to a static import) and confirm `process.cwd()` is the app dir on the target host (entry-49 review) |
 
 ## Open security notes (entry 15 review)
 

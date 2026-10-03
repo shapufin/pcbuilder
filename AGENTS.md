@@ -115,15 +115,63 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
-25–42 verbatim).
-Tests numbered cumulatively (#1–#286 + e2e; per-package counts in 05).
+25–45 verbatim).
+Tests numbered cumulatively (#1–#365 + e2e; per-package counts in 05).
 
-41. **Entry 48** — **redesign review round: 3 reviewers all FIX → 30+ fixed**: draft `_status` leaks on product/category/shop/not-found (pre-existing convention gap), checkout 3DS double-PaymentIntent path + empty-cart masking done/confirming + guest email persisted, out-of-stock no longer addable, pickMedia cross-size dims (#287), focus-restore + aria contracts on all three drawers, hero-split flex, btn--success AA, rail sticky offset, tap-target gaps, dead rules pruned. 108 web unit, e2e 11/11, uisight clean.
+49. **Entry 54 P4** — **megaplan complete**: DeployModal real 4-stage
+   pipeline (validate → power → save → cart; halts on errors),
+   SavedBuildsModal 3-tab (authed/guest refs, presets, export/import);
+   seed §7 (specsJson/hasRgb/slot caps, ram+storage max→4); **default
+   flip → `rig-studio`** (#363–364). #353–#365 → 480 unit, trio + build
+   + 12/12 e2e (deploy verified live). Review FIX → all 9 fixed.
 
-40. **Entry 47** — **"Precision Dark" redesign, 6 commits + pushed** (`ac3e6e1`..`a153f2b`, CI `37127009398` green): tokens v2 (`-soft` semantics, tracking, containers, tap-target); global focus/`color-scheme`; primitives (`.btn`/`.badge`/`.field`/`.input`/`.empty-state`/`.skeleton`/`.data-table`/`.list-card`/`.status-page`/`.nav-badge`, `Price`/`formatEUR` Intl); `SiteHeader`+`MobileNav`+`SiteFooter`+`shell.css`, `CartDrawer` class-based; `ProductCard` real media everywhere + `sharp` + `lib/media.ts`; `FilterDrawer` mobile; PDP gallery+`VariantPicker`; cart/checkout two-col; auth/account/wishlist classes; `blocks.css` via `registry.tsx` — all 14 blocks off inline styles, `Section`→data-attrs (#152 updated); `builder.css` deduped + `@media (pointer:coarse)` 44px floor. uisight clean 15→0 findings; `style={{` 269→20. e2e 11/11.
+48. **Entry 53 P3** — **`rig-studio` full UI shipped** (RIG_model1 port,
+   real `useBuilder()` data only): header/bay/swap-modal + blueprint SVG
+   (8 zones, spec labels, ghost sockets) + toolbar/pills/telemetry/price
+   cards + matrix view; `studio-lib` pure layer #332–352; `rig-studio.css`
+   fully `.bdesign-rig-studio`-scoped; lucide-react 1.47.0. Review
+   FIX→fixed (CSS scoping + bay→zone hover).
 
-39. **Entry 45** — **self-review catch + backlog committed**: brainstorming-check on entry 44 found a real residual — a *stalled* (not dead) settlement worker could double-decrement after a stale re-claim → **fencing `settlementToken`** field + per-line + final-settle CAS (#286); vercel-optimize scanner clean (0 findings / 1764 files; metric audit blocked — repo not Vercel-linked); **backlog committed** as 4 domain commits (`e728ba5`/`1392a36`/`80ceed8`/`fd05ffc`/`11210f7`), **pushed to `origin/main`**, tree clean. 384 tests, all gates green.
+47. **Entry 52 P2** — **builder-design brain landed**: `BuilderProvider`
+   owns index/engine/`resolveSlotLimits`/hydration/loading-error; designs =
+   `useBuilder()` consumers (`state`/`actions`/`meta`+`actionStatus`).
+   `designs.ts` registry + `BuilderShell` + `getBuilderDesign()` wire the
+   admin pick (rig-studio code-split stub, parity #331). Store += cosmetic
+   `rgbColor` (#93-exempt) + `applyTemplate` reset; `kit/` =
+   `useBuildActions`/`option-rows`/`build-io`/`BuilderToasts`. Classic now
+   shows resolved caps live. Review FIX → fixed. #320–331 → 446 unit, gates
+   + build + uisight green.
 
-39. **Entry 44** — **3-reviewer code review → all FIX, all fixed**: pushed back the one false claim (drizzle `updateOne` `atomic:true` IS single-statement — verified in dist); shareId no longer rotates on update (#274–275); webhook settlement hardened — stale `processing` (>60 s) re-claimable, lost-claim bounded re-check runs post-steps, errors rethrow for Stripe retry, orphan-order reuse, `inventoryProgress`/`inventoryComplete` resumable decrement, `charge.succeeded` handled (#276–282); tx `discountCodeApplied`+`totalsSnapshot` snapshot + `maxUses` at increment (#283–284); checkout 3DS-return confirm, empty-cart + €0 degrade, single-method auto-select, confirm-retry button; cart totals access-locked, invalid-discount clear via `validateDiscount`, zero-qty lines dropped, case-insensitive country tax, `superseded` reservations, collection-aware access helpers, Retry-After on 429s, page/price clamp (#285), sitemap `?template=` dropped. **383 unit + 11 e2e**; lesson: e2e needs a dev-boot schema push first + `pnpm start` (prod), not dev.
+46. **Entry 51 P1** — **`rig-dark` is the site default**: tokens.css
+   statics retokenized to the RIG palette (first paint + no-JS = rig-dark;
+   `dark`/`light`/`midnight` stay swappable presets — stored docs keep
+   theirs until re-selected); `THEME_PRESETS` +`'rig-dark'`
+   (`#288` keys, `skin:'rig-dark.css'` — scrollbars/`::selection`/cyan
+   glow); `next/font/google` Inter→`--font-inter` + Space_Grotesk→
+   `--font-space-grotesk` on `<html>` (`--font-sans`/`--font-display`
+   wrap them, `--font-mono` stays true mono; fetches at build/dev — CI
+   needs network); `DEFAULT_FONTS` lead with `var(--font-*)` (code-side,
+   bypasses `validateFont`); `viewport.themeColor` hsl literal (no-hex).
+   Live swap probe green; build green. TDD `#318–#319` → 432 unit.
 
-38. **Entry 43** — **all decisions resolved**: transactions → staff+ read / admin-only write (`transactionsAccess`); addresses → staff-or-own read (`staffOrOwnAddressRead`) — both spec-aligned, live-probed (#272–273). Declared: `Shipments` + `redirects` out of scope, stock-write manager+, customers→users collapse — matrix + register updated. **Register has zero unresolved rows**; only Round A (commits) + Round B (owner keys) remain. 371 tests, all gates green.
+45. **Entry 50 P0** — **RIG Studio schema+registry** (megaplan
+   `plan-ec05526c8dbc0fdc.md`): `resolveSlotLimits`+`SLOT_LIMIT_RULES`
+   (mobo `ramSlots`/`m2Slots` caps, client-enforced → server
+   `findOverCapWarnings` into `validationSnapshot`); `rgb-presets.ts`
+   (hex home — apps/web bans literals); `BUILDER_DESIGNS` registry +
+   plugin-owned `builder-settings` global (never-throw resolver, own-prop)
+   + `getBuilderDesign()`; `components.{hasRgb,ramSlots,m2Slots}` +
+   `configured-builds.rgbColor` (schema+endpoint+share passthrough).
+   Live-verified index+global. TDD `#294–#311` → 424 unit, trio green.
+
+44. **Entry 49** — **admin-GUI design swap (Tier 1+2)**: `THEME_PRESETS`
+   registry (dark/light/midnight) drives the Theme select (`#288` parity +
+   extras-key parity); `Theme.extras` = preset-tuned scrim/glow/soft vars
+   (`#289`, `#292` drift guard, `#293` hostile-preset hasOwn); `packages/ui/
+   skins/*.css` overlays inject via `#theme-skin` (cached `loadSkin` +
+   single-fetch `getThemeAssets`); live-verified admin POST swap both
+   directions; post-impl review FIX → all fixed. TDD `#288–#293` → 406
+   unit, typecheck 6/6, lint 4/4.
+
+43. **Entries 47–48** — Precision Dark redesign + 3-reviewer round (30+
+   fixes). Full text in `.devin/tracking/agents-archive-2026-10.md`.

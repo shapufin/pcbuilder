@@ -12,9 +12,9 @@ Where things live. Not a manual — a map. Domain rules:
 | `apps/web/src/{components,blocks,lib}/` | storefront components, block renderers/registry, server+client libs |
 | `apps/web/src/payload.config.ts` | Payload config (collections, plugins, CSRF allowlist) |
 | `apps/web/src/proxy.ts` | Next 16 middleware — `/account` guard (`/checkout` stays open) |
-| `packages/lib/src/` | pure logic: `rule-engine.ts`, rate limiter, line-item utils |
+| `packages/lib/src/` | pure logic: `rule-engine.ts`, `slot-limits.ts`, `rgb-presets.ts`, rate limiter, line-item utils |
 | `packages/plugin-shop/src/` | collection overrides, `payments/stripe-webhooks.ts`, `emails/`, `analytics/`, `lib/access.ts` |
-| `packages/plugin-pc-builder/src/` | builder collections/endpoints, `lib/builder-index.ts`, `lib/rule-import.ts`, `admin/` views |
+| `packages/plugin-pc-builder/src/` | builder collections/endpoints, `globals/builder-settings.ts`, `lib/{builder-index,builder-designs,rule-import}.ts`, `admin/` views |
 | `packages/plugin-pages/src/` | `pagesPlugin()`, `globals/` (site-settings, theme), `blocks/` (14 configs), `plugins/` mini-plugins |
 | `packages/ui/` | `tokens.css` — single token definition site |
 | `scripts/` | `load-test.mjs`, `track-event.mjs` (hook tracker), `check-workflow.mjs` (validator) |
@@ -67,7 +67,15 @@ Where things live. Not a manual — a map. Domain rules:
 - Builder ops: `plugin-pc-builder/src/lib/builder-index.ts`,
   `src/lib/rule-import.ts` + `src/endpoints.ts` (dryRun), admin views
   `src/admin/{RuleManagerView,BuildStatsView}.tsx`,
-  `src/lib/build-stats.ts`.
+  `src/lib/build-stats.ts`. Design swap: `src/lib/builder-designs.ts`
+  registry + `globals/builder-settings.ts` + app
+  `src/lib/builder-settings.server.ts` → `BuilderShell` →
+  `builder-provider.tsx` (`useBuilder()` shared brain) +
+  `designs.ts` registry → `designs/<slug>/` + design kit
+  `kit/{useBuildActions,option-rows,build-io,BuilderToasts}`.
+  `designs/rig-studio/` = full UI (P3): `index.tsx` + Studio* parts,
+  `RigBlueprint` SVG, `studio-lib.ts` pure layer,
+  `.bdesign-rig-studio`-scoped `rig-studio.css`.
 - Analytics: `apps/web/src/lib/analytics.ts` (Plausible `track()`,
   gated on `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`).
 - Site settings / search / wishlist: `plugin-pages/src/{globals,lib}/`
@@ -76,10 +84,13 @@ Where things live. Not a manual — a map. Domain rules:
   `src/app/wishlist/`, `WishlistNav`/`WishlistButton`.
 - Order emails: `plugin-shop/src/emails/` — `resend.ts`, `templates.ts`,
   `order-emails.ts` (hooked in `ordersCollectionOverride`).
-- Theme: `packages/ui/tokens.css`, `plugin-pages/src/lib/theme.ts` +
-  `src/globals/Theme.ts`, app `src/lib/theme.server.ts` +
-  `layout.tsx` (`#theme-vars`), enforcement
-  `apps/web/eslint-rules/no-raw-hex.mjs`.
+- Theme: `packages/ui/tokens.css` (rig-dark statics — the default) +
+  `packages/ui/skins/` (preset overlays), `plugin-pages/src/lib/theme.ts`
+  (`THEME_PRESETS` registry — dark/light/midnight/rig-dark)
+  + `src/globals/Theme.ts`, app `src/lib/theme.server.ts`
+  (`getThemeAssets` single fetch) + `layout.tsx`
+  (`#theme-vars`/`#theme-skin`, next/font Inter+Space_Grotesk),
+  enforcement `apps/web/eslint-rules/no-raw-hex.mjs`.
 - Block system v2: `plugin-pages/src/blocks/` + `src/index.ts`
   `mergeBlocks`; app `src/blocks/renderBlocks.tsx` + `PageRenderer.tsx`,
   `blocks/components/Section.tsx`, `lexical-converters.tsx`, `registry.tsx`,

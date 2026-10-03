@@ -43,9 +43,28 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   **Exceptions** (literal hex allowed, documented): email templates,
   `RuleManagerView`.
 - `theme` global: `packages/plugin-pages/src/globals/Theme.ts`
-  (dark/light preset, manager-only update). `lib/theme.ts`
-  `resolveTheme` re-validates **every** value before it reaches the
-  inline `<style>`; empty/invalid → preset default.
+  (preset select + per-field overrides, manager-only update).
+  `lib/theme.ts` `resolveTheme` re-validates **every** value before it
+  reaches the inline `<style>`; empty/invalid → preset default.
+- **Design swap (entry 49)**: `THEME_PRESETS` in `lib/theme.ts` is the
+  preset registry (`{label, colors, extras, skin?}`); the admin select
+  options come from `themePresetOptions()` (parity test `#288`).
+  `Theme.extras` = preset-tuned additive vars (scrim/glow/soft/accent/
+  focus) emitted as `--color-*`; every preset must carry the same
+  extras key set (`#288`). **Skins**: preset `skin` →
+  file in `packages/ui/skins/` → `loadSkin` (cached, `</style`-guarded)
+  → `<style id="theme-skin">` after the vars; layout calls the
+  single-fetch `getThemeAssets()` (all never-throw → defaults/`''`).
+  Adding a design = registry entry + optional skin file.
+- **rig-dark is the default (entry 51)**: `tokens.css` statics ARE the
+  RIG palette — `DEFAULT_THEME.preset`/`resolveTheme` fallback/`Theme`
+  `defaultValue` all `'rig-dark'`; drift guards `#139c`/`#292` pin
+  rig-dark↔tokens parity (dark preset is a *swappable non-default* —
+  don't re-pin its values to tokens.css). Stored docs keep their preset
+  until an admin re-selects. Fonts: `next/font/google` Inter→
+  `--font-inter`, Space_Grotesk→`--font-space-grotesk` (layout.tsx,
+  fetches at build/dev — CI needs network); `--font-sans`/`--font-display`
+  wrap the vars, `--font-mono` stays true mono.
 - App injection: `src/lib/theme.server.ts` `getThemeCss()` →
   `src/app/layout.tsx` renders `<style id="theme-vars">` as first body
   child (overrides win cascade after the tokens.css import).

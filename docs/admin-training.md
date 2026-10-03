@@ -58,6 +58,7 @@ Notes:
 - **Homepage**: exactly one page can have the **is Homepage** flag (ticking it clears the flag from any other page). The `/` route renders that page — with a built-in fallback landing if no homepage page exists yet. Revalidation is automatic on publish (no redeploy).
 - SEO fields (meta title/description, social image) sit on each page/product; sitemap and JSON-LD regenerate from them.
 - Newsletter signups (the **Newsletter signup** block — currently on the homepage) go straight to **Resend** (API-key based); there is no admin subscriber list.
+- **Theme** (`/admin/globals/theme`): swap the storefront design with the **Preset** select (Precision Dark / Light / Midnight — Midnight also restyles buttons, cards and grid density, and pins its own radii). Changes go live within about a minute, no deploy needed. The color/radius/font fields below fine-tune the active preset — leave a field empty to keep the preset value (a preset that ships a skin may pin some of those values itself).
 
 ## 6. PC builder operations
 
