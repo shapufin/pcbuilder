@@ -2,6 +2,20 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-03 (48) — Redesign review round: 3 reviewers all FIX → 30+ findings fixed
+
+Three read-only reviewers (CSS/design-system, client components, pages+blocks+builder) on the entry-47 diff — all returned **FIX**. Highlights fixed:
+
+- **Draft leak**: missing `_status: 'published'` on product/[slug] (find+metadata), category + its products list, /shop counts, not-found links (pre-existing gap vs the `lib/wishlist.ts` convention; local API bypasses access-read). PDP gained `revalidate = 3600` (it was indefinite-cached).
+- **Checkout gating**: after a 3DS return `paymentIntent` with empty clientSecret fell through to the enabled address form → a second `initiatePayment`/PaymentIntent for an already-succeeded charge. `paymentIntent` set now renders a status panel, never the form. Empty-cart early return now yields to `done`/`confirming`/error-with-PI states (confirmOrder empties the cart — could mask "Order confirmed" or the retry button); `cart === undefined` shows a loading state; `customerEmail` persisted to sessionStorage for the guest 3DS-return confirm.
+- **Purchase gating**: `VariantPicker` computed `inStock` but never gated — out-of-stock variants could still be added. `AddToCartButton` takes `disabled` (renders "Out of stock") + `type="button"`.
+- **Media CLS**: `pickMedia` cross-size fallback returned the picked URL with the *original* doc's dims — now tracks the source entry's dims (#287 test).
+- **A11y**: FilterDrawer `aria-expanded`/`aria-controls`/`aria-haspopup` + focus-restore on close; CartDrawer restores focus on unmount; MobileNav `aria-controls`; gallery thumbs `role="group"`+`aria-pressed` (was listbox with no keyboard nav); qty stepper `role="status"`; filter titles `h3`→`p` (preceded `<h1>` in DOM); OptionCard `div`→`span` inside `<button>`; `aria-invalid` wired on checkout email.
+- **CSS**: `.hero__split-inner` media children got flex basis (split never split); `.btn--success` dark text (was ~3:1 AA fail); `.rail` sticky top → `calc(--header-h + --space-4)` (sat under the 64px header); search input focus ring restored (was `outline:none`), ≥16px font (iOS zoom) + 44px tap targets; `.btn--sm` + `.rail-slot-x` coarse-pointer 44px; FAQ chevron (flex on `<summary>` hid the marker); mobile-nav drawer `>769px` guard; `.field > label:not([class])` (stopped overriding `.field__label`); dead rules/classes pruned (`.card`, `.badge--info`, `.auth-form__success`, `.checkout-msg--ok`, `hero--center`, `bmr-richtext`, `.tpl-carousel`); mono font-stack drift reconciled; `themeColor` 1-LSB fix; `?page` stripped on filter/sort links (stale page → phantom "no results"); `ProductGrid limit:0` clamped (0 = unlimited); account cancelled/refunded badge labels; `.pay-btn` for the Stripe form; `limit:0` count query commented.
+- Known (deferred): `notFound()` 404s return HTTP 200 on all routes — Next 16.3.8 baseline quirk (streaming commits status early), not redesign-caused; wishlist slug staleness keys on id only; `€0.00` shown for priceless products.
+
+**Gates**: 108 web unit (26 files), all packages green; typecheck 6/6; lint 4/4; build 25 routes; e2e 11/11; uisight clean on /shop/cpu + PDP both viewports.
+
 ## 2026-10-03 (47) — Frontend redesign: "Precision Dark" Phases 0–3 (tokens → shell → commerce → blocks/builder)
 
 Full visual redesign per `~/.devin/plans/plan-e7bb003c0cf36a76.md` (frontend-ui-ux + web-design-guidelines review, user-approved scope: all storefront routes + blocks + builder, plain CSS, admin untouched). Root cause of the old "admin template" look: **~270 raw `px` inline `style={{}}` props** — no `:hover`/`:focus-visible`/`@media`/`prefers-reduced-motion` was even expressible.
