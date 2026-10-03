@@ -88,8 +88,13 @@ manager, id3 staff `staff@buildmyrig.test`).
 ## Current status (2026-10-03)
 
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
-(36898140224); `main` pushed through entry 24 (`29ed1b5`). **Entries
-25–44 are uncommitted.** **The gap register is fully resolved** — all
+(36898140224). **Entries 25–44 committed** as 4 domain commits
+(`e728ba5` workflow+next 16.3.8 · `1392a36` builder fixes · `80ceed8`
+shop/web commerce hardening · `fd05ffc` docs) — working tree clean,
+**not pushed**. Entry 45: fencing `settlementToken` on webhook
+settlement (stolen-claim can't double-decrement, #286) +
+vercel-optimize scan (0 findings; metric audit blocked — repo isn't
+Vercel-linked). **The gap register is fully resolved** — all
 7 blocking items fixed (entries 30–32), every minor either fixed
 (entries 33–44: analytics funnel, C1 checkout address+country tax, C4
 reservations at scale, C5 wishlist staleness, C6 seed fidelity, C7 index
@@ -101,10 +106,9 @@ prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
 **Entry 44**: 3-reviewer code-review pass → webhook settlement hardened
 (stale-claim resume, orphan-order reuse, resumable decrement, snapshot
 discount counting, `charge.succeeded`), checkout 3DS-return + €0
-degrade + retry, shareId-update fix — **383 unit + 11 e2e green**.
-**Only Round A (commit split)
-and Round B (owner-keyed: Stripe e2e, Resend, Postgres migrate, Sentry,
-Plausible) remain.** Detail: `docs/buildmyrig-plan/18-progress-log.md`;
+degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
+**Only Round B (owner-keyed: Stripe e2e, Resend, Postgres migrate,
+Sentry, Plausible) + push remain.** Detail: `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
 ## Session log
@@ -112,7 +116,9 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–42 verbatim).
-Tests numbered cumulatively (#1–#285 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#286 + e2e; per-package counts in 05).
+
+39. **Entry 45** — **self-review catch + backlog committed**: brainstorming-check on entry 44 found a real residual — a *stalled* (not dead) settlement worker could double-decrement after a stale re-claim → **fencing `settlementToken`** field + per-line + final-settle CAS (#286); vercel-optimize scanner clean (0 findings / 1764 files; metric audit blocked — repo not Vercel-linked); **backlog committed** as 4 domain commits (`e728ba5`/`1392a36`/`80ceed8`/`fd05ffc`), tree clean, not pushed. 384 tests, all gates green.
 
 39. **Entry 44** — **3-reviewer code review → all FIX, all fixed**: pushed back the one false claim (drizzle `updateOne` `atomic:true` IS single-statement — verified in dist); shareId no longer rotates on update (#274–275); webhook settlement hardened — stale `processing` (>60 s) re-claimable, lost-claim bounded re-check runs post-steps, errors rethrow for Stripe retry, orphan-order reuse, `inventoryProgress`/`inventoryComplete` resumable decrement, `charge.succeeded` handled (#276–282); tx `discountCodeApplied`+`totalsSnapshot` snapshot + `maxUses` at increment (#283–284); checkout 3DS-return confirm, empty-cart + €0 degrade, single-method auto-select, confirm-retry button; cart totals access-locked, invalid-discount clear via `validateDiscount`, zero-qty lines dropped, case-insensitive country tax, `superseded` reservations, collection-aware access helpers, Retry-After on 429s, page/price clamp (#285), sitemap `?template=` dropped. **383 unit + 11 e2e**; lesson: e2e needs a dev-boot schema push first + `pnpm start` (prod), not dev.
 

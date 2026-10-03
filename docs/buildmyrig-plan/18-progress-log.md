@@ -2,6 +2,16 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-03 (45) — Self-review catch + fencing token; vercel-optimize scan; backlog committed
+
+**Brainstorming-check on entry 44** (bounded design review): found a real residual in my own settlement hardening — the stale-claim (>60 s) assumes the old worker is dead, but a merely-*stalled* worker resumes decrementing from its in-memory `startAt`, double-decrementing lines the re-claimer already did. Fixed with a **fencing token**: the claim writes `settlementToken` (hidden field), every decrement line re-asserts ownership via a CAS on it, and the final settle is conditional on still holding it — a stolen claim aborts instead of double-writing (#286). 
+
+**vercel-optimize**: the metric-backed audit is blocked (`not_linked` — no Vercel CLI or project; dev-first repo); the standalone codebase scanner ran clean — **0 findings across 1,764 files** on all 15 scanners (unoptimized images, force-dynamic, middleware matcher, prod source maps, oversized public assets, edge-heavy imports, turbo cache bypass, etc.).
+
+**Round A — backlog committed** (user go-ahead "do all"): the ~104-file backlog landed as 4 domain-scoped commits (the 8-way split's hunk-level staging wasn't feasible — several files span entries; the plan's documented fallback applied): `e728ba5` workflow layer + next 16.3.8 · `1392a36` builder/lib audit fixes · `80ceed8` shop+web commerce hardening · `fd05ffc` docs 25–44. Working tree clean. **Not pushed** (push not requested).
+
+**Gates**: 384 unit (plugin-shop 132: +1 #286) + 11 e2e, typecheck 6/6, lint 4/4, build OK.
+
 ## 2026-10-03 (44) — Code-review round: 3 parallel reviewers (all FIX) → hardening + minors
 
 Dispatched 3 read-only reviewers by domain (commerce/settlement, builder/seed, access/checkout). Verdicts all FIX. One claim **pushed back with evidence**: "drizzle `updateOne` CAS is SELECT-then-update" — false; installed `@payloadcms/drizzle@3.90.2` `updateOne.js` compiles `atomic:true` + joins-free where to a single `UPDATE … WHERE … RETURNING`, and all six CAS sites use field-only predicates.

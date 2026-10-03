@@ -19,6 +19,10 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   - A claim lost to `processing` waits (4×250 ms re-check) and runs
     post-steps if the competitor landed; `processing` older than 60 s is
     **re-claimable** (dead settlement resumes instead of wedging).
+  - **Fencing** (`settlementToken`, hidden field): the claim writes a
+    token; every decrement line + the final settle CAS on it — a
+    re-claimer stealing a still-alive worker makes the old worker abort
+    instead of double-decrementing (#286, entry 45).
   - Settlement errors **rethrow** → route 500s → Stripe retries; the
     retry resumes via the stale-claim window, orphan-order reuse
     (`transactions contains tx.id`), and the `inventoryProgress` marker

@@ -42,11 +42,15 @@ build green, `workflow:check` PASSED.
 
 ---
 
-## Round A — Commit the backlog (needs the user's go-ahead)
+## Round A — ✅ DONE (entry 45)
 
-**Outcome**: entries 25–44 land as reviewable commits; CI green.
+Committed as 4 domain-scoped commits (the 8-way split needed hunk-level
+staging on files shared across entries — the documented fallback applied):
+`e728ba5` workflow layer + next 16.3.8 · `1392a36` builder/lib audit fixes ·
+`80ceed8` shop+web commerce hardening · `fd05ffc` docs entries 25–44.
+Working tree clean; **not pushed** (push not requested).
 
-**Proposed split** (each independently green):
+<details><summary>Original split reference</summary>
 
 | # | Commit | Contents |
 |---|---|---|
@@ -66,6 +70,8 @@ build green, `workflow:check` PASSED.
 `line-item-hooks.ts`, `stripe-webhooks.ts`) — split by hunks
 (`git add -p`) or accept fewer, larger commits (A3+A4+A5 as one
 `feat(shop): checkout, discounts, shipping, tax, reservations`).
+
+</details>
 
 ---
 

@@ -38,8 +38,8 @@ build → `pnpm audit --prod --audit-level high`.
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 44, #1–#285 + 11 e2e)**: web 92 · plugin-shop 131 ·
-lib 68 · plugin-pc-builder 65 · plugin-pages 25 · ui 2 → **383 unit +
+**Test counts (entry 45, #1–#286 + 11 e2e)**: web 92 · plugin-shop 132 ·
+lib 68 · plugin-pc-builder 65 · plugin-pages 25 · ui 2 → **384 unit +
 11 e2e**. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
 
