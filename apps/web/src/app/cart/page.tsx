@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
+import { Price } from '@/components/ui/Price'
+import '../shop/shop.css'
+import './cart.css'
 
 type SubItem = {
   component?: string | { id?: string | number; name?: string }
@@ -50,63 +53,59 @@ export default function CartPage() {
     })
 
   return (
-    <main className="builder-page" style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Cart</h1>
+    <main className="cart-page">
+      <h1 className="page__title">Cart</h1>
       {!cart || (items.length === 0 && !isLoading) ? (
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          Your cart is empty. <Link href="/" style={{ color: 'var(--color-primary-hover)' }}>Browse products</Link>.
-        </p>
+        <div className="empty-state">
+          <p className="empty-state__title">Your cart is empty</p>
+          <p className="empty-state__desc">Browse the shop or configure a build to get started.</p>
+          <Link href="/shop" className="btn btn--primary">
+            Browse products
+          </Link>
+        </div>
       ) : (
-        <>
-          <div style={{ display: 'grid', gap: 12 }}>
+        <div className="cart-layout">
+          <ul className="cart-lines">
             {items.map((item) => {
               const composite = item.lineType === 'configured-build'
               const subItems = item.subItems ?? []
               const isOpen = expanded.has(item.id)
               return (
-                <div
-                  key={item.id}
-                  style={{
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 12,
-                    padding: 16,
-                    background: 'var(--color-surface)',
-                    display: 'grid',
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ flex: 1 }}>
+                <li key={item.id} className="cart-line">
+                  <div className="cart-line__row">
+                    <div className="cart-line__title">
                       <strong>{titleOf(item)}</strong>
                       {composite && (
-                        <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+                        <span className="cart-line__meta">
                           Configured build · {subItems.length} parts
-                        </div>
+                        </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => void decrementItem(item.id)}
-                        aria-label={`Decrease quantity of ${titleOf(item)}`}
-                        style={qtyBtn}
-                      >
-                        −
-                      </button>
-                      <span aria-label={`Quantity ${item.quantity}`}>{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => void incrementItem(item.id)}
-                        aria-label={`Increase quantity of ${titleOf(item)}`}
-                        style={qtyBtn}
-                      >
-                        +
-                      </button>
+                    <div className="cart-line__controls">
+                      <span className="qty-stepper">
+                        <button
+                          type="button"
+                          onClick={() => void decrementItem(item.id)}
+                          aria-label={`Decrease quantity of ${titleOf(item)}`}
+                        >
+                          −
+                        </button>
+                        <span className="qty-stepper__value" aria-label={`Quantity ${item.quantity}`}>
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void incrementItem(item.id)}
+                          aria-label={`Increase quantity of ${titleOf(item)}`}
+                        >
+                          +
+                        </button>
+                      </span>
                       <button
                         type="button"
                         onClick={() => void removeItem(item.id)}
                         aria-label={`Remove ${titleOf(item)}`}
-                        style={{ ...qtyBtn, color: 'var(--color-danger)' }}
+                        className="cart-line__remove"
                       >
                         Remove
                       </button>
@@ -123,49 +122,32 @@ export default function CartPage() {
                     </div>
                   </div>
                   {composite && isOpen && (
-                    <ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 4 }}>
+                    <ul className="cart-line__parts">
                       {subItems.map((s, i) => (
-                        <li key={i} style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
+                        <li key={i}>
                           {subItemName(s)} × {s.quantity ?? 1}
                         </li>
                       ))}
                     </ul>
                   )}
-                </div>
+                </li>
               )
             })}
-          </div>
-          <div
-            style={{
-              marginTop: 24,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 16,
-              flexWrap: 'wrap',
-            }}
-          >
-            <span style={{ fontSize: 20, fontWeight: 700 }}>
-              Subtotal: €{(subtotal / 100).toFixed(2)}
-            </span>
-            <Link href="/checkout" className="btn btn--primary">
+          </ul>
+          <aside className="cart-summary" aria-label="Order summary">
+            <div className="cart-summary__row cart-summary__row--total">
+              <span>Subtotal</span>
+              <Price cents={subtotal} />
+            </div>
+            <Link href="/checkout" className="btn btn--primary btn--full">
               Checkout
             </Link>
-          </div>
-          <p className="state-msg" style={{ marginTop: 12 }}>
-            Configured builds are re-validated against current compatibility rules and prices at checkout.
-          </p>
-        </>
+            <p className="cart-summary__note">
+              Configured builds are re-validated against current compatibility rules and prices at checkout.
+            </p>
+          </aside>
+        </div>
       )}
     </main>
   )
 }
-
-const qtyBtn = {
-  padding: '6px 12px',
-  borderRadius: 6,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-surface-raised)',
-  color: 'var(--color-text)',
-  cursor: 'pointer',
-} as const

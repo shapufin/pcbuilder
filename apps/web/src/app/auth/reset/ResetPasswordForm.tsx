@@ -4,15 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
-
-const input: React.CSSProperties = {
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 15,
-}
+import '../auth.css'
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter()
@@ -63,30 +55,27 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   if (!token) {
     return (
-      <main style={{ maxWidth: 460, margin: '0 auto', padding: '64px 24px' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>Reset link incomplete</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: '0 0 24px' }}>
-          This page needs the reset link from your email.
-        </p>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
-          <Link href="/auth/forgot" style={{ color: 'var(--color-primary-hover)' }}>
-            Request a new link
-          </Link>
+      <main className="auth-page">
+        <h1 className="auth-page__title">Reset link incomplete</h1>
+        <p className="auth-page__lead">This page needs the reset link from your email.</p>
+        <p className="auth-page__foot">
+          <Link href="/auth/forgot">Request a new link</Link>
         </p>
       </main>
     )
   }
 
   return (
-    <main style={{ maxWidth: 460, margin: '0 auto', padding: '64px 24px' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>Set a new password</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: '0 0 24px' }}>
-        The link expires 1 hour after it was requested and can be used once.
-      </p>
-      <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          New password
+    <main className="auth-page">
+      <h1 className="auth-page__title">Set a new password</h1>
+      <p className="auth-page__lead">The link expires 1 hour after it was requested and can be used once.</p>
+      <form onSubmit={submit} className="auth-form">
+        <div className="field">
+          <label htmlFor="reset-password" className="field__label">
+            New password
+          </label>
           <input
+            id="reset-password"
             type="password"
             required
             minLength={8}
@@ -94,12 +83,15 @@ export function ResetPasswordForm({ token }: { token: string }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
-            style={input}
+            className="input"
           />
-        </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          Confirm password
+        </div>
+        <div className="field">
+          <label htmlFor="reset-confirm" className="field__label">
+            Confirm password
+          </label>
           <input
+            id="reset-confirm"
             type="password"
             required
             minLength={8}
@@ -107,35 +99,20 @@ export function ResetPasswordForm({ token }: { token: string }) {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="Repeat the password"
-            style={input}
+            className="input"
           />
-        </label>
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            padding: '12px 22px',
-            borderRadius: 10,
-            border: 0,
-            background: 'var(--color-primary-strong)',
-            color: 'var(--color-on-primary)',
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: busy ? 'wait' : 'pointer',
-          }}
-        >
+        </div>
+        <button type="submit" disabled={busy} className="btn btn--primary btn--full">
           {busy ? 'Saving…' : 'Set password'}
         </button>
       </form>
       {error ? (
-        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 14, marginTop: 14 }}>
+        <p role="alert" className="auth-form__error">
           {error}
         </p>
       ) : null}
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 24 }}>
-        <Link href="/auth/login" style={{ color: 'var(--color-primary-hover)' }}>
-          Back to sign in
-        </Link>
+      <p className="auth-page__foot">
+        <Link href="/auth/login">Back to sign in</Link>
       </p>
     </main>
   )

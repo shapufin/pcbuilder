@@ -2,9 +2,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
-import { AddToCartButton } from './AddToCartButton'
+import { mediaDoc, pickMedia } from '@/lib/media'
 import { ViewItemTracker } from './ViewItemTracker'
 import { WishlistButton } from '@/components/WishlistButton'
+import { ProductGallery } from './ProductGallery'
+import { VariantPicker } from './VariantPicker'
+import './product.css'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -30,6 +33,7 @@ export default async function ProductPage({ params }: Props) {
     collection: 'variants',
     where: { product: { equals: product.id } },
     limit: 10,
+    depth: 1,
   })
   const specs = (product as { specsJson?: Record<string, unknown> | null }).specsJson
   // plugin-ecommerce `inventory: true` adds `inventory` to variants; null =
@@ -41,58 +45,73 @@ export default async function ProductPage({ params }: Props) {
       return inv == null || inv > 0
     })
 
+  const gallery = Array.isArray(product.gallery) ? product.gallery : []
+  const images = gallery
+    .map((m) => pickMedia(mediaDoc(m), 'gallery', product.title))
+    .filter((m): m is NonNullable<typeof m> => m !== null)
+
+  const pickerVariants = variants.docs.map((v) => {
+    const options = Array.isArray((v as { options?: unknown[] }).options)
+      ? ((v as { options: unknown[] }).options
+          .map((o) => (typeof o === 'object' && o !== null ? (o as { label?: string }).label : null))
+          .filter(Boolean) as string[])
+      : []
+    return {
+      id: v.id,
+      label: options.length > 0 ? options.join(' / ') : (v as { title?: string | null }).title || 'Standard',
+      priceInEUR: (v as { priceInEUR?: number | null }).priceInEUR,
+      inventory: (v as { inventory?: number | null }).inventory,
+    }
+  })
+
   return (
-    <main style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
-      <nav style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
-        <Link href="/" style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Home</Link>
+    <main className="pdp">
+      <nav className="pdp__breadcrumb" aria-label="Breadcrumb">
+        <Link href="/">Home</Link>
         {product.category && typeof product.category === 'object' && (
           <>
-            {' / '}
-            <Link href={`/shop/${product.category.slug}`} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
-              {product.category.title}
-            </Link>
+            <span aria-hidden="true">/</span>
+            <Link href={`/shop/${product.category.slug}`}>{product.category.title}</Link>
           </>
         )}
       </nav>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40 }}>
+      <div className="pdp__layout">
         <section>
-          <h1 style={{ fontSize: 36, fontWeight: 800, marginBottom: 8 }}>{product.title}</h1>
+          <ProductGallery images={images} />
+          <h1 className="pdp__title">{product.title}</h1>
           {product.brand && typeof product.brand === 'object' && (
-            <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>{product.brand.name}</p>
+            <p className="pdp__brand">{product.brand.name}</p>
           )}
-          <p style={{ color: 'var(--color-border-strong)', lineHeight: 1.6, marginBottom: 32 }}>{product.description}</p>
+          <p className="pdp__desc">{product.description}</p>
 
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Specifications</h2>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <h2 className="pdp__specs-title">Specifications</h2>
+          <table className="spec-table">
             <tbody>
               {specs
                 ? Object.entries(specs).map(([k, v]) => (
-                    <tr key={k} style={{ borderBottom: '1px solid var(--color-surface)' }}>
-                      <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)', width: '40%' }}>{k}</td>
-                      <td style={{ padding: '8px 12px' }}>{String(v)}</td>
+                    <tr key={k}>
+                      <th scope="row">{k}</th>
+                      <td>{String(v)}</td>
                     </tr>
                   ))
                 : (
                     <tr>
-                      <td style={{ padding: '8px 12px', color: 'var(--color-text-muted)' }}>No specs listed.</td>
+                      <td>No specs listed.</td>
                     </tr>
                   )}
             </tbody>
           </table>
         </section>
 
-        <aside style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 24, background: 'var(--color-bg)', alignSelf: 'start' }}>
-          <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-primary-hover)', marginBottom: 4 }}>{formatPrice(product as never)}</p>
-          <p style={{ color: inStock ? 'var(--color-text-muted)' : 'var(--color-danger)', fontSize: 13, marginBottom: 4 }}>
-            {inStock ? 'In stock' : 'Out of stock'}
-          </p>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 16 }}>VAT included. Shipping calculated at checkout.</p>
-          <AddToCartButton
+        <aside className="buy-box">
+          <VariantPicker
             productId={product.id}
-            variantId={variants.docs[0]?.id}
-            label={product.title}
+            productTitle={product.title}
+            fallbackPriceCents={(product as { priceInEUR?: number | null }).priceInEUR ?? 0}
+            variants={pickerVariants}
           />
+          <p className="buy-box__tax">VAT included. Shipping calculated at checkout.</p>
           <WishlistButton
             item={{
               id: String(product.id),
@@ -102,17 +121,7 @@ export default async function ProductPage({ params }: Props) {
             }}
           />
           {Boolean((product as { isComponent?: boolean | null }).isComponent) && (
-            <Link
-              href="/builder"
-              style={{
-                display: 'block',
-                marginTop: 16,
-                color: 'var(--color-primary-hover)',
-                fontSize: 14,
-                textAlign: 'center',
-                textDecoration: 'none',
-              }}
-            >
+            <Link href="/builder" className="buy-box__builder-link">
               Available in the PC Builder →
             </Link>
           )}

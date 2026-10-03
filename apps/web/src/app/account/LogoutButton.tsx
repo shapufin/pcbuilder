@@ -27,16 +27,7 @@ export function LogoutButton() {
       type="button"
       onClick={() => void logout()}
       disabled={busy}
-      style={{
-        padding: '9px 18px',
-        borderRadius: 10,
-        border: '1px solid var(--color-border)',
-        background: 'transparent',
-        color: 'var(--color-border-strong)',
-        fontSize: 14,
-        fontWeight: 600,
-        cursor: busy ? 'wait' : 'pointer',
-      }}
+      className="btn btn--secondary btn--sm"
     >
       {busy ? 'Signing out…' : 'Sign out'}
     </button>

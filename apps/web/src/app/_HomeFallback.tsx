@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { getPayloadClient, formatPrice } from '@/lib/shop'
+import { getPayloadClient } from '@/lib/shop'
+import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
+import './shop/shop.css'
 
 /**
  * Legacy Phase-1 homepage — used when no published page has isHomepage=true.
@@ -9,54 +11,37 @@ export async function HomeFallback() {
   const payload = await getPayloadClient()
   const [categories, products] = await Promise.all([
     payload.find({ collection: 'categories', limit: 20, sort: 'title' }),
-    payload.find({ collection: 'products', where: { _status: { equals: 'published' } }, limit: 8, sort: 'createdAt' }),
+    payload.find({ collection: 'products', where: { _status: { equals: 'published' } }, limit: 8, sort: '-createdAt', depth: 1 }),
   ])
 
   return (
-    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px' }}>
-      <section style={{ textAlign: 'center', marginBottom: 64 }}>
-        <h1 style={{ fontSize: 48, fontWeight: 800, marginBottom: 12 }}>Build your perfect rig</h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: 18, marginBottom: 24 }}>
+    <main className="page">
+      <section className="home-hero">
+        <h1 className="home-hero__title">Build your perfect rig</h1>
+        <p className="home-hero__sub">
           Pre-built gaming and creator PCs, or configure your own — step by step.
         </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-          <Link href="/builder" style={ctaPrimary}>Open the builder</Link>
-          <Link href="/shop" style={ctaSecondary}>Browse components</Link>
+        <div className="home-hero__ctas">
+          <Link href="/builder" className="btn btn--primary btn--lg">Open the builder</Link>
+          <Link href="/shop" className="btn btn--secondary btn--lg">Browse components</Link>
         </div>
       </section>
 
-      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Categories</h2>
-      <div style={grid}>
+      <h2 className="page__section-title">Categories</h2>
+      <div className="category-grid">
         {categories.docs.map((cat) => (
-          <Link key={cat.id} href={`/shop/${cat.slug}`} style={card}>
-            <strong>{cat.title}</strong>
+          <Link key={cat.id} href={`/shop/${cat.slug}`} className="category-card">
+            <span className="category-card__title">{cat.title}</span>
           </Link>
         ))}
       </div>
 
-      <h2 style={{ fontSize: 24, fontWeight: 700, margin: '48px 0 16px' }}>Latest products</h2>
-      <div style={grid}>
+      <h2 className="page__section-title page__section-title--gap">Latest products</h2>
+      <ProductCardGrid cols={4}>
         {products.docs.map((p) => (
-          <Link key={p.id} href={`/product/${p.slug}`} style={card}>
-            <strong>{p.title}</strong>
-            <span style={{ color: 'var(--color-primary-hover)' }}>{formatPrice(p as never)}</span>
-          </Link>
+          <ProductCard key={p.id} product={p} />
         ))}
-      </div>
+      </ProductCardGrid>
     </main>
   )
 }
-
-const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 } as const
-const card = {
-  border: '1px solid var(--color-surface)', borderRadius: 12, padding: 20, color: 'var(--color-text)',
-  textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--color-bg)',
-} as const
-const ctaPrimary = {
-  padding: '12px 24px', borderRadius: 8, background: 'var(--color-primary-strong)', color: 'var(--color-on-primary)',
-  fontWeight: 600, textDecoration: 'none',
-} as const
-const ctaSecondary = {
-  padding: '12px 24px', borderRadius: 8, background: 'var(--color-surface)', color: 'var(--color-text)',
-  fontWeight: 600, textDecoration: 'none',
-} as const

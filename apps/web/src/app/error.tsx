@@ -6,16 +6,16 @@ import Link from 'next/link'
 // parked owner item; without it the boundary degrades to retry + navigation.
 export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '64px 24px', textAlign: 'center' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12 }}>Something went wrong</h1>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: 32 }}>
+    <main className="status-page">
+      <h1 className="status-page__title">Something went wrong</h1>
+      <p className="status-page__desc">
         An unexpected error occurred. You can retry or head back to the homepage.
       </p>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <div className="status-page__actions">
         <button type="button" className="btn btn--primary" onClick={reset}>
           Try again
         </button>
-        <Link href="/" className="btn" style={{ textDecoration: 'none' }}>
+        <Link href="/" className="btn">
           Back to homepage
         </Link>
       </div>

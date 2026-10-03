@@ -46,7 +46,7 @@ export function StripePaymentForm({ onPaid, disabled }: { onPaid: () => void; di
       <button type="submit" disabled={!stripe || !elements || busy || disabled} style={payBtn}>
         {busy ? 'Processing…' : 'Pay now'}
       </button>
-      {error && <p style={{ color: 'var(--color-danger)', marginTop: 12 }}>{error}</p>}
+      {error && <p className="state-msg state-msg--error">{error}</p>}
     </form>
   )
 }

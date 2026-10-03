@@ -5,15 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { sanitizeNext } from '@/lib/auth'
-
-const input: React.CSSProperties = {
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 15,
-}
+import '../auth.css'
 
 const login = async (email: string, password: string): Promise<boolean> => {
   const res = await fetch('/api/users/login', {
@@ -73,27 +65,31 @@ export function RegisterForm({ next }: { next?: string }) {
   }
 
   return (
-    <main style={{ maxWidth: 460, margin: '0 auto', padding: '64px 24px' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>Create account</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: '0 0 24px' }}>
-        Save builds, track orders and check out faster.
-      </p>
-      <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          Email
+    <main className="auth-page">
+      <h1 className="auth-page__title">Create account</h1>
+      <p className="auth-page__lead">Save builds, track orders and check out faster.</p>
+      <form onSubmit={submit} className="auth-form">
+        <div className="field">
+          <label htmlFor="register-email" className="field__label">
+            Email
+          </label>
           <input
+            id="register-email"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            style={input}
+            className="input"
           />
-        </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          Password
+        </div>
+        <div className="field">
+          <label htmlFor="register-password" className="field__label">
+            Password
+          </label>
           <input
+            id="register-password"
             type="password"
             required
             minLength={8}
@@ -101,36 +97,24 @@ export function RegisterForm({ next }: { next?: string }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 8 characters"
-            style={input}
+            className="input"
+            aria-describedby="register-password-hint"
           />
-        </label>
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            padding: '12px 22px',
-            borderRadius: 10,
-            border: 0,
-            background: 'var(--color-primary-strong)',
-            color: 'var(--color-on-primary)',
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: busy ? 'wait' : 'pointer',
-          }}
-        >
+          <p className="field__hint" id="register-password-hint">
+            Minimum 8 characters.
+          </p>
+        </div>
+        <button type="submit" disabled={busy} className="btn btn--primary btn--full">
           {busy ? 'Creating…' : 'Create account'}
         </button>
       </form>
       {error ? (
-        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 14, marginTop: 14 }}>
+        <p role="alert" className="auth-form__error">
           {error}
         </p>
       ) : null}
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 24 }}>
-        Already have an account?{' '}
-        <Link href="/auth/login" style={{ color: 'var(--color-primary-hover)' }}>
-          Sign in
-        </Link>
+      <p className="auth-page__foot">
+        Already have an account? <Link href="/auth/login">Sign in</Link>
       </p>
     </main>
   )

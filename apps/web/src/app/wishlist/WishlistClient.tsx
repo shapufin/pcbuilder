@@ -38,13 +38,13 @@ export function WishlistClient() {
 
   if (items.length === 0) {
     return (
-      <p style={{ color: 'var(--color-text-muted)' }}>
-        Nothing saved yet — browse the{' '}
-        <Link href="/shop" style={{ color: 'var(--color-primary-hover)' }}>
-          shop
-        </Link>{' '}
-        and hit “Save to wishlist” on a product.
-      </p>
+      <div className="empty-state">
+        <p className="empty-state__title">Nothing saved yet</p>
+        <p className="empty-state__desc">Browse the shop and hit “Save to wishlist” on a product.</p>
+        <Link href="/shop" className="btn btn--primary">
+          Browse the shop
+        </Link>
+      </div>
     )
   }
 
@@ -53,90 +53,43 @@ export function WishlistClient() {
   return (
     <>
       {staleCount > 0 && (
-        <div
-          role="status"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            marginBottom: 12,
-            padding: '10px 14px',
-            borderRadius: 10,
-            border: '1px solid var(--color-warning)',
-            color: 'var(--color-warning)',
-            fontSize: 14,
-          }}
-        >
+        <div role="status" className="wishlist-stale">
           <span>
             {staleCount === 1 ? '1 saved item is' : `${staleCount} saved items are`} no longer available.
           </span>
           <button
             type="button"
+            className="btn btn--secondary btn--sm"
             onClick={() => items.filter((i) => staleIds.includes(i.id)).forEach((i) => remove(i.id))}
-            style={{
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              color: 'var(--color-text-muted)',
-              borderRadius: 8,
-              padding: '4px 10px',
-              fontSize: 13,
-              cursor: 'pointer',
-            }}
           >
             Remove unavailable
           </button>
         </div>
       )}
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
+      <ul className="list">
         {items.map((item) => {
           const stale = staleIds.includes(item.id)
           return (
-            <li
-              key={item.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 16,
-                alignItems: 'center',
-                padding: '12px 16px',
-                border: '1px solid var(--color-surface)',
-                borderRadius: 10,
-                background: 'var(--color-bg)',
-                opacity: stale ? 0.6 : 1,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
+            <li key={item.id} className={`list-card${stale ? ' list-card--stale' : ''}`}>
+              <div>
                 {stale ? (
-                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, fontSize: 15 }}>{item.title}</span>
+                  <span className="list-card__title list-card__title--stale">{item.title}</span>
                 ) : (
-                  <Link href={`/product/${item.slug}`} style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+                  <Link href={`/product/${item.slug}`} className="list-card__title">
                     {item.title}
                   </Link>
                 )}
-                <div style={{ color: stale ? 'var(--color-text-muted)' : 'var(--color-primary-hover)', fontSize: 13, marginTop: 2 }}>
+                <div className="list-card__meta">
                   {stale ? 'No longer available' : item.priceText}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+              <div className="list-card__actions">
                 {!stale && (
-                  <Link href={`/product/${item.slug}`} style={{ color: 'var(--color-primary-hover)', fontSize: 14 }}>
+                  <Link href={`/product/${item.slug}`} className="btn btn--secondary btn--sm">
                     View
                   </Link>
                 )}
-                <button
-                  type="button"
-                  onClick={() => remove(item.id)}
-                  style={{
-                    border: '1px solid var(--color-border)',
-                    background: 'transparent',
-                    color: 'var(--color-text-muted)',
-                    borderRadius: 8,
-                    padding: '4px 10px',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                  }}
-                >
+                <button type="button" onClick={() => remove(item.id)} className="btn btn--ghost btn--sm">
                   Remove
                 </button>
               </div>

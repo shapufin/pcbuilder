@@ -17,27 +17,23 @@ export default async function NotFound() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '64px 24px', textAlign: 'center' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12 }}>Page not found</h1>
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: 32 }}>
+    <main className="status-page">
+      <h1 className="status-page__title">Page not found</h1>
+      <p className="status-page__desc">
         The page you are looking for does not exist or has moved.
       </p>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 32 }}>
-        <Link href="/shop/search" className="btn btn--primary" style={{ textDecoration: 'none' }}>
+      <div className="status-page__actions">
+        <Link href="/shop/search" className="btn btn--primary">
           Search products
         </Link>
-        <Link href="/shop" className="btn" style={{ textDecoration: 'none' }}>
+        <Link href="/shop" className="btn">
           Browse the shop
         </Link>
       </div>
       {categories.length > 0 && (
-        <nav aria-label="Popular categories" style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <nav aria-label="Popular categories" className="status-page__links">
           {categories.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/shop/${c.slug}`}
-              style={{ color: 'var(--color-text-muted)', textDecoration: 'none', textTransform: 'capitalize' }}
-            >
+            <Link key={c.slug} href={`/shop/${c.slug}`}>
               {c.title}
             </Link>
           ))}

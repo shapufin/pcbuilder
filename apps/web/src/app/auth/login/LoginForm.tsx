@@ -5,15 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { sanitizeNext } from '@/lib/auth'
-
-const input: React.CSSProperties = {
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg)',
-  color: 'var(--color-text)',
-  fontSize: 15,
-}
+import '../auth.css'
 
 export function LoginForm({ next }: { next?: string }) {
   const router = useRouter()
@@ -52,74 +44,54 @@ export function LoginForm({ next }: { next?: string }) {
   }
 
   return (
-    <main style={{ maxWidth: 460, margin: '0 auto', padding: '64px 24px' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 6px' }}>Sign in</h1>
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, margin: '0 0 24px' }}>
-        Access your orders and saved builds.
-      </p>
-      <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          Email
+    <main className="auth-page">
+      <h1 className="auth-page__title">Sign in</h1>
+      <p className="auth-page__lead">Access your orders and saved builds.</p>
+      <form onSubmit={submit} className="auth-form">
+        <div className="field">
+          <label htmlFor="login-email" className="field__label">
+            Email
+          </label>
           <input
+            id="login-email"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            style={input}
+            className="input"
           />
-        </label>
-        <label style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--color-border-strong)' }}>
-          Password
+        </div>
+        <div className="field">
+          <div className="field__label-row">
+            <label htmlFor="login-password" className="field__label">
+              Password
+            </label>
+            <Link href="/auth/forgot">Forgot password?</Link>
+          </div>
           <input
+            id="login-password"
             type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            style={input}
+            className="input"
           />
-          <Link
-            href="/auth/forgot"
-            style={{
-              color: 'var(--color-primary-hover)',
-              fontSize: 13,
-              justifySelf: 'end',
-              marginTop: -2,
-            }}
-          >
-            Forgot password?
-          </Link>
-        </label>
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            padding: '12px 22px',
-            borderRadius: 10,
-            border: 0,
-            background: 'var(--color-primary-strong)',
-            color: 'var(--color-on-primary)',
-            fontWeight: 700,
-            fontSize: 15,
-            cursor: busy ? 'wait' : 'pointer',
-          }}
-        >
+        </div>
+        <button type="submit" disabled={busy} className="btn btn--primary btn--full">
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
       {error ? (
-        <p role="alert" style={{ color: 'var(--color-danger)', fontSize: 14, marginTop: 14 }}>
+        <p role="alert" className="auth-form__error">
           {error}
         </p>
       ) : null}
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 14, marginTop: 24 }}>
-        New here?{' '}
-        <Link href="/auth/register" style={{ color: 'var(--color-primary-hover)' }}>
-          Create an account
-        </Link>
+      <p className="auth-page__foot">
+        New here? <Link href="/auth/register">Create an account</Link>
       </p>
     </main>
   )

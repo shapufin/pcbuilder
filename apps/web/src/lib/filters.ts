@@ -1,8 +1,7 @@
 import type { Where } from 'payload'
+import { formatEUR } from '@/components/ui/Price'
 
-const eur = (cents: number): string => `€${(cents / 100).toFixed(2)}`
-
-export const formatPrice = (product: { priceInEUR?: number | null }): string => eur(product.priceInEUR ?? 0)
+export const formatPrice = (product: { priceInEUR?: number | null }): string => formatEUR(product.priceInEUR ?? 0)
 
 export const productFilters = (searchParams: Record<string, string | string[] | undefined>): {
   and: Where[]

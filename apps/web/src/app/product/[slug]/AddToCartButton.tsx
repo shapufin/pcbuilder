@@ -42,16 +42,7 @@ export function AddToCartButton({
     <button
       onClick={onAdd}
       disabled={state === 'busy'}
-      style={{
-        width: '100%',
-        padding: '12px 0',
-        borderRadius: 8,
-        border: 'none',
-        background: state === 'done' ? 'var(--color-success-strong)' : 'var(--color-primary-strong)',
-        color: 'var(--color-on-primary)',
-        fontWeight: 600,
-        cursor: state === 'busy' ? 'wait' : 'pointer',
-      }}
+      className={`btn btn--full ${state === 'done' ? 'btn--success' : 'btn--primary'}`}
     >
       {state === 'busy' ? 'Adding…' : state === 'done' ? 'Added to cart ✓' : state === 'error' ? 'Failed — retry' : 'Add to cart'}
     </button>

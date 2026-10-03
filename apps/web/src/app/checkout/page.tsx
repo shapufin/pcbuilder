@@ -7,7 +7,10 @@ import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { track } from '@/lib/analytics'
 import { validateShippingAddress, type ShippingAddressInput } from '@/lib/checkout'
+import { Price } from '@/components/ui/Price'
 import { StripePaymentForm } from './StripePaymentForm'
+import '../shop/shop.css'
+import './checkout.css'
 
 type Item = {
   id: string
@@ -241,180 +244,182 @@ export default function CheckoutPage() {
   // checkout — nothing should be chargeable.
   if (!cart || items.length === 0) {
     return (
-      <main style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px' }}>
-        <p style={{ color: 'var(--color-text-muted)' }}>Your cart is empty.</p>
+      <main className="checkout-page checkout-page--narrow">
+        <div className="empty-state">
+          <p className="empty-state__title">Your cart is empty</p>
+          <Link href="/shop" className="btn btn--primary">
+            Browse products
+          </Link>
+        </div>
       </main>
     )
   }
 
   return (
-    <main style={{ maxWidth: 600, margin: '0 auto', padding: '48px 24px' }}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 24 }}>Checkout</h1>
+    <main className="checkout-page">
+      <h1 className="page__title">Checkout</h1>
       {!hasStripe ? (
-        <p style={{ color: 'var(--color-warning)' }}>
+        <p className="checkout-msg checkout-msg--warn">
           Stripe is not configured. Set <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and <code>STRIPE_SECRET_KEY</code> in your
           environment to enable card payments.
         </p>
       ) : state === 'done' ? (
-        <p style={{ color: 'var(--color-success)' }}>✓ {message || 'Order confirmed.'}</p>
+        <div className="empty-state" role="status">
+          <p className="empty-state__title">✓ {message || 'Order confirmed.'}</p>
+          <Link href="/shop" className="btn btn--primary">
+            Continue shopping
+          </Link>
+        </div>
       ) : (
-        <>
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8, marginBottom: 16 }}>
-            {items.map((item) => (
-              <li
-                key={item.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  border: '1px solid var(--color-surface)',
-                  borderRadius: 8,
-                  padding: '10px 14px',
-                  background: 'var(--color-surface)',
-                }}
-              >
-                <span>
-                  {titleOf(item)}
-                  {item.lineType === 'configured-build' && (item.subItems?.length ?? 0) > 0 && (
-                    <span style={{ color: 'var(--color-text-muted)' }}> · {item.subItems!.length} parts</span>
-                  )}
-                </span>
-                <span style={{ color: 'var(--color-text-muted)' }}>× {item.quantity}</span>
-              </li>
-            ))}
-          </ul>
-          <div style={{ display: 'grid', gap: 4, marginBottom: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text)' }}>Subtotal</span>
-              <span style={{ color: 'var(--color-text)' }}>€{(subtotal / 100).toFixed(2)}</span>
-            </div>
-            {discountTotal > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-success)' }}>
-                  Discount{appliedCode ? ` (${appliedCode})` : ''}
-                </span>
-                <span style={{ color: 'var(--color-success)' }}>−€{(discountTotal / 100).toFixed(2)}</span>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text)' }}>Shipping</span>
-              <span style={{ color: 'var(--color-text)' }}>
-                {shippingTotal > 0 ? `€${(shippingTotal / 100).toFixed(2)}` : 'Free'}
-              </span>
-            </div>
-            {taxTotal > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>incl. VAT</span>
-                <span style={{ color: 'var(--color-text-muted)' }}>€{(taxTotal / 100).toFixed(2)}</span>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-              <span style={{ color: 'var(--color-text)' }}>Total</span>
-              <span style={{ color: 'var(--color-text)' }}>€{(total / 100).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <input
-              aria-label="Discount code"
-              type="text"
-              value={discountInput}
-              onChange={(e) => setDiscountInput(e.target.value)}
-              placeholder="Discount code"
-              disabled={state !== 'idle' || applyingDiscount}
-              style={{ ...emailInput, marginBottom: 0, flex: 1 }}
-            />
-            <button
-              onClick={applyDiscount}
-              disabled={state !== 'idle' || applyingDiscount || !discountInput.trim()}
-              style={{ ...payBtn, background: 'var(--color-surface)', color: 'var(--color-text)' }}
-            >
-              {applyingDiscount ? 'Applying…' : 'Apply'}
-            </button>
-          </div>
-          {discountMsg && (
-            <p style={{ color: discountMsg === 'Discount applied.' ? 'var(--color-success)' : 'var(--color-danger)', marginBottom: 16 }}>
-              {discountMsg}
-            </p>
-          )}
-          <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
-            Payment method: <strong>Card (Stripe)</strong>
-          </p>
-
-          {paymentIntent && elementsOptions ? (            <Elements stripe={stripePromise} options={elementsOptions}>
-              <StripePaymentForm onPaid={finalize} disabled={state === 'confirming'} />
-            </Elements>
-          ) : isFree ? (
-            <p style={{ color: 'var(--color-text-muted)' }}>
-              Your total is €0 — free orders can&apos;t be placed through card checkout yet. Contact
-              sales and we&apos;ll complete it manually.
-            </p>
-          ) : (
-            <>
-              <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
-                <legend style={{ color: 'var(--color-text)', fontWeight: 600, marginBottom: 10 }}>
-                  Shipping address
-                </legend>
-                {ADDRESS_FIELDS.map((f) => (
-                  <div key={f.name} style={f.half ? { display: 'inline-block', width: 'calc(50% - 6px)' } : undefined}>
-                    <label htmlFor={`checkout-${f.name}`} style={{ display: 'block', color: 'var(--color-text)', marginBottom: 6 }}>
-                      {f.label}
-                      {f.required && <span aria-hidden="true"> *</span>}
-                    </label>
-                    <input
-                      id={`checkout-${f.name}`}
-                      name={f.name}
-                      required={f.required}
-                      autoComplete={f.autoComplete}
-                      value={address[f.name] ?? ''}
-                      onChange={(e) => setAddress((prev) => ({ ...prev, [f.name]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      style={{ ...emailInput, marginRight: f.half ? 6 : 0 }}
-                    />
+        <div className="checkout-layout">
+          <div className="checkout-form">
+            {paymentIntent && elementsOptions ? (
+              <Elements stripe={stripePromise} options={elementsOptions}>
+                <StripePaymentForm onPaid={finalize} disabled={state === 'confirming'} />
+              </Elements>
+            ) : isFree ? (
+              <p className="checkout-msg checkout-msg--muted">
+                Your total is €0 — free orders can&apos;t be placed through card checkout yet. Contact
+                sales and we&apos;ll complete it manually.
+              </p>
+            ) : (
+              <>
+                <fieldset className="checkout-form__section">
+                  <legend className="checkout-form__legend">Shipping address</legend>
+                  <div className="address-grid">
+                    {ADDRESS_FIELDS.map((f) => (
+                      <div key={f.name} className={`field${f.half ? '' : ' field--full'}`}>
+                        <label htmlFor={`checkout-${f.name}`} className="field__label">
+                          {f.label}
+                          {f.required && <span aria-hidden="true"> *</span>}
+                        </label>
+                        <input
+                          id={`checkout-${f.name}`}
+                          name={f.name}
+                          required={f.required}
+                          autoComplete={f.autoComplete}
+                          value={address[f.name] ?? ''}
+                          onChange={(e) => setAddress((prev) => ({ ...prev, [f.name]: e.target.value }))}
+                          placeholder={f.placeholder}
+                          className="input"
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </fieldset>
-              <label htmlFor="checkout-email" style={{ display: 'block', color: 'var(--color-text)', marginBottom: 6 }}>
-                Email for order confirmation
-              </label>
-              <input
-                id="checkout-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                style={emailInput}
-              />
-              <button onClick={startPayment} disabled={state === 'initiating'} style={payBtn}>
-                {state === 'initiating' ? 'Preparing payment…' : 'Continue to payment'}
+                </fieldset>
+                <div className="field">
+                  <label htmlFor="checkout-email" className="field__label">
+                    Email for order confirmation
+                  </label>
+                  <input
+                    id="checkout-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="input"
+                  />
+                </div>
+                <button type="button" onClick={startPayment} disabled={state === 'initiating'} className="btn btn--primary">
+                  {state === 'initiating' ? 'Preparing payment…' : 'Continue to payment'}
+                </button>
+              </>
+            )}
+            <div aria-live="polite">
+              {state === 'confirming' && <p className="checkout-msg checkout-msg--muted">Confirming order…</p>}
+              {state === 'error' && <p className="checkout-msg checkout-msg--err" role="alert">{message}</p>}
+            </div>
+            {/* M3: a failed confirmOrder (network blip after Stripe succeeded)
+                must be retryable — the charge exists, only the order record lags. */}
+            {state === 'error' && paymentIntent?.paymentIntentID && (
+              <button type="button" onClick={finalize} className="btn btn--secondary">
+                Retry order confirmation
               </button>
-            </>
-          )}
-          {state === 'confirming' && <p style={{ color: 'var(--color-text-muted)', marginTop: 12 }}>Confirming order…</p>}
-          {state === 'error' && <p style={{ color: 'var(--color-danger)', marginTop: 12 }}>{message}</p>}
-          {/* M3: a failed confirmOrder (network blip after Stripe succeeded)
-              must be retryable — the charge exists, only the order record lags. */}
-          {state === 'error' && paymentIntent?.paymentIntentID && (
-            <button onClick={finalize} style={{ ...payBtn, marginTop: 12 }}>
-              Retry order confirmation
-            </button>
-          )}
-          <p style={{ marginTop: 16 }}>
-            <Link href="/cart" style={{ color: 'var(--color-primary-hover)' }}>
-              Back to cart
-            </Link>
-          </p>
-        </>
+            )}
+            <p className="checkout-msg checkout-msg--muted">
+              <Link href="/cart">← Back to cart</Link>
+            </p>
+          </div>
+
+          <aside className="order-summary" aria-label="Order summary">
+            <ul className="order-summary__lines">
+              {items.map((item) => (
+                <li key={item.id} className="order-summary__line">
+                  <span>
+                    {titleOf(item)}
+                    {item.lineType === 'configured-build' && (item.subItems?.length ?? 0) > 0 && (
+                      <span className="order-summary__line-qty"> · {item.subItems!.length} parts</span>
+                    )}
+                  </span>
+                  <span className="order-summary__line-qty">× {item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="discount-row">
+              <input
+                aria-label="Discount code"
+                type="text"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                placeholder="Discount code"
+                disabled={state !== 'idle' || applyingDiscount}
+                className="input"
+              />
+              <button
+                type="button"
+                onClick={applyDiscount}
+                disabled={state !== 'idle' || applyingDiscount || !discountInput.trim()}
+                className="btn btn--secondary"
+              >
+                {applyingDiscount ? 'Applying…' : 'Apply'}
+              </button>
+            </div>
+            <div aria-live="polite">
+              {discountMsg && (
+                <p className={`discount-msg${discountMsg === 'Discount applied.' ? ' discount-msg--ok' : ' discount-msg--err'}`}>
+                  {discountMsg}
+                </p>
+              )}
+            </div>
+
+            <div className="order-summary__totals">
+              <div className="order-summary__row">
+                <span>Subtotal</span>
+                <Price cents={subtotal} />
+              </div>
+              {discountTotal > 0 && (
+                <div className="order-summary__row order-summary__row--discount">
+                  <span>Discount{appliedCode ? ` (${appliedCode})` : ''}</span>
+                  <span>−<Price cents={discountTotal} /></span>
+                </div>
+              )}
+              <div className="order-summary__row">
+                <span>Shipping</span>
+                <span>{shippingTotal > 0 ? <Price cents={shippingTotal} /> : 'Free'}</span>
+              </div>
+              {taxTotal > 0 && (
+                <div className="order-summary__row order-summary__row--muted">
+                  <span>incl. VAT</span>
+                  <Price cents={taxTotal} />
+                </div>
+              )}
+              <div className="order-summary__row order-summary__row--total">
+                <span>Total</span>
+                <Price cents={total} />
+              </div>
+            </div>
+            <p className="checkout-msg checkout-msg--muted">
+              Payment method: <strong>Card (Stripe)</strong>
+            </p>
+          </aside>
+        </div>
       )}
     </main>
   )
 }
-
-const payBtn = {
-  padding: '12px 32px', borderRadius: 8, border: 'none', background: 'var(--color-primary-strong)',
-  color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer',
-} as const
 
 /** Mirrors the plugin's `defaultAddressFields` order; country is ISO alpha-2. */
 const ADDRESS_FIELDS = [
@@ -434,8 +439,3 @@ const ADDRESS_FIELDS = [
   half: boolean
   placeholder?: string
 }>
-
-const emailInput = {
-  width: '100%', boxSizing: 'border-box', padding: '10px 14px', marginBottom: 16,
-  borderRadius: 8, border: '1px solid var(--color-surface)', background: 'var(--color-surface)', color: 'var(--color-text)',
-} as const

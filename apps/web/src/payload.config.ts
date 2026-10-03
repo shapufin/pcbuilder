@@ -1,4 +1,5 @@
 import { buildConfig } from 'payload'
+import sharp from 'sharp'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
@@ -24,6 +25,9 @@ if (process.env.NODE_ENV === 'production' && payloadSecret === 'YOUR_SECRET_HERE
 }
 
 export default buildConfig({
+  // Enables the media collection's imageSizes (thumb/card/gallery/hero) — the
+  // processor must be passed in explicitly or resizing silently no-ops.
+  sharp,
   admin: {
     user: Users.slug,
     importMap: {

@@ -1,9 +1,12 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Where } from 'payload'
-import { getPayloadClient, formatPrice, productFilters } from '@/lib/shop'
+import { getPayloadClient, productFilters } from '@/lib/shop'
 import { JsonLd, itemListJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { PageRenderer } from '@/blocks/PageRenderer'
+import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
+import { FilterDrawer } from '@/components/FilterDrawer'
+import '../shop.css'
 
 type Props = {
   params: Promise<{ categorySlug: string }>
@@ -20,6 +23,45 @@ export async function generateMetadata({ params }: Props): Promise<import('next'
     title: category ? `${category.title} | BuildMyRig` : 'Shop | BuildMyRig',
     description: category?.description ?? undefined,
   }
+}
+
+type FilterLink = { label: string; href: string; active?: boolean }
+
+function Filters({ brand, price, sort }: { brand: FilterLink[]; price: FilterLink[]; sort: FilterLink[] }) {
+  return (
+    <>
+      <h3 className="filter-group__title">Brand</h3>
+      <ul className="filter-list">
+        {brand.map((l) => (
+          <li key={l.label}>
+            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <h3 className="filter-group__title">Price</h3>
+      <ul className="filter-list">
+        {price.map((l) => (
+          <li key={l.label}>
+            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <h3 className="filter-group__title">Sort</h3>
+      <ul className="filter-list">
+        {sort.map((l) => (
+          <li key={l.label}>
+            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
@@ -40,11 +82,13 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { and, sort, page } = productFilters(sp)
   const [products, brands] = await Promise.all([
     payload.find({
-    collection: 'products',
-    where: { and: [{ 'category.slug': { equals: categorySlug } } as Where, ...and] },
+      collection: 'products',
+      where: { and: [{ 'category.slug': { equals: categorySlug } } as Where, ...and] },
       sort,
       page,
       limit: 12,
+      // depth 1: card media + brand names need populated docs, not ids.
+      depth: 1,
     }),
     // Facet options come from the brands collection — a hardcoded slug list
     // silently renders dead filters the moment seed/admin data diverges.
@@ -53,6 +97,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
   const currentBrand = first(sp.brand)
+  const currentSort = first(sp.sort)
+  const currentPrice = `${first(sp.price_gte) ?? ''}-${first(sp.price_lte) ?? ''}`
   const qs = (patch: Record<string, string | undefined>) => {
     const q = new URLSearchParams()
     for (const [k, v] of Object.entries({ ...sp, ...patch })) {
@@ -62,95 +108,78 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     return `/shop/${categorySlug}?${q.toString()}`
   }
 
+  const priceBand = (gte?: string, lte?: string) => `${gte ?? ''}-${lte ?? ''}`
+  const filters = (
+    <Filters
+      brand={brands.docs.map((b) => ({
+        label: b.name,
+        href: currentBrand === b.slug ? qs({ brand: undefined }) : qs({ brand: b.slug }),
+        active: currentBrand === b.slug,
+      }))}
+      price={[
+        { label: 'Under €100', href: qs({ price_gte: undefined, price_lte: '10000' }), active: currentPrice === priceBand(undefined, '10000') },
+        { label: '€100–€300', href: qs({ price_gte: '10000', price_lte: '30000' }), active: currentPrice === priceBand('10000', '30000') },
+        { label: 'Over €300', href: qs({ price_gte: '30000', price_lte: undefined }), active: currentPrice === priceBand('30000', undefined) },
+      ]}
+      sort={[
+        { label: 'Price ↑', href: qs({ sort: 'price_asc' }), active: !currentSort || currentSort === 'price_asc' },
+        { label: 'Price ↓', href: qs({ sort: 'price_desc' }), active: currentSort === 'price_desc' },
+        { label: 'Name A–Z', href: qs({ sort: 'title' }), active: currentSort === 'title' },
+        { label: 'Newest', href: qs({ sort: 'newest' }), active: currentSort === 'newest' },
+      ]}
+    />
+  )
+
   return (
     <>
       <PageRenderer layout={cat.topBlocks} />
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', display: 'grid', gridTemplateColumns: '240px 1fr', gap: 32 }}>
-      <aside>
-        <h3 style={{ fontSize: 16, marginBottom: 8 }}>Brand</h3>
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
-          {brands.docs.map((b) => (
-            <li key={b.slug}>
-              <Link
-                href={currentBrand === b.slug ? qs({ brand: undefined }) : qs({ brand: b.slug })}
-                style={{ color: currentBrand === b.slug ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none' }}
-              >
-                {b.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <h3 style={{ fontSize: 16, margin: '24px 0 8px' }}>Price</h3>
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
-          {[
-            ['Under €100', { price_lte: '10000' }],
-            ['€100–€300', { price_gte: '10000', price_lte: '30000' }],
-            ['Over €300', { price_gte: '30000' }],
-          ].map(([label, patch]) => (
-            <li key={label as string}>
-              <Link href={qs(patch as Record<string, string>)} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
-                {label as string}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <h3 style={{ fontSize: 16, margin: '24px 0 8px' }}>Sort</h3>
-        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 6 }}>
-          <li><Link href={qs({ sort: 'price_asc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↑</Link></li>
-          <li><Link href={qs({ sort: 'price_desc' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Price ↓</Link></li>
-          <li><Link href={qs({ sort: 'title' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Name A–Z</Link></li>
-          <li><Link href={qs({ sort: 'newest' })} style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>Newest</Link></li>
-        </ul>
-      </aside>
+      <main className="page">
+        <FilterDrawer>{filters}</FilterDrawer>
+        <div className="category-layout">
+          <aside className="category-layout__sidebar" aria-label="Product filters">
+            {filters}
+          </aside>
 
-      <section>
-        <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>{category.title}</h1>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>{products.totalDocs} products</p>
-        {products.docs.length === 0 ? (
-          <p style={{ color: 'var(--color-text-muted)' }}>
-            No products match these filters.{' '}
-            <Link href={`/shop/${categorySlug}`} style={{ color: 'var(--color-primary-hover)' }}>
-              Clear filters
-            </Link>
-          </p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-            {products.docs.map((p) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.slug}`}
-                style={{ border: '1px solid var(--color-surface)', borderRadius: 12, padding: 20, color: 'var(--color-text)', textDecoration: 'none', background: 'var(--color-bg)', display: 'flex', flexDirection: 'column', gap: 8 }}
-              >
-                <strong>{p.title}</strong>
-                <span style={{ color: 'var(--color-primary-hover)' }}>{formatPrice(p as never)}</span>
-              </Link>
-            ))}
-          </div>
-        )}
-        {products.totalPages > 1 && (
-          <nav style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-            {Array.from({ length: products.totalPages }, (_, i) => i + 1).map((n) => (
-              <Link key={n} href={qs({ page: String(n) })} style={{ color: n === page ? 'var(--color-primary-hover)' : 'var(--color-text-muted)', textDecoration: 'none' }}>
-                {n}
-              </Link>
-            ))}
-          </nav>
-        )}
-      </section>
+          <section>
+            <h1 className="page__title">{category.title}</h1>
+            <p className="result-count">{products.totalDocs} products</p>
+            {products.docs.length === 0 ? (
+              <p className="page__lead">
+                No products match these filters.{' '}
+                <Link href={`/shop/${categorySlug}`}>Clear filters</Link>
+              </p>
+            ) : (
+              <ProductCardGrid>
+                {products.docs.map((p, i) => (
+                  <ProductCard key={p.id} product={p} priority={i < 4} />
+                ))}
+              </ProductCardGrid>
+            )}
+            {products.totalPages > 1 && (
+              <nav className="pagination" aria-label="Pagination">
+                {Array.from({ length: products.totalPages }, (_, i) => i + 1).map((n) => (
+                  <Link key={n} href={qs({ page: String(n) })} aria-current={n === page ? 'page' : undefined}>
+                    {n}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </section>
+        </div>
 
-      <JsonLd
-        data={itemListJsonLd(
-          category.title,
-          products.docs.map((p) => ({ name: p.title, url: `/product/${p.slug}` })),
-        )}
-      />
-      <JsonLd
-        data={breadcrumbJsonLd([
-          { name: 'Home', url: '/' },
-          { name: 'Shop', url: '/shop' },
-          { name: category.title, url: `/shop/${categorySlug}` },
-        ])}
-      />
+        <JsonLd
+          data={itemListJsonLd(
+            category.title,
+            products.docs.map((p) => ({ name: p.title, url: `/product/${p.slug}` })),
+          )}
+        />
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: 'Home', url: '/' },
+            { name: 'Shop', url: '/shop' },
+            { name: category.title, url: `/shop/${categorySlug}` },
+          ])}
+        />
       </main>
     </>
   )
