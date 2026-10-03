@@ -1,11 +1,20 @@
-export type BuilderSpec = Record<string, string | number | string[] | undefined>
+/**
+ * Keys spread straight onto the components doc: rule-critical typed fields
+ * (socket/tdpWatts/ramSlots/m2Slots…), `hasRgb`, and a `specsJson` record for
+ * cosmetic display specs (vram/cores/chipset/efficiency — read by builder
+ * designs via display.specs, never by the rule engine).
+ */
+export type BuilderSpec = Record<
+  string,
+  string | number | string[] | boolean | Record<string, unknown> | undefined
+>
 
 export interface ProductDef {
   title: string
   category: string
   brand: string
   price: number
-  /** Builder slot mapping + rule-critical specs. Absent = not a builder component. */
+  /** Builder slot mapping + doc fields. Absent = not a builder component. */
   builder?: { cat: string; spec: BuilderSpec }
   /** Catalog attributes: attributeType slug → attributeValue value (see attributeDefs). */
   attrs?: Record<string, string>
@@ -13,46 +22,47 @@ export interface ProductDef {
 
 export const productDefs: ProductDef[] = [
   // CPUs
-  { title: 'Intel Core i7-14700K', category: 'CPU', brand: 'Intel', price: 40900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 253 } } },
-  { title: 'AMD Ryzen 7 7800X3D', category: 'CPU', brand: 'AMD', price: 37900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 120 } } },
-  { title: 'AMD Ryzen 5 7600X', category: 'CPU', brand: 'AMD', price: 20900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 105 } } },
-  { title: 'Intel Core i5-14600K', category: 'CPU', brand: 'Intel', price: 27900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 181 } } },
-  // Motherboards
-  { title: 'ASUS ROG Strix B650E-F', category: 'Motherboards', brand: 'ASUS', price: 24900, attrs: { socket: 'AM5', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'AM5', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe' } } },
-  { title: 'ASUS Prime Z790-P', category: 'Motherboards', brand: 'ASUS', price: 19900, attrs: { socket: 'LGA1700', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'LGA1700', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe' } } },
-  { title: 'ASUS ROG Strix B760-F', category: 'Motherboards', brand: 'ASUS', price: 25900, attrs: { socket: 'LGA1700', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'LGA1700', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe' } } },
-  { title: 'ASUS ROG Strix B650E-I', category: 'Motherboards', brand: 'ASUS', price: 27900, attrs: { socket: 'AM5', 'ram-type': 'DDR5', 'form-factor': 'ITX' }, builder: { cat: 'motherboard', spec: { socket: 'AM5', ramType: 'DDR5', moboFormFactor: 'ITX', pcieVersion: '4.0', storageInterface: 'NVMe' } } },
+  { title: 'Intel Core i7-14700K', category: 'CPU', brand: 'Intel', price: 40900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 253, specsJson: { cores: 20, threads: 28, clockBoostGhz: 5.6, cacheL3Mb: 33 } } } },
+  { title: 'AMD Ryzen 7 7800X3D', category: 'CPU', brand: 'AMD', price: 37900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 120, specsJson: { cores: 8, threads: 16, clockBoostGhz: 5.0, cacheL3Mb: 96 } } } },
+  { title: 'AMD Ryzen 5 7600X', category: 'CPU', brand: 'AMD', price: 20900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 105, specsJson: { cores: 6, threads: 12, clockBoostGhz: 5.3, cacheL3Mb: 32 } } } },
+  { title: 'Intel Core i5-14600K', category: 'CPU', brand: 'Intel', price: 27900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 181, specsJson: { cores: 14, threads: 20, clockBoostGhz: 5.3, cacheL3Mb: 24 } } } },
+  // Motherboards (ramSlots/m2Slots drive resolveSlotLimits — ITX 2/2 binds visibly)
+  { title: 'ASUS ROG Strix B650E-F', category: 'Motherboards', brand: 'ASUS', price: 24900, attrs: { socket: 'AM5', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'AM5', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe', ramSlots: 4, m2Slots: 3, specsJson: { chipset: 'B650E', wifi: 'WiFi 6E' } } } },
+  { title: 'ASUS Prime Z790-P', category: 'Motherboards', brand: 'ASUS', price: 19900, attrs: { socket: 'LGA1700', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'LGA1700', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe', ramSlots: 4, m2Slots: 3, specsJson: { chipset: 'Z790' } } } },
+  { title: 'ASUS ROG Strix B760-F', category: 'Motherboards', brand: 'ASUS', price: 25900, attrs: { socket: 'LGA1700', 'ram-type': 'DDR5', 'form-factor': 'ATX' }, builder: { cat: 'motherboard', spec: { socket: 'LGA1700', ramType: 'DDR5', moboFormFactor: 'ATX', pcieVersion: '4.0', storageInterface: 'NVMe', ramSlots: 4, m2Slots: 3, specsJson: { chipset: 'B760', wifi: 'WiFi 6E' } } } },
+  { title: 'ASUS ROG Strix B650E-I', category: 'Motherboards', brand: 'ASUS', price: 27900, attrs: { socket: 'AM5', 'ram-type': 'DDR5', 'form-factor': 'ITX' }, builder: { cat: 'motherboard', spec: { socket: 'AM5', ramType: 'DDR5', moboFormFactor: 'ITX', pcieVersion: '4.0', storageInterface: 'NVMe', ramSlots: 2, m2Slots: 2, specsJson: { chipset: 'B650E', wifi: 'WiFi 6E' } } } },
   // RAM
-  { title: 'Corsair Vengeance 32GB DDR5-6000', category: 'RAM', brand: 'Corsair', price: 10900, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 6000 } } },
-  { title: 'Corsair Vengeance 16GB DDR5-5600', category: 'RAM', brand: 'Corsair', price: 5900, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 5600 } } },
-  { title: 'Corsair Vengeance 32GB DDR4-3600', category: 'RAM', brand: 'Corsair', price: 8900, attrs: { 'ram-type': 'DDR4' }, builder: { cat: 'ram', spec: { ramType: 'DDR4', ramSpeedMhz: 3600 } } },
+  { title: 'Corsair Vengeance 32GB DDR5-6000', category: 'RAM', brand: 'Corsair', price: 10900, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 6000, specsJson: { kitGb: 32, casLatency: 36 } } } },
+  { title: 'Corsair Vengeance 16GB DDR5-5600', category: 'RAM', brand: 'Corsair', price: 5900, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 5600, specsJson: { kitGb: 16, casLatency: 36 } } } },
+  { title: 'Corsair Vengeance 32GB DDR4-3600', category: 'RAM', brand: 'Corsair', price: 8900, attrs: { 'ram-type': 'DDR4' }, builder: { cat: 'ram', spec: { ramType: 'DDR4', ramSpeedMhz: 3600, specsJson: { kitGb: 32, casLatency: 18 } } } },
+  { title: 'Corsair Dominator Platinum RGB 32GB DDR5-6400', category: 'RAM', brand: 'Corsair', price: 16500, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 6400, hasRgb: true, specsJson: { kitGb: 32, casLatency: 32 } } } },
   // GPUs
-  { title: 'NVIDIA RTX 4070 Super', category: 'GPUs', brand: 'NVIDIA', price: 59900, builder: { cat: 'gpu', spec: { tdpWatts: 220, gpuLengthMm: 267, pcieVersion: '4.0' } } },
-  { title: 'NVIDIA RTX 4060', category: 'GPUs', brand: 'NVIDIA', price: 29900, builder: { cat: 'gpu', spec: { tdpWatts: 115, gpuLengthMm: 240, pcieVersion: '4.0' } } },
-  { title: 'NVIDIA RTX 4080 Super', category: 'GPUs', brand: 'NVIDIA', price: 109900, builder: { cat: 'gpu', spec: { tdpWatts: 320, gpuLengthMm: 310, pcieVersion: '5.0' } } },
-  { title: 'NVIDIA RTX 4060 Ti', category: 'GPUs', brand: 'NVIDIA', price: 44900, builder: { cat: 'gpu', spec: { tdpWatts: 160, gpuLengthMm: 240, pcieVersion: '4.0' } } },
+  { title: 'NVIDIA RTX 4070 Super', category: 'GPUs', brand: 'NVIDIA', price: 59900, builder: { cat: 'gpu', spec: { tdpWatts: 220, gpuLengthMm: 267, pcieVersion: '4.0', hasRgb: true, specsJson: { vram: 12, boostMhz: 2475, peakDrawW: 245 } } } },
+  { title: 'NVIDIA RTX 4060', category: 'GPUs', brand: 'NVIDIA', price: 29900, builder: { cat: 'gpu', spec: { tdpWatts: 115, gpuLengthMm: 240, pcieVersion: '4.0', specsJson: { vram: 8, boostMhz: 2460, peakDrawW: 135 } } } },
+  { title: 'NVIDIA RTX 4080 Super', category: 'GPUs', brand: 'NVIDIA', price: 109900, builder: { cat: 'gpu', spec: { tdpWatts: 320, gpuLengthMm: 310, pcieVersion: '5.0', hasRgb: true, specsJson: { vram: 16, boostMhz: 2550, peakDrawW: 355 } } } },
+  { title: 'NVIDIA RTX 4060 Ti', category: 'GPUs', brand: 'NVIDIA', price: 44900, builder: { cat: 'gpu', spec: { tdpWatts: 160, gpuLengthMm: 240, pcieVersion: '4.0', specsJson: { vram: 8, boostMhz: 2535, peakDrawW: 175 } } } },
   // Storage
-  { title: 'Samsung 990 Pro 1TB', category: 'Storage', brand: 'Samsung', price: 11900, attrs: { capacity: '1024' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe' } } },
-  { title: 'Samsung 990 Pro 2TB', category: 'Storage', brand: 'Samsung', price: 19900, attrs: { capacity: '2048' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe' } } },
-  { title: 'Samsung 970 EVO 512GB', category: 'Storage', brand: 'Samsung', price: 4900, attrs: { capacity: '512' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe' } } },
-  { title: 'Samsung 990 Pro 4TB', category: 'Storage', brand: 'Samsung', price: 28900, attrs: { capacity: '2048' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe' } } },
-  { title: 'Samsung 870 EVO 1TB', category: 'Storage', brand: 'Samsung', price: 9900, attrs: { capacity: '1024' }, builder: { cat: 'storage', spec: { storageInterface: 'SATA' } } },
+  { title: 'Samsung 990 Pro 1TB', category: 'Storage', brand: 'Samsung', price: 11900, attrs: { capacity: '1024' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe', specsJson: { capacityTb: 1, readMbps: 7450 } } } },
+  { title: 'Samsung 990 Pro 2TB', category: 'Storage', brand: 'Samsung', price: 19900, attrs: { capacity: '2048' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe', specsJson: { capacityTb: 2, readMbps: 7450 } } } },
+  { title: 'Samsung 970 EVO 512GB', category: 'Storage', brand: 'Samsung', price: 4900, attrs: { capacity: '512' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe', specsJson: { capacityTb: 0.5, readMbps: 3500 } } } },
+  { title: 'Samsung 990 Pro 4TB', category: 'Storage', brand: 'Samsung', price: 28900, attrs: { capacity: '4096' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe', specsJson: { capacityTb: 4, readMbps: 7450 } } } },
+  { title: 'Samsung 870 EVO 1TB', category: 'Storage', brand: 'Samsung', price: 9900, attrs: { capacity: '1024' }, builder: { cat: 'storage', spec: { storageInterface: 'SATA', specsJson: { capacityTb: 1, readMbps: 560 } } } },
   // PSUs
-  { title: 'Corsair RM750x', category: 'PSUs', brand: 'Corsair', price: 10900, attrs: { wattage: '750' }, builder: { cat: 'psu', spec: { psuWatts: 750 } } },
-  { title: 'Corsair RM1000x', category: 'PSUs', brand: 'Corsair', price: 16900, attrs: { wattage: '1000' }, builder: { cat: 'psu', spec: { psuWatts: 1000 } } },
-  { title: 'Corsair RM650x', category: 'PSUs', brand: 'Corsair', price: 9900, attrs: { wattage: '650' }, builder: { cat: 'psu', spec: { psuWatts: 650 } } },
-  { title: 'Corsair RM850x', category: 'PSUs', brand: 'Corsair', price: 12900, attrs: { wattage: '850' }, builder: { cat: 'psu', spec: { psuWatts: 850 } } },
+  { title: 'Corsair RM750x', category: 'PSUs', brand: 'Corsair', price: 10900, attrs: { wattage: '750' }, builder: { cat: 'psu', spec: { psuWatts: 750, specsJson: { efficiency: '80+ Gold', modularity: 'Fully modular', fanSizeMm: 135 } } } },
+  { title: 'Corsair RM1000x', category: 'PSUs', brand: 'Corsair', price: 16900, attrs: { wattage: '1000' }, builder: { cat: 'psu', spec: { psuWatts: 1000, specsJson: { efficiency: '80+ Gold', modularity: 'Fully modular', fanSizeMm: 135 } } } },
+  { title: 'Corsair RM650x', category: 'PSUs', brand: 'Corsair', price: 9900, attrs: { wattage: '650' }, builder: { cat: 'psu', spec: { psuWatts: 650, specsJson: { efficiency: '80+ Gold', modularity: 'Fully modular', fanSizeMm: 135 } } } },
+  { title: 'Corsair RM850x', category: 'PSUs', brand: 'Corsair', price: 12900, attrs: { wattage: '850' }, builder: { cat: 'psu', spec: { psuWatts: 850, specsJson: { efficiency: '80+ Gold', modularity: 'Fully modular', fanSizeMm: 135 } } } },
   // Cases
-  { title: 'Corsair 4000D Airflow', category: 'Cases', brand: 'Corsair', price: 8900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ATX', 'mATX', 'ITX'], caseGpuMaxLengthMm: 360 } } },
-  { title: 'Corsair 5000D Airflow', category: 'Cases', brand: 'Corsair', price: 14900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ATX', 'mATX', 'ITX'], caseGpuMaxLengthMm: 420 } } },
-  { title: 'Corsair 2000D Airflow', category: 'Cases', brand: 'Corsair', price: 10900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ITX'], caseGpuMaxLengthMm: 280 } } },
+  { title: 'Corsair 4000D Airflow', category: 'Cases', brand: 'Corsair', price: 8900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ATX', 'mATX', 'ITX'], caseGpuMaxLengthMm: 360, specsJson: { frontFanMounts: 3 } } } },
+  { title: 'Corsair 5000D Airflow', category: 'Cases', brand: 'Corsair', price: 14900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ATX', 'mATX', 'ITX'], caseGpuMaxLengthMm: 420, specsJson: { frontFanMounts: 3 } } } },
+  { title: 'Corsair 2000D Airflow', category: 'Cases', brand: 'Corsair', price: 10900, builder: { cat: 'case', spec: { caseSupportedFormFactors: ['ITX'], caseGpuMaxLengthMm: 280, specsJson: { frontFanMounts: 2 } } } },
   // Cooling
-  { title: 'Corsair H150i Elite', category: 'Cooling', brand: 'Corsair', price: 14900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'] } } },
-  { title: 'Corsair A500 Air Cooler', category: 'Cooling', brand: 'Corsair', price: 6900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'] } } },
-  { title: 'Corsair H100i Elite', category: 'Cooling', brand: 'Corsair', price: 11900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'] } } },
+  { title: 'Corsair H150i Elite', category: 'Cooling', brand: 'Corsair', price: 14900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'], hasRgb: true, specsJson: { radSizeMm: 360, fanCount: 3, noiseDbA: 33 } } } },
+  { title: 'Corsair A500 Air Cooler', category: 'Cooling', brand: 'Corsair', price: 6900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'], specsJson: { fanCount: 2, noiseDbA: 30 } } } },
+  { title: 'Corsair H100i Elite', category: 'Cooling', brand: 'Corsair', price: 11900, builder: { cat: 'cooling', spec: { coolerSocketSupport: ['AM5', 'LGA1700'], hasRgb: true, specsJson: { radSizeMm: 240, fanCount: 2, noiseDbA: 31 } } } },
   // Case fans (optional 10th slot — spec's `case-fan` category)
-  { title: 'Corsair AF120 Elite Fan', category: 'Cooling', brand: 'Corsair', price: 2900, builder: { cat: 'case-fan', spec: {} } },
-  { title: 'Corsair QL140 RGB Fan', category: 'Cooling', brand: 'Corsair', price: 3900, builder: { cat: 'case-fan', spec: {} } },
+  { title: 'Corsair AF120 Elite Fan', category: 'Cooling', brand: 'Corsair', price: 2900, builder: { cat: 'case-fan', spec: { specsJson: { fanSizeMm: 120, noiseDbA: 29 } } } },
+  { title: 'Corsair QL140 RGB Fan', category: 'Cooling', brand: 'Corsair', price: 3900, builder: { cat: 'case-fan', spec: { hasRgb: true, specsJson: { fanSizeMm: 140, noiseDbA: 26 } } } },
   // OS
   { title: 'Microsoft Windows 11 Home', category: 'OS', brand: 'Microsoft', price: 12900, builder: { cat: 'os', spec: {} } },
   { title: 'Microsoft Windows 11 Pro', category: 'OS', brand: 'Microsoft', price: 19900 },
@@ -81,9 +91,9 @@ export const productDefs: ProductDef[] = [
 export const slotCategoryDefs = [
   { slug: 'cpu', name: 'CPU', icon: 'cpu', sortOrder: 1, required: true, helperText: 'The brain of the system.' },
   { slug: 'motherboard', name: 'Motherboard', icon: 'motherboard', sortOrder: 2, required: true, helperText: 'Connects everything — must match CPU socket and RAM type.' },
-  { slug: 'ram', name: 'Memory', icon: 'ram', sortOrder: 3, required: true, maxSelectable: 2, helperText: 'Faster is better for gaming and editing.' },
+  { slug: 'ram', name: 'Memory', icon: 'ram', sortOrder: 3, required: true, maxSelectable: 4, helperText: 'Faster is better for gaming and editing.' },
   { slug: 'gpu', name: 'Graphics Card', icon: 'gpu', sortOrder: 4, required: true, helperText: 'The main driver of gaming performance.' },
-  { slug: 'storage', name: 'Storage', icon: 'storage', sortOrder: 5, required: true, maxSelectable: 2, helperText: 'NVMe SSDs recommended.' },
+  { slug: 'storage', name: 'Storage', icon: 'storage', sortOrder: 5, required: true, maxSelectable: 4, helperText: 'NVMe SSDs recommended.' },
   { slug: 'psu', name: 'Power Supply', icon: 'psu', sortOrder: 6, required: true, helperText: 'Size it for total system draw plus headroom.' },
   { slug: 'case', name: 'Case', icon: 'case', sortOrder: 7, required: true, helperText: 'Must fit your motherboard and GPU length.' },
   { slug: 'cooling', name: 'CPU Cooling', icon: 'cooling', sortOrder: 8, required: true, helperText: 'Must support your CPU socket.' },
@@ -120,6 +130,7 @@ export const rules: RuleDef[] = [
   { s: 'Corsair Vengeance 32GB DDR5-6000', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
   { s: 'Corsair Vengeance 16GB DDR5-5600', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
   { s: 'Corsair Vengeance 32GB DDR4-3600', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR4', bi: true, msg: '{componentA} is DDR4 but the motherboard only supports {ramType}.' },
+  { s: 'Corsair Dominator Platinum RGB 32GB DDR5-6400', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
   // Motherboard → RAM type
   { s: 'ASUS ROG Strix B650E-F', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
   { s: 'ASUS Prime Z790-P', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
@@ -222,7 +233,7 @@ export const attributeDefs: AttributeDef[] = [
   ['socket', 'enum', null, ['AM5', 'LGA1700', 'LGA1851']],
   ['ram-type', 'enum', null, ['DDR4', 'DDR5']],
   ['form-factor', 'enum', null, ['ATX', 'mATX', 'ITX']],
-  ['capacity', 'number', 'GB', ['512', '1024', '2048']],
+  ['capacity', 'number', 'GB', ['512', '1024', '2048', '4096']],
   ['wattage', 'number', 'W', ['550', '650', '750', '850', '1000']],
   ['refresh-rate', 'number', 'Hz', ['144', '240']],
 ]
