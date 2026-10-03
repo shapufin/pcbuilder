@@ -4,6 +4,12 @@ packages:
 overrides:
   esbuild@0.18.20: "0.25.12"
   undici: "^7.29.1"
+auditConfig:
+  # braces<=3.0.3 (GHSA-vfj7-8cjw-p6xm): no patched release; reachable only
+  # via chokidar/fast-glob build-time globbing with project-controlled
+  # patterns — not user input at runtime. Revisit on next dep round.
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm
 onlyBuiltDependencies:
   - sharp
   - esbuild
