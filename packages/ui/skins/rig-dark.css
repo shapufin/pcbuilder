@@ -1,0 +1,32 @@
+/* RIG Dark skin — scrollbars/selection/glow only; geometry stays
+   preset-agnostic. Injected into <style id="theme-skin"> by the root layout
+   when the `rig-dark` theme preset is active (admin → Theme → Preset). It
+   renders AFTER every app stylesheet, so equal-specificity rules win.
+   Token references keep this file drift-free with the rig-dark palette;
+   #0a0e16 stays literal — it's the mockup's deepest-surface value, one step
+   darker than --color-bg with no token equivalent. (No --shadow-glow
+   override — the token default is already cyan-tuned for this preset.) */
+
+/* Dark scrollbars (Chromium + Firefox). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e16;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-hover);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+* {
+  scrollbar-color: var(--color-surface-hover) #0a0e16;
+}
+
+/* Cyan selection — solid accent bg with bg-colored text for readability. */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}

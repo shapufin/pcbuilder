@@ -1,0 +1,42 @@
+/* Midnight skin — preset overlay. Injected into <style id="theme-skin"> by
+   the root layout when the `midnight` theme preset is active (admin →
+   Theme → Preset). It renders AFTER every app stylesheet, so equal-
+   specificity rules win. Design-swap contract: tokens + selectors only —
+   components and logic are never touched. */
+
+:root {
+  /* Sharper geometry than the default Precision Dark skin. Deliberately
+     pins radii while midnight is active — a skin owns the vars it sets,
+     so the admin Radius fields don't apply to them (documented). */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --shadow-glow: 0 0 28px var(--color-primary-glow);
+}
+
+/* Pill buttons + badges. */
+.btn,
+.badge {
+  border-radius: var(--radius-full);
+}
+
+/* Flatter cards: trade the hover lift for a cyan edge glow. */
+.product-card:hover {
+  transform: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Denser catalog grid — desktop+ only; the base stylesheet's 2-col rule
+   owns the ≤640px floor (skins answer 375/768/1280 like every stylesheet). */
+@media (min-width: 641px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: var(--space-3);
+  }
+}
+
+/* Cyan hairline under the header. */
+.site-header {
+  border-bottom-color: var(--color-primary-soft);
+}

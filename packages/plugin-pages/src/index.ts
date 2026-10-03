@@ -54,13 +54,15 @@ export type { NavLink, SiteSettings } from './lib/site-settings.ts'
 export {
   DEFAULT_THEME,
   LIGHT_COLORS,
+  THEME_PRESETS,
   buildThemeCss,
   resolveTheme,
+  themePresetOptions,
   validateColor,
   validateFont,
   validateRadius,
 } from './lib/theme.ts'
-export type { Theme, ThemeColors, ThemePreset } from './lib/theme.ts'
+export type { Theme, ThemeColors, ThemePreset, ThemePresetDef } from './lib/theme.ts'
 export { pageBlocks } from './blocks/definitions.ts'
 export { lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './blocks/slugs.ts'
 

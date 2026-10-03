@@ -24,6 +24,8 @@ const APP_CSS = [
   // Phase-2/3 stylesheets — same contract.
   path.resolve(__dirname, '../app/auth/auth.css'),
   path.resolve(__dirname, '../blocks/blocks.css'),
+  // Builder design stylesheets — same contract.
+  path.resolve(__dirname, '../app/builder/designs/rig-studio/rig-studio.css'),
 ]
 
 describe('app CSS token purity', () => {

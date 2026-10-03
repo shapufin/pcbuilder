@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_THEME,
   LIGHT_COLORS,
+  THEME_PRESETS,
   buildThemeCss,
   resolveTheme,
+  themePresetOptions,
   validateColor,
   validateFont,
   validateRadius,
@@ -18,12 +20,12 @@ import { Theme } from '../globals/Theme'
  * like `red;}body{display:none` must fall back to the preset, not ship.
  */
 describe('theme resolver - defaults and presets', () => {
-  it('#133 no doc -> dark preset defaults; valid overrides merge over preset', () => {
+  it('#133 no doc -> default (rig-dark) preset values; valid overrides merge over preset', () => {
     expect(resolveTheme(null)).toEqual(DEFAULT_THEME)
     expect(resolveTheme(undefined)).toEqual(DEFAULT_THEME)
 
     const resolved = resolveTheme({
-      preset: 'dark',
+      preset: 'rig-dark',
       colors: { bg: '#112233', textMuted: '#abcdef' },
       radius: { md: '6px' },
       fonts: { body: 'Georgia, serif' },
@@ -37,7 +39,7 @@ describe('theme resolver - defaults and presets', () => {
     expect(resolved.fonts.mono).toBe(DEFAULT_THEME.fonts.mono)
   })
 
-  it('#135 light preset applies; unknown preset falls back to dark', () => {
+  it('#135 light preset applies; unknown preset falls back to default', () => {
     expect(resolveTheme({ preset: 'light' }).colors.bg).toBe(LIGHT_COLORS.bg)
     expect(resolveTheme({ preset: 'light' }).colors.text).toBe(LIGHT_COLORS.text)
     expect(resolveTheme({ preset: 'neon' })).toEqual(DEFAULT_THEME)
@@ -74,11 +76,11 @@ describe('theme CSS emission', () => {
     const css = buildThemeCss(DEFAULT_THEME)
     expect(css.startsWith(':root{')).toBe(true)
     expect(css.endsWith('}')).toBe(true)
-    expect(css).toContain('--color-bg: #0a0f1e;')
-    expect(css).toContain('--color-surface-raised: #1a2540;')
-    expect(css).toContain('--color-text-muted: #93a0bd;')
+    expect(css).toContain('--color-bg: #0f131c;')
+    expect(css).toContain('--color-surface-raised: #1c2028;')
+    expect(css).toContain('--color-text-muted: #8b90a0;')
     expect(css).toContain('--radius-sm: 4px;')
-    expect(css).toContain('--font-body: system-ui,')
+    expect(css).toContain('--font-body: var(--font-inter),')
     expect(css).not.toMatch(/undefined|null|NaN/)
     expect((css.match(/--color-bg:/g) ?? []).length).toBe(1)
   })
@@ -128,5 +130,52 @@ describe('theme field validators (admin form gate)', () => {
     const body = groupFields('fonts').find((f) => f.name === 'body')
     expect(body?.validate?.(undefined)).toBe(true)
     expect(typeof body?.validate?.('x; } * { display:none')).toBe('string')
+  })
+})
+
+describe('theme presets — design swap registry', () => {
+  it('#288 registry drives the Theme global select; presets ship in code', () => {
+    const keys = Object.keys(THEME_PRESETS)
+    expect(keys).toEqual(['dark', 'light', 'midnight', 'rig-dark'])
+    expect(themePresetOptions().map((o) => o.value)).toEqual(keys)
+    const presetField = Theme.fields?.find((f) => 'name' in f && f.name === 'preset') as
+      | { options?: Array<{ value: string }> }
+      | undefined
+    expect(presetField?.options?.map((o) => o.value)).toEqual(keys)
+    // Every preset must emit the same additive var set — a missing key means
+    // a silently unstyled var(--color-*) somewhere in app CSS.
+    const extraKeys = Object.keys(THEME_PRESETS.dark.extras).sort()
+    for (const def of Object.values(THEME_PRESETS)) {
+      expect(Object.keys(def.extras).sort()).toEqual(extraKeys)
+    }
+  })
+
+  it('#293 hostile preset keys (prototype-chain names) fall back to default, never throw', () => {
+    for (const hostile of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+      expect(() => resolveTheme({ preset: hostile })).not.toThrow()
+      expect(resolveTheme({ preset: hostile })).toEqual(DEFAULT_THEME)
+    }
+  })
+
+  it('#289 extras are preset-aware and emitted as --color-* vars', () => {
+    const mid = resolveTheme({ preset: 'midnight' })
+    expect(mid.preset).toBe('midnight')
+    expect(mid.extras.scrim).toBe(THEME_PRESETS.midnight.extras.scrim)
+    expect(mid.extras.scrim).not.toBe(THEME_PRESETS.dark.extras.scrim)
+    const css = buildThemeCss(mid)
+    expect(css).toContain(`--color-scrim: ${THEME_PRESETS.midnight.extras.scrim};`)
+    expect(css).toContain(`--color-primary-glow: ${THEME_PRESETS.midnight.extras['primary-glow']};`)
+  })
+
+  it('#318 rig-dark is the default preset and emits the RIG palette as CSS', () => {
+    const resolved = resolveTheme({ preset: 'rig-dark' })
+    expect(resolved.preset).toBe('rig-dark')
+    expect(resolved.colors.bg).toBe('#0f131c')
+    expect(resolved.extras.accent).toBe('#7df4ff')
+    expect(DEFAULT_THEME.preset).toBe('rig-dark')
+    const css = buildThemeCss(resolved)
+    expect(css).toContain('--color-bg: #0f131c;')
+    // Source literal uses spaced rgba(); compare whitespace-normalized.
+    expect(css.replace(/\s/g, '')).toContain('--color-primary-glow:rgba(125,244,255,0.4);')
   })
 })

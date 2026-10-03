@@ -9,13 +9,13 @@ vi.mock('./shop', () => ({
   getPayloadClient: async () => ({ findGlobal }),
 }))
 
-const { getThemeCss } = await import('./theme.server')
+const { getThemeCss, getThemeSkinCss } = await import('./theme.server')
 
 /**
  * Phase 5 Step C (entry 21) - app-side theme accessor. Same never-throw
  * contract as getSiteSettings (root layout must render with the DB down),
- * plus an invariant test: the dark preset defaults in resolveTheme must not
- * drift from the static values in @buildmyrig/ui/tokens.css (the <style>
+ * plus an invariant test: the rig-dark preset defaults in resolveTheme must
+ * not drift from the static values in @buildmyrig/ui/tokens.css (the <style>
  * block overrides tokens.css only for admin-edited values).
  */
 describe('getThemeCss - server theme injection', () => {
@@ -39,7 +39,7 @@ describe('getThemeCss - server theme injection', () => {
     expect(css.startsWith(':root{')).toBe(true)
   })
 
-  it('#139c dark preset defaults match the static tokens.css values (no drift)', () => {
+  it('#139c rig-dark preset defaults match the static tokens.css values (no drift)', () => {
     const require = createRequire(import.meta.url)
     const tokensPath = require.resolve('@buildmyrig/ui/tokens.css')
     const css = fs.readFileSync(tokensPath, 'utf8')
@@ -54,6 +54,53 @@ describe('getThemeCss - server theme injection', () => {
     }
     for (const key of ['sm', 'md', 'lg'] as const) {
       expect(value(`--radius-${key}`), `tokens.css --radius-${key}`).toBe(resolved.radius[key])
+    }
+    // Font wiring drift guard (entry 51): the tokens.css statics must lead
+    // with the next/font variables layout.tsx declares on <html> — nothing
+    // else checks this chain.
+    expect(value('--font-sans'), 'tokens.css --font-sans').toMatch(/^var\(--font-inter,/)
+    expect(value('--font-display'), 'tokens.css --font-display').toBe(
+      'var(--font-space-grotesk, var(--font-sans))',
+    )
+  })
+
+  it('#290 preset extras (scrim/glow/soft surfaces) flow through getThemeCss', async () => {
+    findGlobal.mockResolvedValue({ preset: 'midnight' })
+    const css = await getThemeCss()
+    expect(css).toContain('--color-scrim:')
+    expect(css).toContain('--color-primary-glow:')
+  })
+
+  it('#291 getThemeSkinCss returns the preset skin overlay; empty when none or on failure', async () => {
+    findGlobal.mockResolvedValue({ preset: 'midnight' })
+    const skin = await getThemeSkinCss()
+    expect(skin.length).toBeGreaterThan(0)
+    expect(skin).toContain('.btn')
+    findGlobal.mockResolvedValue({ preset: 'dark' })
+    expect(await getThemeSkinCss()).toBe('')
+    findGlobal.mockRejectedValue(new Error('no such table: globals'))
+    expect(await getThemeSkinCss()).toBe('')
+  })
+
+  it('#319 rig-dark preset serves the skin overlay and next/font default stack', async () => {
+    findGlobal.mockResolvedValue({ preset: 'rig-dark' })
+    const skin = await getThemeSkinCss()
+    expect(skin.length).toBeGreaterThan(0)
+    expect(skin).toContain('::selection')
+    const css = await getThemeCss()
+    expect(css).toContain('--font-body: var(--font-inter)')
+  })
+
+  it('#292 rig-dark preset extras match the tokens.css additive vars (no drift)', () => {
+    const require = createRequire(import.meta.url)
+    const tokensPath = require.resolve('@buildmyrig/ui/tokens.css')
+    const css = fs.readFileSync(tokensPath, 'utf8')
+    const value = (name: string): string | null => {
+      const m = css.match(new RegExp(`${name}\\s*:\\s*([^;]+);`))
+      return m ? m[1]!.trim() : null
+    }
+    for (const [key, val] of Object.entries(DEFAULT_THEME.extras)) {
+      expect(value(`--color-${key}`), `tokens.css --color-${key}`).toBe(val)
     }
   })
 })

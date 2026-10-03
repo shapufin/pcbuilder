@@ -4,18 +4,25 @@ import './globals.css'
 import '../components/ui/primitives.css'
 import '../components/shell.css'
 import Script from 'next/script'
+import { Inter, Space_Grotesk } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import { EcommerceShell } from '../components/EcommerceShell'
 import { CartDrawer } from '../components/CartDrawer'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 import { getSiteSettings } from '@/lib/site-settings.server'
-import { getThemeCss } from '@/lib/theme.server'
+import { getThemeAssets } from '@/lib/theme.server'
 import { JsonLd, organizationJsonLd } from '@/lib/jsonld'
 
 // Plausible (12-integrations-ops.md): script only when a domain is configured,
 // so dev/CI stay cookie-consent-free and offline.
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+
+// Google fonts self-hosted via next/font; the CSS variables are referenced by
+// tokens.css (--font-sans/--font-display) and the theme global's default
+// stacks (DEFAULT_FONTS in plugin-pages lib/theme.ts).
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const grotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' })
 
 export const metadata: Metadata = {
   // Without metadataBase, relative OG image URLs resolve to nothing absolute.
@@ -27,11 +34,12 @@ export const metadata: Metadata = {
 }
 
 // themeColor must be a literal CSS color — hsl() keeps it out of the
-// raw-hex lint while matching tokens.css --color-bg (update both together).
+// raw-hex lint while approximating the rig-dark --color-bg in tokens.css
+// (update both together).
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: 'hsl(225 50% 8%)',
+  themeColor: 'hsl(222 30% 8%)',
 }
 
 export default async function RootLayout({
@@ -39,12 +47,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const siteSettings = await getSiteSettings()
-  const themeCss = await getThemeCss()
+  const [siteSettings, theme] = await Promise.all([getSiteSettings(), getThemeAssets()])
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${grotesk.variable}`}>
       <body>
-        <style id="theme-vars" dangerouslySetInnerHTML={{ __html: themeCss }} />
+        <style id="theme-vars" dangerouslySetInnerHTML={{ __html: theme.css }} />
+        {theme.skin ? <style id="theme-skin" dangerouslySetInnerHTML={{ __html: theme.skin }} /> : null}
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>

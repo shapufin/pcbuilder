@@ -1,6 +1,6 @@
 import type { Field, GlobalConfig } from 'payload'
 import { isManager } from '../lib/access.ts'
-import { validateColor, validateFont, validateRadius } from '../lib/theme.ts'
+import { themePresetOptions, validateColor, validateFont, validateRadius } from '../lib/theme.ts'
 
 /**
  * Empty/missing values are valid: they mean "use the preset default"
@@ -18,8 +18,8 @@ const colorField = (name: string, label: string): Field => ({
   name,
   type: 'text',
   label,
-  admin: { width: 50, placeholder: '#6468f2' },
-  validate: optionalField(validateColor, 'Enter a hex color, e.g. #6468f2'),
+  admin: { width: 50, placeholder: '#0070f3' },
+  validate: optionalField(validateColor, 'Enter a hex color, e.g. #0070f3'),
 })
 
 const radiusField = (name: string, label: string): Field => ({
@@ -56,12 +56,11 @@ export const Theme: GlobalConfig = {
       name: 'preset',
       type: 'select',
       label: 'Preset',
-      defaultValue: 'dark',
-      options: [
-        { label: 'Dark', value: 'dark' },
-        { label: 'Light', value: 'light' },
-      ],
-      admin: { description: 'Empty color fields fall back to this preset.' },
+      defaultValue: 'rig-dark',
+      // Options come from the code-side preset registry (lib/theme.ts
+      // THEME_PRESETS) — theme.test.ts #288 pins the parity.
+      options: themePresetOptions(),
+      admin: { description: 'Design swap — empty fields fall back to this preset.' },
     },
     {
       name: 'colors',
