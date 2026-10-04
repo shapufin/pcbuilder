@@ -116,7 +116,21 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–45 verbatim).
-Tests numbered cumulatively (#1–#365 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
+
+50. **Entry 55 review-fix round** — 3-reviewer pass on the committed
+   megaplan: **FIX → all fixed**. Majors: `saveBuild` stale in-flight
+   re-stamp (draft-signature guard + dedup), `share()` false-success
+   toast (now `Promise<boolean>`), DeployModal double-pipeline (shell
+   `busy` gate + live region). Minors: `clearSavedBuild`/`buildName`,
+   `pruneUnknown` hydration cleanup, `rgbColor` rehydrate re-validation
+   (`builderDraftMerge`), skin-failure fallback split, `resolvedMax`
+   shared cap math, spec-field int/min validation, create-access pin
+   (#374), stale `[[...segments]]/importMap.js` deleted. Gotchas:
+   Turbopack remaps `require.resolve` (css → asset error; pkg → module
+   id) → `loadSkin` walks up from `import.meta.url`; 15 build workers
+   OOM at ~2 GB free → `NEXT_BUILD_CPUS=4` knob. #366–#377 → 492 unit,
+   trio + build + 12/12 e2e green. **Uncommitted.**
 
 49. **Entry 54 P4** — **megaplan complete**: DeployModal real 4-stage
    pipeline (validate → power → save → cart; halts on errors),
@@ -125,53 +139,32 @@ Tests numbered cumulatively (#1–#365 + e2e; per-package counts in 05).
    flip → `rig-studio`** (#363–364). #353–#365 → 480 unit, trio + build
    + 12/12 e2e (deploy verified live). Review FIX → all 9 fixed.
 
-48. **Entry 53 P3** — **`rig-studio` full UI shipped** (RIG_model1 port,
-   real `useBuilder()` data only): header/bay/swap-modal + blueprint SVG
-   (8 zones, spec labels, ghost sockets) + toolbar/pills/telemetry/price
-   cards + matrix view; `studio-lib` pure layer #332–352; `rig-studio.css`
-   fully `.bdesign-rig-studio`-scoped; lucide-react 1.47.0. Review
-   FIX→fixed (CSS scoping + bay→zone hover).
+48. **Entry 53 P3** — **`rig-studio` full UI** (RIG_model1 port, real
+   `useBuilder()` data only): header/bay/swap-modal + blueprint SVG +
+   toolbar/pills/telemetry/price cards + matrix view; `studio-lib` pure
+   layer #332–352; `rig-studio.css` fully `.bdesign-rig-studio`-scoped;
+   lucide-react 1.47.0. Review FIX→fixed (CSS scoping, bay→zone hover).
 
-47. **Entry 52 P2** — **builder-design brain landed**: `BuilderProvider`
-   owns index/engine/`resolveSlotLimits`/hydration/loading-error; designs =
-   `useBuilder()` consumers (`state`/`actions`/`meta`+`actionStatus`).
-   `designs.ts` registry + `BuilderShell` + `getBuilderDesign()` wire the
-   admin pick (rig-studio code-split stub, parity #331). Store += cosmetic
-   `rgbColor` (#93-exempt) + `applyTemplate` reset; `kit/` =
-   `useBuildActions`/`option-rows`/`build-io`/`BuilderToasts`. Classic now
-   shows resolved caps live. Review FIX → fixed. #320–331 → 446 unit, gates
-   + build + uisight green.
+47. **Entry 52 P2** — **builder-design brain**: `BuilderProvider` owns
+   index/engine/`resolveSlotLimits`/hydration; designs = `useBuilder()`
+   consumers (`state`/`actions`/`meta`+`actionStatus`). `designs.ts`
+   registry + `BuilderShell` + `getBuilderDesign()` wire the admin pick.
+   Store += `rgbColor` + `applyTemplate` reset; `kit/` shared logic.
+   #320–331 → 446 unit, gates + build green. Review FIX → fixed.
 
-46. **Entry 51 P1** — **`rig-dark` is the site default**: tokens.css
-   statics retokenized to the RIG palette (first paint + no-JS = rig-dark;
-   `dark`/`light`/`midnight` stay swappable presets — stored docs keep
-   theirs until re-selected); `THEME_PRESETS` +`'rig-dark'`
-   (`#288` keys, `skin:'rig-dark.css'` — scrollbars/`::selection`/cyan
-   glow); `next/font/google` Inter→`--font-inter` + Space_Grotesk→
-   `--font-space-grotesk` on `<html>` (`--font-sans`/`--font-display`
-   wrap them, `--font-mono` stays true mono; fetches at build/dev — CI
-   needs network); `DEFAULT_FONTS` lead with `var(--font-*)` (code-side,
-   bypasses `validateFont`); `viewport.themeColor` hsl literal (no-hex).
-   Live swap probe green; build green. TDD `#318–#319` → 432 unit.
+46. **Entry 51 P1** — **`rig-dark` is the site default** (tokens
+   retokenized; `dark`/`light`/`midnight` stay presets; `THEME_PRESETS`
+   +`'rig-dark'` skin; next/font Inter+Space_Grotesk → `--font-*` vars).
+   TDD `#318–#319` → 432 unit.
 
-45. **Entry 50 P0** — **RIG Studio schema+registry** (megaplan
-   `plan-ec05526c8dbc0fdc.md`): `resolveSlotLimits`+`SLOT_LIMIT_RULES`
-   (mobo `ramSlots`/`m2Slots` caps, client-enforced → server
-   `findOverCapWarnings` into `validationSnapshot`); `rgb-presets.ts`
-   (hex home — apps/web bans literals); `BUILDER_DESIGNS` registry +
-   plugin-owned `builder-settings` global (never-throw resolver, own-prop)
-   + `getBuilderDesign()`; `components.{hasRgb,ramSlots,m2Slots}` +
-   `configured-builds.rgbColor` (schema+endpoint+share passthrough).
-   Live-verified index+global. TDD `#294–#311` → 424 unit, trio green.
+45. **Entry 50 P0** — **schema+registry**: `resolveSlotLimits`, RGB
+   presets, `BUILDER_DESIGNS` + `builder-settings` global (never-throw
+   resolver), `hasRgb`/`ramSlots`/`m2Slots`/`rgbColor` fields. TDD
+   `#294–#311` → 424 unit.
 
-44. **Entry 49** — **admin-GUI design swap (Tier 1+2)**: `THEME_PRESETS`
-   registry (dark/light/midnight) drives the Theme select (`#288` parity +
-   extras-key parity); `Theme.extras` = preset-tuned scrim/glow/soft vars
-   (`#289`, `#292` drift guard, `#293` hostile-preset hasOwn); `packages/ui/
-   skins/*.css` overlays inject via `#theme-skin` (cached `loadSkin` +
-   single-fetch `getThemeAssets`); live-verified admin POST swap both
-   directions; post-impl review FIX → all fixed. TDD `#288–#293` → 406
-   unit, typecheck 6/6, lint 4/4.
+44. **Entry 49** — **admin theme swap**: `THEME_PRESETS` registry +
+   `Theme.extras` preset tuning; `skins/*.css` overlays via `#theme-skin`.
+   TDD `#288–#293` → 406 unit. Review FIX → fixed.
 
 43. **Entries 47–48** — Precision Dark redesign + 3-reviewer round (30+
    fixes). Full text in `.devin/tracking/agents-archive-2026-10.md`.

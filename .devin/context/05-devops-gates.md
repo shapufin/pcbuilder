@@ -33,6 +33,11 @@ build-time globbing only, no patched release).
   shell (`PAYLOAD_SECRET=… DATABASE_URI=… pnpm build`) — turbo does not
   inject root `.env` into `next build`/`next start`, and the prod-secret
   guard (entry 28) makes that loud.
+- Page-data collection spawns ~15 workers (v8 NewSpace / Turbopack
+  `HashMap::Initialize` OOM under ~2 GB free RAM — looks like a crash
+  loop but it's memory pressure, not code) → `NEXT_BUILD_CPUS=4`
+  (opt-in `experimental.cpus` env knob in `next.config.mjs`, unset =
+  Next default).
 - Killing a background dev server orphans the `next` child on :3000 →
   `netstat -ano | grep :3000` then `taskkill //PID <pid> //F`.
 - After adding collection fields, **e2e fails on a stale DB** — schema
@@ -41,8 +46,8 @@ build-time globbing only, no patched release).
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 54, #1–#365 + 12 e2e)**: web 159 · plugin-shop 132 ·
-lib 78 · plugin-pc-builder 80 · plugin-pages 29 · ui 2 → **480 unit +
+**Test counts (entry 55, #1–#377 + 12 e2e)**: web 167 · plugin-shop 132 ·
+plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **492 unit +
 12 e2e**. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
 
