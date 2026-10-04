@@ -9,6 +9,7 @@ import { track } from '@/lib/analytics'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { useBuilderStore } from '../builder-store'
 import { addSavedRef, loadSavedRefs, storeSavedRefs } from './saved-refs'
+import { copyText } from './clipboard'
 import { canReuseInflight, draftSignature, shouldApplySavedBuild } from './save-guard'
 
 export type SavedBuild = { buildId: string; shareId: string; name?: string }
@@ -273,22 +274,7 @@ export function useBuildActions(index: BuilderIndex | null) {
     const saved = await ensureSavedBuild()
     if (!saved) return false
     const url = `${window.location.origin}/build/${saved.shareId}`
-    let copied = false
-    try {
-      await navigator.clipboard.writeText(url)
-      copied = true
-    } catch {
-      try {
-        const input = document.createElement('input')
-        input.value = url
-        document.body.appendChild(input)
-        input.select()
-        copied = document.execCommand('copy')
-        input.remove()
-      } catch {
-        copied = false
-      }
-    }
+    const copied = await copyText(url)
     if (copied) {
       setShareState('copied')
       window.setTimeout(() => setShareState('idle'), 2000)
