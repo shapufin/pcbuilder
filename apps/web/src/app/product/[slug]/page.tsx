@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { mediaDoc, pickMedia } from '@/lib/media'
+import { specRows } from '@/lib/specs'
 import { ViewItemTracker } from './ViewItemTracker'
 import { WishlistButton } from '@/components/WishlistButton'
 import { ProductGallery } from './ProductGallery'
@@ -103,18 +104,21 @@ export default async function ProductPage({ params }: Props) {
           <h2 className="pdp__specs-title">Specifications</h2>
           <table className="spec-table">
             <tbody>
-              {specs
-                ? Object.entries(specs).map(([k, v]) => (
-                    <tr key={k}>
-                      <th scope="row">{k}</th>
-                      <td>{String(v)}</td>
+              {(() => {
+                const rows = specRows(specs)
+                return rows.length > 0 ? (
+                  rows.map((row) => (
+                    <tr key={row.key}>
+                      <th scope="row">{row.key}</th>
+                      <td>{row.value}</td>
                     </tr>
                   ))
-                : (
-                    <tr>
-                      <td>No specs listed.</td>
-                    </tr>
-                  )}
+                ) : (
+                  <tr>
+                    <td>No specs listed.</td>
+                  </tr>
+                )
+              })()}
             </tbody>
           </table>
         </section>
