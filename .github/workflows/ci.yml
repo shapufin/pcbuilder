@@ -63,5 +63,13 @@ jobs:
           pkill -f "turbo dev" || true
           fuser -k 3000/tcp || true
           sleep 2
+          # The dev boot also writes generated route types under .next, and
+          # tsconfig includes .next/dev/types/**/*.ts — a SIGKILL
+          # mid-generation leaves a partially written validator.ts that fails
+          # the build's type check with TS1002 "Unterminated string literal"
+          # (run 37193975900). Clear the dev artifacts so the build starts from
+          # the same clean state as a fresh checkout; it regenerates its own
+          # types before type checking.
+          rm -rf apps/web/.next
       - run: pnpm build
       - run: pnpm audit --prod --audit-level high
