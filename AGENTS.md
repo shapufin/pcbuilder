@@ -90,8 +90,9 @@ manager, id3 staff `staff@buildmyrig.test`).
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
 (37117923390). **Entries 25–45 committed + pushed to `origin/main`**
 (`135b463`). **RIG Studio megaplan (entries 45–54) pushed** at `9b6efa6`;
-**entry-55 review-fix round committed locally** (`1a3ed2f..79cbf96`,
-unpushed). **Entry 56: Lighthouse re-run done** (Round D) — first
+**entries 55–57 pushed** at `0565804` (`1a3ed2f..0565804`: review-fix
+round 2, Lighthouse re-run, €0 confirm-free + SEC-001 re-check).
+**Entry 56: Lighthouse re-run done** (Round D) — first
 post-redesign audit; a11y 100 everywhere, home perf 82–91 band is a
 watch item. **Entry 47: "Precision Dark" frontend redesign committed**
 in 6 domain commits (`ac3e6e1`..`a153f2b`) **+ pushed, CI green** (`37127009398`) — tokens v2 + primitives/shell/product-card/shop/
@@ -113,7 +114,7 @@ discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
 Sentry, Plausible); **Round D remaining**: mobile `FilterDrawer`;
-entries 55–57 committed locally, awaiting push. Detail:
+entries 55–57 pushed at `0565804` (CI pending). Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
