@@ -8,6 +8,7 @@
         "DATABASE_URI",
         "PAYLOAD_SECRET",
         "BMR_URL",
+        "NEXT_BUILD_CPUS",
         "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
         "NEXT_PUBLIC_PLAUSIBLE_DOMAIN"
       ]
