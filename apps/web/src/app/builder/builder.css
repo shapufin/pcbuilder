@@ -817,6 +817,22 @@
     order: -1;
   }
 
+  /* Round D: option filters collapse into the shared FilterDrawer — the
+     inline copy hides, the trigger (base styles in primitives.css) shows. */
+  .panel-filters {
+    display: none;
+  }
+
+  .filter-drawer__open {
+    display: inline-flex;
+    margin-bottom: var(--space-3);
+  }
+
+  .filter-drawer__panel .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .options-grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }

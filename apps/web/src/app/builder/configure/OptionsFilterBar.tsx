@@ -1,5 +1,7 @@
 'use client'
 
+import { useId } from 'react'
+
 interface Props {
   query: string
   brand: string | null
@@ -10,12 +12,15 @@ interface Props {
 
 export function OptionsFilterBar({ query, brand, brands, onQuery, onBrand }: Props) {
   const dirty = query.trim().length > 0 || brand !== null
+  // Mounted twice on mobile (inline bar + FilterDrawer copy) — a stable
+  // hardcoded id would duplicate; useId keeps each mount's label↔input pair.
+  const searchId = `option-search${useId()}`
   return (
     <div className="filter-bar">
       <div className="field field--grow">
-        <label htmlFor="option-search">Search</label>
+        <label htmlFor={searchId}>Search</label>
         <input
-          id="option-search"
+          id={searchId}
           type="search"
           placeholder="Search parts…"
           value={query}

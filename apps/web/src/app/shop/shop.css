@@ -231,45 +231,8 @@
   font-weight: var(--weight-bold);
 }
 
-/* ---------- Filter drawer (mobile) ---------- */
-
-.filter-drawer__open {
-  display: none;
-}
-
-.filter-drawer__backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-scrim);
-  z-index: 55;
-}
-
-.filter-drawer__panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(320px, 88vw);
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  box-shadow: var(--shadow-lg);
-  z-index: 60;
-  padding: var(--space-5);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.filter-drawer__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.filter-drawer__head h2 {
-  margin: 0;
-  font-size: var(--text-xl);
-}
+/* Filter drawer base styles live in components/ui/primitives.css (shared
+   with the builder) — this page only opts the trigger in at its breakpoint. */
 
 /* ---------- Wishlist stale banner ---------- */
 

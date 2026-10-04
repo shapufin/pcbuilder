@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import type { BuilderIndex, ComponentSpecEntry, SlotLimit } from '@buildmyrig/lib'
+import { FilterDrawer } from '@/components/FilterDrawer'
 import { OptionsFilterBar } from './OptionsFilterBar'
 import { OptionCard } from './OptionCard'
 import { formatEUR } from '@/components/ui/Price'
@@ -108,7 +109,15 @@ export function StepPanel(props: Props) {
           </div>
         )}
 
-        <OptionsFilterBar query={query} brand={brand} brands={brands} onQuery={onQuery} onBrand={onBrand} />
+        {/* Same controlled filter bar twice (shop pattern): the drawer copy
+            mounts only when the trigger opens it on mobile; .panel-filters is
+            the desktop-inline copy, hidden ≤900px in builder.css. */}
+        <FilterDrawer label="Part filters" activeCount={(query.trim() ? 1 : 0) + (brand ? 1 : 0)}>
+          <OptionsFilterBar query={query} brand={brand} brands={brands} onQuery={onQuery} onBrand={onBrand} />
+        </FilterDrawer>
+        <div className="panel-filters">
+          <OptionsFilterBar query={query} brand={brand} brands={brands} onQuery={onQuery} onBrand={onBrand} />
+        </div>
 
         {options.length === 0 ? (
           <p className="state-msg">
