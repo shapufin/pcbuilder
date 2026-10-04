@@ -163,6 +163,27 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Badge pop on count change (entry 64 — CSS so the header stays
+   framer-motion-free; the span remounts via key). */
+@keyframes nav-badge-pop {
+  from {
+    transform: scale(0.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.nav-badge--pop {
+  animation: nav-badge-pop 150ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-badge--pop {
+    animation: none;
+  }
+}
+
 /* ---------- Mobile nav ---------- */
 
 .mobile-nav__toggle {

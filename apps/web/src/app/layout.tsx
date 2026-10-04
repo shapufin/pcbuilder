@@ -7,7 +7,7 @@ import Script from 'next/script'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import type { Metadata, Viewport } from 'next'
 import { EcommerceShell } from '../components/EcommerceShell'
-import { CartDrawer } from '../components/CartDrawer'
+import { CartDrawerLazy } from '../components/CartDrawerLazy'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 import { getSiteSettings } from '@/lib/site-settings.server'
@@ -90,7 +90,7 @@ export default async function RootLayout({
             navLinks={siteSettings.navLinks}
             themeLabels={{ altLabel: theme.altLabel, defaultLabel: theme.defaultLabel }}
           />
-          <CartDrawer />
+          <CartDrawerLazy />
           <div id="main-content">{children}</div>
           <SiteFooter />
         </EcommerceShell>

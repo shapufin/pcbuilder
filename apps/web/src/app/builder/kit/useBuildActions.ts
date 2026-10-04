@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BuilderIndex, ComponentSpecEntry } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
-import { flyToCart } from '@/lib/fly-to-cart'
+
 import { track } from '@/lib/analytics'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { useBuilderStore } from '../builder-store'
@@ -254,7 +254,11 @@ export function useBuildActions(index: BuilderIndex | null) {
         /* drawer rehydrates on its next fetch */
       }
       try {
-        if (from) flyToCart(from, saved.name ?? 'Custom build')
+        // Click-time only (entry 64) — the motion chunk loads on demand.
+        if (from) {
+          const { flyToCart } = await import('@/lib/fly-to-cart')
+          flyToCart(from, saved.name ?? 'Custom build')
+        }
         openCartDrawer()
         track('Add Build to Cart')
       } catch {

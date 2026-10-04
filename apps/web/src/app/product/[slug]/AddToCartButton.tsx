@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
-import { flyToCart } from '@/lib/fly-to-cart'
 import { track } from '@/lib/analytics'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 
@@ -31,7 +30,9 @@ export function AddToCartButton({
           : { product: productId as never },
         1,
       )
-      flyToCart(rect, label ?? 'Added')
+      // Click-time only: the motion chunk stays off the PDP's critical path
+      // (entry 64) — it resolves on the first add-to-cart.
+      void import('@/lib/fly-to-cart').then(({ flyToCart }) => flyToCart(rect, label ?? 'Added'))
       track('Add to Cart', label ? { item: label } : undefined)
       openCartDrawer()
       setState('done')

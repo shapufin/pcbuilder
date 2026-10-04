@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { embedUrlFor } from '@buildmyrig/lib'
+import { mediaDoc, pickMedia, type MediaDoc } from '@/lib/media'
 
 type Cta = { label: string; url: string; style?: 'primary' | 'secondary' }
+type HeroImage = { url?: string | null; alt?: string | null } & MediaDoc
 
 export function Hero({
   block,
@@ -9,7 +11,7 @@ export function Hero({
   block: {
     heading?: string
     subheading?: string
-    image?: { url?: string | null; alt?: string | null } | null
+    image?: HeroImage | null
     videoUrl?: string | null
     variant?: 'image' | 'split' | 'video'
     align?: 'left' | 'center'
@@ -41,6 +43,9 @@ export function Hero({
     </div>
   )
   const embed = variant === 'video' && videoUrl ? embedUrlFor(videoUrl) : null
+  // Above-the-fold LCP candidate: sized `hero` variant + intrinsic dims +
+  // eager/high priority (entry 64). pickMedia falls back to the original.
+  const heroImage = pickMedia(mediaDoc(image), 'hero', image?.alt ?? '')
   const media = embed ? (
     <div className="hero__media hero__media--framed">
       <iframe
@@ -51,9 +56,18 @@ export function Hero({
         className="hero__iframe"
       />
     </div>
-  ) : image?.url ? (
+  ) : heroImage ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={image.url} alt={image.alt ?? ''} className="hero__img" />
+    <img
+      src={heroImage.url}
+      alt={heroImage.alt}
+      width={heroImage.width}
+      height={heroImage.height}
+      loading="eager"
+      decoding="async"
+      fetchPriority="high"
+      className="hero__img"
+    />
   ) : null
 
   return (
