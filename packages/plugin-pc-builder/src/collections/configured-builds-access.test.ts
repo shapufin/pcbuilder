@@ -6,6 +6,10 @@ const call = (fn: unknown, args: unknown): unknown => (fn as (a: unknown) => unk
 
 const asReq = (user: { id?: unknown; roles?: string[] | null } | null) => ({ req: { user } })
 
+// requireStaff additionally pins collection === 'users'
+const asUser = (user: { id: unknown; roles?: string[] | null }) =>
+  ({ req: { user: { collection: 'users', ...user } } })
+
 describe('configured-builds access — entry 11 matrix alignment', () => {
   it('#51 read: anon denied; staff/manager/admin unscoped; owner self-scoped where', () => {
     expect(call(access.read, asReq(null))).toBe(false)
@@ -32,6 +36,19 @@ describe('configured-builds access — entry 11 matrix alignment', () => {
       user: { equals: 5 },
     })
     expect(call(access.update, asReq({ id: 9 }))).toEqual({ user: { equals: 9 } })
+  })
+
+  it('#374 create: raw REST create is staff-gated (anon and customers denied)', () => {
+    // Guests save through POST /api/builder/builds instead — removing this
+    // gate reopens the rate-limiter bypass + user/status spoofing surface.
+    expect(call(access.create, asReq(null))).toBe(false)
+    expect(call(access.create, asReq({ id: 9 }))).toBe(false)
+    // staff is read-only in the entry-11 matrix — create is admin/manager-only
+    expect(call(access.create, asUser({ id: 4, roles: ['staff'] }))).toBe(false)
+    // a customer-account-shaped user without collection === 'users' is denied
+    expect(call(access.create, asReq({ id: 9, roles: ['admin'] }))).toBe(false)
+    expect(call(access.create, asUser({ id: 5, roles: ['manager'] }))).toBe(true)
+    expect(call(access.create, asUser({ id: 1, roles: ['admin'] }))).toBe(true)
   })
 })
 

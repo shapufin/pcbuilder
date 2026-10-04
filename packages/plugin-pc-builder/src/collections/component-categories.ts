@@ -22,7 +22,7 @@ export const ComponentCategories: CollectionConfig = {
     { name: 'icon', type: 'text', admin: { description: 'Token name from packages/ui icon set' } },
     { name: 'sortOrder', type: 'number', defaultValue: 0, index: true },
     { name: 'required', type: 'checkbox', defaultValue: true },
-    { name: 'maxSelectable', type: 'number', defaultValue: 1, admin: { description: 'e.g. storage = 2, case-fan = 6' } },
+    { name: 'maxSelectable', type: 'number', min: 1, defaultValue: 1, validate: (v: unknown) => v == null || Number.isInteger(v) || 'Must be a whole slot count', admin: { description: 'e.g. storage = 2, case-fan = 6' } },
     { name: 'helperText', type: 'text' },
   ],
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BuilderIndex } from './rule-engine'
 import { DEFAULT_RGB_ACCENT, RGB_PRESETS } from './rgb-presets'
-import { resolveSlotLimits, SLOT_LIMIT_RULES } from './slot-limits'
+import { resolveSlotLimits, resolvedMax, SLOT_LIMIT_RULES } from './slot-limits'
 
 /**
  * Entry 50 (P0): spec-driven slot caps — a selected motherboard's ramSlots /
@@ -76,18 +76,36 @@ describe('resolveSlotLimits — entry 50', () => {
     ])
   })
 
-  it('#301 multiple host picks → the first one CARRYING the spec wins', () => {
-    const limits = resolveSlotLimits(baseIndex(), { '1': ['12', '11'] })
+  it('#301 multiple host picks → the most restrictive one wins (entry-55 review)', () => {
+    const limits = resolveSlotLimits(baseIndex(), { '1': ['10', '11'] })
     expect(limits['2'].max).toBe(2)
     expect(limits['2'].cappedBy?.componentId).toBe('11')
+    // pick order must not matter — lenient first, strict second
+    const flipped = resolveSlotLimits(baseIndex(), { '1': ['11', '10'] })
+    expect(flipped['2'].max).toBe(2)
   })
 
-  it('#314 non-integer/negative/zero host specs are ignored (no fractional caps)', () => {
+  it('#314 non-integer/negative host specs are ignored (no fractional caps)', () => {
     const index = baseIndex()
     index.components[1].specs = { ramSlots: 1.5, m2Slots: -2 }
     const limits = resolveSlotLimits(index, { '1': ['11'] })
     expect(limits['2']).toEqual({ max: 4 })
     expect(limits['3']).toEqual({ max: 4 })
+  })
+
+  it('#366 zero is a real cap — a 0-slot board (soldered RAM) blocks the slot', () => {
+    const index = baseIndex()
+    index.components[1].specs = { ramSlots: 0, m2Slots: 0 }
+    const limits = resolveSlotLimits(index, { '1': ['11'] })
+    expect(limits['2'].max).toBe(0)
+    expect(limits['2'].cappedBy?.componentId).toBe('11')
+    expect(limits['3'].max).toBe(0)
+  })
+
+  it('#367 resolvedMax collapses limits ?? maxSelectable ?? 1', () => {
+    expect(resolvedMax({ '2': { max: 2 } }, { id: '2', maxSelectable: 4 })).toBe(2)
+    expect(resolvedMax({ '2': { max: 2 } }, { id: '3', maxSelectable: 4 })).toBe(4)
+    expect(resolvedMax(undefined, { id: '2' })).toBe(1)
   })
 })
 

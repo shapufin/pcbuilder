@@ -75,8 +75,8 @@ export const Components: CollectionConfig = {
         { name: 'coolerSocketSupport', type: 'select', hasMany: true, options: [...SOCKET_OPTIONS] },
         { name: 'storageInterface', type: 'select', options: [...STORAGE_INTERFACE_OPTIONS], index: true },
         { name: 'pcieVersion', type: 'select', options: [...PCIE_OPTIONS] },
-        { name: 'ramSlots', type: 'number', min: 0, admin: { description: 'Physical DIMM slots (motherboards) — caps RAM picks via resolveSlotLimits' } },
-        { name: 'm2Slots', type: 'number', min: 0, admin: { description: 'M.2 sockets (motherboards) — caps NVMe storage picks via resolveSlotLimits' } },
+        { name: 'ramSlots', type: 'number', min: 0, validate: (v: unknown) => v == null || Number.isInteger(v) || 'Must be a whole slot count', admin: { description: 'Physical DIMM slots (motherboards) — caps RAM picks via resolveSlotLimits' } },
+        { name: 'm2Slots', type: 'number', min: 0, validate: (v: unknown) => v == null || Number.isInteger(v) || 'Must be a whole slot count', admin: { description: 'M.2 sockets (motherboards) — caps NVMe storage picks via resolveSlotLimits' } },
       ],
     },
     {
