@@ -1,7 +1,10 @@
 import type { Payload, PayloadRequest } from 'payload'
-import { randomUUID } from 'node:crypto'
-import { getLineItemType } from '@buildmyrig/lib'
-import { convertReservation, decrementStock, releaseReservations } from '../lib/reservations.ts'
+import { releaseReservations } from '../lib/reservations.ts'
+import {
+  claimSettlement,
+  postSettleSteps,
+  settleClaimedTransaction,
+} from '../lib/settle-transaction.ts'
 
 /**
  * Stripe webhook handlers — Phase 4 "webhook idempotency" (12-integrations-ops.md).
@@ -39,9 +42,6 @@ type Logger = Pick<Payload['logger'], 'info' | 'warn' | 'error'>
 
 const ORDERS = 'orders'
 const TRANSACTIONS = 'transactions'
-const CARTS = 'carts'
-const PRODUCTS = 'products'
-const VARIANTS = 'variants'
 
 const parseJson = <T>(raw: unknown): T | null => {
   if (typeof raw !== 'string' || !raw) return null
@@ -91,132 +91,10 @@ const paymentIntentIdOf = (event: WebhookEvent): string | null => {
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 /**
- * A settled/paid transaction's idempotent post-steps: discount usage (CAS
- * marker) + reservation conversion. `decrementComposite` is driven by the
- * transaction's `inventoryComplete` marker: the webhook's own decrement loop
- * sets it (composite units already decremented → bookkeeping-only); the
- * upstream confirmOrder poll never sets it (it skips composite lines → the
- * conversion must decrement them).
- */
-const postSettleSteps = async (
-  payload: Payload,
-  req: PayloadRequest,
-  paymentIntentID: string,
-  transaction: Record<string, any>,
-): Promise<void> => {
-  await countDiscountUsage({
-    payload,
-    req,
-    transactionId: transaction.id,
-    cartId: transaction.cart,
-    discountCodeApplied: transaction.discountCodeApplied,
-  })
-  await convertReservation(payload, req, paymentIntentID, {
-    decrementComposite: transaction.inventoryComplete !== true,
-  })
-}
-
-/**
- * A6: count one use of the cart's applied discount code. At-most-once via a
- * CAS on the transaction's `discountCounted` marker (entry 32 review F2):
- * the upstream `confirmOrder` poll can settle a payment without ever counting
- * usage, and Stripe can deliver `payment_intent.succeeded` concurrently — the
- * marker makes every settlement path (webhook claim, poll-wins, repair) safe
- * to call this. Never throws: usage counting must not abort a settled payment.
- *
- * Entry 44 review (I3): the code counted is the one snapshotted on the
- * transaction at initiation (`discountCodeApplied`) — the cart can be edited
- * while the PaymentIntent is in flight, so reading `cart.discountCode` at
- * settle time could count a code that was never priced into the charge.
- */
-const countDiscountUsage = async ({
-  payload,
-  req,
-  transactionId,
-  cartId,
-  discountCodeApplied,
-}: {
-  payload: Payload
-  req: PayloadRequest
-  transactionId: unknown
-  cartId: unknown
-  discountCodeApplied?: unknown
-}): Promise<void> => {
-  if (transactionId === null || transactionId === undefined || transactionId === '') return
-  try {
-    let codeId =
-      discountCodeApplied && typeof discountCodeApplied === 'object'
-        ? (discountCodeApplied as { id?: unknown }).id
-        : discountCodeApplied
-    if ((codeId === null || codeId === undefined || codeId === '') && cartId !== null && cartId !== undefined && cartId !== '') {
-      // No snapshot (pre-entry-44 transaction): fall back to the cart's code.
-      const cart = (await payload.findByID({
-        collection: CARTS,
-        id: cartId as string | number,
-        depth: 0,
-        overrideAccess: true,
-        req,
-      })) as { discountCode?: unknown } | null
-      codeId =
-        cart?.discountCode && typeof cart.discountCode === 'object'
-          ? (cart.discountCode as { id?: unknown }).id
-          : cart?.discountCode
-    }
-    if (codeId === null || codeId === undefined || codeId === '') return
-    // Claim the marker first: a crash between claim and increment under-counts
-    // (recoverable by ops) rather than double-counting a customer's code.
-    // `exists: false` covers rows created before the marker column existed —
-    // SQL evaluates `!= true` as NULL for those and would never match.
-    const claimed = await payload.db.updateOne({
-      collection: TRANSACTIONS,
-      data: { discountCounted: true },
-      options: { atomic: true },
-      req,
-      where: {
-        and: [
-          { id: { equals: transactionId } },
-          {
-            or: [
-              { discountCounted: { not_equals: true } },
-              { discountCounted: { exists: false } },
-            ],
-          },
-        ],
-      },
-    } as never)
-    if (!claimed) return
-    // Entry 44 review (I3): the increment honours `maxUses` atomically — a
-    // check-time validation can't stop two carts consuming the last use.
-    const code = (await payload.findByID({
-      collection: 'discount-codes',
-      id: codeId as string | number,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    }).catch(() => null)) as { maxUses?: number | null } | null
-    const hasCap = typeof code?.maxUses === 'number'
-    const bumped = await payload.db.updateOne({
-      collection: 'discount-codes',
-      data: { usedCount: { $inc: 1 } },
-      options: { atomic: true },
-      req,
-      where: hasCap
-        ? { and: [{ id: { equals: codeId } }, { usedCount: { less_than: code!.maxUses } }] }
-        : { id: { equals: codeId } },
-    } as never)
-    if (!bumped) {
-      payload.logger.warn(
-        `[stripe-webhook] discount ${String(codeId)} at maxUses — marker set, usage not incremented (overshoot prevented)`,
-      )
-    }
-  } catch (err) {
-    payload.logger.warn(`[stripe-webhook] discount usage count failed: ${String(err)}`)
-  }
-}
-
-/**
  * Mirrors plugin-ecommerce's private `finalizeTransactionOrder` (not exported):
  * claim → create order → mark cart purchased → decrement inventory → settle.
+ * The claim + settle core lives in `lib/settle-transaction.ts`, shared with
+ * the €0 confirm-free endpoint (Round D).
  */
 const settlePaymentIntent = async ({ event, req }: WebhookArgs): Promise<void> => {
   const payload = req.payload
@@ -251,37 +129,9 @@ const settlePaymentIntent = async ({ event, req }: WebhookArgs): Promise<void> =
   }
 
   // Claim: `pending`, or `processing` only when stale (>60s — the previous
-  // settlement attempt died). The atomic where-update is a single-statement
-  // conditional write on drizzle (options.atomic + join-free predicates), so
-  // two concurrent deliveries can't both win. The claim also writes a
-  // fencing token: a re-claim steals the token, and the displaced worker's
-  // per-line CAS then fails instead of double-decrementing (#286).
-  const staleBefore = new Date(Date.now() - 60_000).toISOString()
-  const claimToken = randomUUID()
-  const claimed = await payload.db.updateOne({
-    collection: TRANSACTIONS,
-    data: { status: 'processing', settlementToken: claimToken },
-    options: { atomic: true },
-    req,
-    where: {
-      and: [
-        { id: { equals: transaction.id } },
-        { order: { exists: false } },
-        {
-          or: [
-            { status: { equals: 'pending' } },
-            {
-              and: [
-                { status: { equals: 'processing' } },
-                { updatedAt: { less_than: staleBefore } },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  } as never)
-  if (!claimed) {
+  // settlement attempt died). See claimSettlement for the CAS + fencing token.
+  const claimToken = await claimSettlement(payload, req, transaction.id)
+  if (!claimToken) {
     // A competitor (Stripe redelivery or the upstream confirmOrder poll) is
     // mid-settlement. A lost claim must not blindly ACK the only copy of the
     // event (entry 44 review I1): give it a bounded moment to land, then run
@@ -327,190 +177,19 @@ const settlePaymentIntent = async ({ event, req }: WebhookArgs): Promise<void> =
       ? snapshotItems
       : (transaction.items as Record<string, unknown>[])
     const shippingAddress = parseJson<Record<string, unknown>>(metadata.shippingAddress) ?? undefined
-    const totalsSnapshot = (transaction.totalsSnapshot ?? null) as {
-      subtotal?: number
-      discountTotal?: number
-      shippingTotal?: number
-      taxTotal?: number
-    } | null
-
-    // Orphan-order reuse (entry 44 review I2): a crash between order create
-    // and the transaction link leaves an order already pointing back at this
-    // transaction — reuse it instead of creating a second one.
-    let order: { id: string | number } | null = null
-    const orphans = await payload.find({
-      collection: ORDERS,
-      depth: 0,
-      limit: 1,
-      pagination: false,
-      overrideAccess: true,
-      req,
-      where: { transactions: { contains: transaction.id } } as never,
-    })
-    if (orphans.docs.length > 0) {
-      order = orphans.docs[0] as { id: string | number }
-      logger.warn(`[stripe-webhook] reusing orphan order ${String(order.id)} for ${paymentIntentID}`)
-    } else {
-      order = await payload.create({
-        collection: ORDERS,
-        data: {
-          amount: typeof object.amount === 'number' ? object.amount : transaction.amount,
-          // Store prices/orders are EUR-only; the orders currency select carries
-          // that literal type, so narrow Stripe's passthrough value.
-          currency: String(object.currency ?? transaction.currency ?? 'EUR').toUpperCase() as 'EUR',
-          ...(transaction.customer
-            ? { customer: transaction.customer }
-            : { customerEmail: transaction.customerEmail }),
-          // Snapshot shape matches the cart line type at runtime (product/variant/
-          // quantity/lineType/custom fields) — same source the confirm poll uses.
-          items: items as never,
-          shippingAddress,
-          status: 'processing',
-          transactions: [transaction.id],
-          // Order-level breakdown + applied code (entry 44 review I4): from the
-          // charge-time transaction snapshot, not the mutable cart.
-          discountCode: transaction.discountCodeApplied ?? null,
-          subtotal: totalsSnapshot?.subtotal ?? null,
-          discountTotal: totalsSnapshot?.discountTotal ?? null,
-          shippingTotal: totalsSnapshot?.shippingTotal ?? null,
-          taxTotal: totalsSnapshot?.taxTotal ?? null,
-        } as never,
-        req,
-      })
-    }
-
-    if (transaction.cart) {
-      await payload.update({
-        id: transaction.cart,
-        collection: CARTS,
-        data: { purchasedAt: new Date().toISOString() },
-        req,
-      })
-    }
-
-    const decrement = async (collection: string, targetId: unknown, by: number): Promise<void> => {
-      // Guarded decrement (audit gap P2-C6): pre-checks stock, logs loudly on
-      // oversell, then decrements anyway — the payment is captured, so an
-      // accurate negative ledger beats a hidden shortfall.
-      await decrementStock(payload, collection, targetId as string | number, by, logger, req)
-    }
-
-    // Resumable decrement loop (entry 44 review I2): `inventoryProgress` marks
-    // completed lines so a crash mid-loop resumes instead of re-decrementing.
-    const startAt =
-      typeof transaction.inventoryProgress === 'number' && transaction.inventoryProgress > 0
-        ? transaction.inventoryProgress
-        : 0
-    for (let i = startAt; i < items.length; i++) {
-      // Fence: re-assert claim ownership before consuming the next line —
-      // a re-claimer stole the token if this returns null (entry 44).
-      const stillOwned = await payload.db.updateOne({
-        collection: TRANSACTIONS,
-        data: { inventoryProgress: i },
-        options: { atomic: true },
-        req,
-        where: {
-          and: [
-            { id: { equals: transaction.id } },
-            { settlementToken: { equals: claimToken } },
-          ],
-        },
-      } as never)
-      if (!stillOwned) {
-        logger.warn(
-          `[stripe-webhook] claim stolen mid-settlement for ${paymentIntentID} — aborting at line ${i} (the re-claimer owns it now)`,
-        )
-        return
-      }
-      const item = items[i]
-      const quantity = item.quantity
-      if (typeof quantity !== 'number' || !Number.isFinite(quantity) || quantity <= 0) {
-        throw new Error('[stripe-webhook] settlement aborted: invalid inventory item quantity')
-      }
-      const lineType = typeof item.lineType === 'string' && item.lineType ? item.lineType : 'standard'
-      if (lineType !== 'standard') {
-        // Composite lines (e.g. configured-build) carry no product/variant of
-        // their own — stock targets come from the registered line type.
-        const type = getLineItemType(lineType)
-        if (type?.resolveStockUnits) {
-          const units = await type.resolveStockUnits(item, payload)
-          for (const unit of units) {
-            const unitQty =
-              typeof unit.quantity === 'number' && Number.isFinite(unit.quantity) && unit.quantity > 0
-                ? unit.quantity
-                : 1
-            const target = unit.variant ?? unit.product
-            if (target === null || target === undefined || target === '') {
-              logger.warn(`[stripe-webhook] stock unit without target on '${lineType}' line — skipped`)
-              continue
-            }
-            await decrement(unit.variant != null ? VARIANTS : PRODUCTS, target, unitQty * quantity)
-          }
-        } else {
-          // No stock resolver and no own product/variant: payment is already
-          // captured, so settle anyway and log loudly — a stuck transaction is
-          // unrecoverable, a missed decrement is reconcilable.
-          logger.warn(
-            `[stripe-webhook] line type '${lineType}' has no resolveStockUnits and no product/variant — inventory not decremented`,
-          )
-        }
-      } else {
-        const hasVariant = item.variant !== null && item.variant !== undefined
-        const targetId = hasVariant ? item.variant : item.product
-        if (targetId === null || targetId === undefined || targetId === '') {
-          throw new Error('[stripe-webhook] settlement aborted: inventory item without product/variant id')
-        }
-        await decrement(hasVariant ? VARIANTS : PRODUCTS, targetId, quantity)
-      }
-      await payload.db.updateOne({
-        collection: TRANSACTIONS,
-        data: { inventoryProgress: i + 1 },
-        options: { atomic: true },
-        req,
-        where: {
-          and: [
-            { id: { equals: transaction.id } },
-            { settlementToken: { equals: claimToken } },
-          ],
-        },
-      } as never)
-    }
-
-    // Discount usage counts once (CAS marker) — run inside the try so a hiccup
-    // is caught by the same retry-capable catch.
-    await countDiscountUsage({
+    await settleClaimedTransaction({
       payload,
       req,
-      transactionId: transaction.id,
-      cartId: transaction.cart,
-      discountCodeApplied: transaction.discountCodeApplied,
+      transaction,
+      claimToken,
+      amount: typeof object.amount === 'number' ? object.amount : transaction.amount,
+      // Store prices/orders are EUR-only; the orders currency select carries
+      // that literal type, so narrow Stripe's passthrough value.
+      currency: String(object.currency ?? transaction.currency ?? 'EUR').toUpperCase() as 'EUR',
+      items,
+      shippingAddress,
+      paymentKey: paymentIntentID,
     })
-
-    // Settle + inventoryComplete in one conditional write: the token CAS means
-    // a stolen claim never overwrites the thief's settle.
-    const settled = await payload.db.updateOne({
-      collection: TRANSACTIONS,
-      data: {
-        order: Number(order.id),
-        status: 'succeeded',
-        inventoryComplete: true,
-        settlementToken: null,
-      },
-      options: { atomic: true },
-      req,
-      where: {
-        and: [
-          { id: { equals: transaction.id } },
-          { settlementToken: { equals: claimToken } },
-        ],
-      },
-    } as never)
-    if (!settled) {
-      logger.warn(
-        `[stripe-webhook] claim stolen before final settle for ${paymentIntentID} — the re-claimer owns completion`,
-      )
-      return
-    }
   } catch (err) {
     // 500 → Stripe retries; the stale-claim window (>60s) lets the retry
     // resume (orphan order reused, decrement loop continues at its marker).
@@ -519,10 +198,6 @@ const settlePaymentIntent = async ({ event, req }: WebhookArgs): Promise<void> =
     )
     throw err
   }
-
-  // Reservation lifecycle (audit gap P2-C6): the settlement loop above
-  // decremented every unit, so conversion is bookkeeping-only.
-  await convertReservation(payload, req, paymentIntentID, { decrementComposite: false })
 }
 
 const failPaymentIntent = async ({ event, req }: WebhookArgs): Promise<void> => {
