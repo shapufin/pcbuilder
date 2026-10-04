@@ -113,9 +113,10 @@ prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
 discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
-Sentry, Plausible); **Round D complete** (mobile `FilterDrawer` on the
-classic builder, entry 59 — uncommitted); entries 55–57 pushed at
-`0565804`, CI-flake fix `596aa7a` — **CI all 8 gates green (37194748589)**. Detail:
+Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
+59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
+`ThemeToggle`, `bmr_theme` persisted); entries 55–59 pushed at
+`db00900`, flake fix `596aa7a` — **CI all-8 green (37194748589)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -124,8 +125,14 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#401 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#408 + e2e; per-package counts in 05).
 
+55. **Entry 60** — **visitor theme toggle**: `getThemeAssets` ships a
+   complete alt preset in `#theme-alt` (`media="not all"`;
+   `altThemePreset()` pairs light↔dark); `ThemeToggle` (header,
+   `useSyncExternalStore`, no effect/mismatch) flips media attrs +
+   stores `bmr_theme`; `THEME_BOOT_SCRIPT` re-applies pre-paint. TDD
+   #402–#408 → 525 unit, build 25/25, **15/15 e2e**. Review SHIP.
 54. **Entry 59 Round D** — **mobile FilterDrawer, classic builder**
    (last Round-D item): `OptionsFilterBar` mounts twice (inline
    `.panel-filters` hidden ≤900px + inside the shared drawer) — state
@@ -161,14 +168,8 @@ Tests numbered cumulatively (#1–#401 + e2e; per-package counts in 05).
    carts over-redeem a 100%-off code). TDD #383–#395 → 510 unit;
    trio + build + 12/12 e2e green.
 
-51. **Entry 56 Round D** — **Lighthouse re-run** on the entry-55 build
-   (first post-redesign audit, entry-17 recipe): `/` 88 (82–91 band —
-   watch item, LCP 3.5–3.9 s vs 2.6 s baseline), `/shop` 92, `/builder`
-   94, `/checkout` 90; a11y 100 everywhere, CLS 0. Checkout BP 79/SEO 63
-   = Stripe 3p cookie + deliberate robots disallow — not regressions.
-   **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**
-
-43–50. **Entries 47–55** — Precision Dark redesign, theme-swap registry,
+43–51. **Entries 47–56** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P4 + review-fix round (rig-dark default, design registry,
-   rig-studio UI, DeployModal/SavedBuildsModal, `NEXT_BUILD_CPUS`).
+   rig-studio UI, DeployModal/SavedBuildsModal, `NEXT_BUILD_CPUS`),
+   Lighthouse re-run (a11y 100 everywhere; home-perf 82–91 watch item).
    Full text in `.devin/tracking/agents-archive-2026-10.md`.

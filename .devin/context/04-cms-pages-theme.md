@@ -68,6 +68,15 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
 - App injection: `src/lib/theme.server.ts` `getThemeCss()` →
   `src/app/layout.tsx` renders `<style id="theme-vars">` as first body
   child (overrides win cascade after the tokens.css import).
+- **Visitor toggle (entry 60)**: `getThemeAssets()` also returns `altCss`
+  — a complete counterpart preset (`altThemePreset()`: `light`↔
+  `dark`-flavored; preset defaults, admin overrides do NOT leak; admin
+  radius/fonts kept) — rendered inert as `<style id="theme-alt"
+  media="not all">`. `ThemeToggle` (header, `useSyncExternalStore`, no
+  setState-in-effect) flips `media` attrs + stores `bmr_theme`
+  (`'alt'`/`'default'`); `THEME_BOOT_SCRIPT` inline after the style tags
+  re-applies before paint. Own-tab writes notify via `bmr_theme_change`
+  (storage events don't fire same-tab). `#402–#408` + e2e.
 - Payload group-field semantics: validators see *omitted* group fields
   as empty on PATCH — optional fields must accept empty (`optionalField`
   pattern, `#141b`); `{"colors":{}}` merges as a no-op — clear with

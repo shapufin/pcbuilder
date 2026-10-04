@@ -119,3 +119,10 @@ Session history (one line each, entries 1–24 in the progress log):
    OOM at ~2 GB free → `NEXT_BUILD_CPUS=4` knob. #366–#377 → 492 unit,
    trio + build + 12/12 e2e green. Committed `1a3ed2f..79cbf96`
    (pushed at `0565804`).
+
+51. **Entry 56 Round D** — **Lighthouse re-run** on the entry-55 build
+   (first post-redesign audit, entry-17 recipe): `/` 88 (82–91 band —
+   watch item, LCP 3.5–3.9 s vs 2.6 s baseline), `/shop` 92, `/builder`
+   94, `/checkout` 90; a11y 100 everywhere, CLS 0. Checkout BP 79/SEO 63
+   = Stripe 3p cookie + deliberate robots disallow — not regressions.
+   **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**

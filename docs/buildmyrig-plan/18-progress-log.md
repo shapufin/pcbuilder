@@ -2,6 +2,17 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (60) — Visitor-facing theme toggle
+
+Until now the theme was an admin-only choice (manager `theme` global → one preset site-wide). Entry 60 adds the user-facing half: a header toggle that swaps the whole palette client-side and persists per visitor.
+
+- **Mechanism — dual stylesheets, no CSS scoping**: `getThemeAssets()` now returns `altCss` — the complete counterpart preset (`altThemePreset()` in plugin-pages: `light`↔`dark`-flavored; admin picks `rig-dark` → alt is `light`, admin picks `light` → alt is `dark`). The layout renders it inert as `<style id="theme-alt" media="not all">`; toggling just flips `media` attrs on the style tags — vars, extras and skins stay self-contained per preset. Alt uses **preset defaults** (admin color overrides don't leak across) but keeps the admin's radius/fonts so toggling doesn't shift type/layout.
+- **`THEME_BOOT_SCRIPT`**: tiny inline script after the style tags flips the media attrs pre-paint when `localStorage.bmr_theme === 'alt'` — no flash on reload.
+- **`ThemeToggle`** (header actions): `useSyncExternalStore` reads the stored choice during hydration (server snapshot = default) — no `setState`-in-effect (lint), no hydration warning; own-tab writes notify via a `bmr_theme_change` event since `storage` doesn't fire same-tab. Ghost-icon button (`SunMoon` lucide), `aria-pressed` + label naming the destination preset, `--color-focus` outline.
+- **TDD #402–#408**: alt pairing both directions, override isolation, failure fallback, boot-script contract, SSR button contract. **e2e** `theme-toggle.spec.ts`: live swap changes computed `background-color`, `aria-pressed` flips, boot script re-applies `media="all"` post-reload.
+
+**Gates: TDD #402–#408 → 525 unit (web 187 · shop 145 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck + lint (web + plugin-pages — caught the useEffect pattern, `useSyncExternalStore` is the fix), `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), 15/15 e2e, `workflow:check` PASS.** Review (code-review-checklist): SHIP.
+
 ## 2026-10-04 (59) — Mobile FilterDrawer for the classic builder (Round D, last item)
 
 The parked "mobile FilterDrawer" backlog item (parked since entry 16) was actually two pieces: the shop category drawer (landed entry 47) and the classic builder's `OptionsFilterBar` mobile pass. This round lands the second — **Round D is now complete**.

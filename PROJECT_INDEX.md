@@ -28,11 +28,12 @@ Where things live. Not a manual — a map. Domain rules:
 ## Tests
 
 - Vitest per package (`pnpm test`, turbo); numbered cumulatively
-  (#1–#401 + e2e). apps/web vitest scoped to `src/**` by
+  (#1–#408 + e2e). apps/web vitest scoped to `src/**` by
   `vitest.config.ts` (also provides the `@` alias — keep both).
 - Playwright: `apps/web/e2e/{smoke,auth,builder,search-wishlist,
-  cart-drawer,filter-drawer}.spec.ts`, `playwright.config.ts` — needs a
-  prod build + running `next start` on :3000.
+  cart-drawer,filter-drawer,theme-toggle}.spec.ts`,
+  `playwright.config.ts` — needs a prod build + running `next start` on
+  :3000.
 
 ## Generated / do-not-edit
 
@@ -93,7 +94,10 @@ Where things live. Not a manual — a map. Domain rules:
   + `src/globals/Theme.ts`, app `src/lib/theme.server.ts`
   (`getThemeAssets` single fetch) + `layout.tsx`
   (`#theme-vars`/`#theme-skin`, next/font Inter+Space_Grotesk),
-  enforcement `apps/web/eslint-rules/no-raw-hex.mjs`.
+  enforcement `apps/web/eslint-rules/no-raw-hex.mjs`. Visitor toggle
+  (entry 60): `getThemeAssets()` → `altCss` alt preset →
+  `#theme-alt media="not all"`; `components/ThemeToggle.tsx` flips media
+  attrs (`bmr_theme` localStorage + `THEME_BOOT_SCRIPT` pre-paint).
 - Block system v2: `plugin-pages/src/blocks/` + `src/index.ts`
   `mergeBlocks`; app `src/blocks/renderBlocks.tsx` + `PageRenderer.tsx`,
   `blocks/components/Section.tsx`, `lexical-converters.tsx`, `registry.tsx`,
