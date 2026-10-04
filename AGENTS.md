@@ -85,11 +85,15 @@ manager, id3 staff `staff@buildmyrig.test`).
   `sessions.jsonl` (gitignored JSONL). Hook-less tools follow the
   contract manually; the ledger answers "what changed" on resume.
 
-## Current status (2026-10-03)
+## Current status (2026-10-04)
 
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
 (37117923390). **Entries 25–45 committed + pushed to `origin/main`**
-(`135b463`). **Entry 47: "Precision Dark" frontend redesign committed**
+(`135b463`). **RIG Studio megaplan (entries 45–54) pushed** at `9b6efa6`;
+**entry-55 review-fix round committed locally** (`1a3ed2f..79cbf96`,
+unpushed). **Entry 56: Lighthouse re-run done** (Round D) — first
+post-redesign audit; a11y 100 everywhere, home perf 82–91 band is a
+watch item. **Entry 47: "Precision Dark" frontend redesign committed**
 in 6 domain commits (`ac3e6e1`..`a153f2b`) **+ pushed, CI green** (`37127009398`) — tokens v2 + primitives/shell/product-card/shop/
 product/cart/checkout/auth/blocks CSS; all 14 blocks + builder retokenized;
 `style={{` 269→20; uisight mobile+desktop clean (15 findings → 0);
@@ -107,16 +111,25 @@ prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
 (stale-claim resume, orphan-order reuse, resumable decrement, snapshot
 discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
-**Only Round B (owner-keyed: Stripe e2e, Resend, Postgres migrate,
-Sentry, Plausible) + push remain.** Detail: `docs/buildmyrig-plan/18-progress-log.md`;
+**Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
+Sentry, Plausible); **Round D remaining**: €0 checkout non-Stripe path,
+mobile `FilterDrawer`; the entry-55 commits await push. Detail:
+`docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
 ## Session log
 
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
-25–45 verbatim).
+25–51 verbatim).
 Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
+
+51. **Entry 56 Round D** — **Lighthouse re-run** on the entry-55 build
+   (first post-redesign audit, entry-17 recipe): `/` 88 (82–91 band —
+   watch item, LCP 3.5–3.9 s vs 2.6 s baseline), `/shop` 92, `/builder`
+   94, `/checkout` 90; a11y 100 everywhere, CLS 0. Checkout BP 79/SEO 63
+   = Stripe 3p cookie + deliberate robots disallow — not regressions.
+   **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**
 
 50. **Entry 55 review-fix round** — 3-reviewer pass on the committed
    megaplan: **FIX → all fixed**. Majors: `saveBuild` stale in-flight
@@ -130,7 +143,7 @@ Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
    Turbopack remaps `require.resolve` (css → asset error; pkg → module
    id) → `loadSkin` walks up from `import.meta.url`; 15 build workers
    OOM at ~2 GB free → `NEXT_BUILD_CPUS=4` knob. #366–#377 → 492 unit,
-   trio + build + 12/12 e2e green. **Uncommitted.**
+   trio + build + 12/12 e2e green. **Committed `1a3ed2f..79cbf96`.**
 
 49. **Entry 54 P4** — **megaplan complete**: DeployModal real 4-stage
    pipeline (validate → power → save → cart; halts on errors),
@@ -152,19 +165,6 @@ Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
    Store += `rgbColor` + `applyTemplate` reset; `kit/` shared logic.
    #320–331 → 446 unit, gates + build green. Review FIX → fixed.
 
-46. **Entry 51 P1** — **`rig-dark` is the site default** (tokens
-   retokenized; `dark`/`light`/`midnight` stay presets; `THEME_PRESETS`
-   +`'rig-dark'` skin; next/font Inter+Space_Grotesk → `--font-*` vars).
-   TDD `#318–#319` → 432 unit.
-
-45. **Entry 50 P0** — **schema+registry**: `resolveSlotLimits`, RGB
-   presets, `BUILDER_DESIGNS` + `builder-settings` global (never-throw
-   resolver), `hasRgb`/`ramSlots`/`m2Slots`/`rgbColor` fields. TDD
-   `#294–#311` → 424 unit.
-
-44. **Entry 49** — **admin theme swap**: `THEME_PRESETS` registry +
-   `Theme.extras` preset tuning; `skins/*.css` overlays via `#theme-skin`.
-   TDD `#288–#293` → 406 unit. Review FIX → fixed.
-
-43. **Entries 47–48** — Precision Dark redesign + 3-reviewer round (30+
-   fixes). Full text in `.devin/tracking/agents-archive-2026-10.md`.
+43–46. **Entries 47–51** — Precision Dark redesign, theme-swap registry,
+   megaplan P0/P1 (rig-dark default). Full text in
+   `.devin/tracking/agents-archive-2026-10.md`.

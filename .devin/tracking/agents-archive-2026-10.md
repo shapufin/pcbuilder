@@ -69,3 +69,17 @@ Session history (one line each, entries 1–24 in the progress log):
 42. **Entry 47** — **"Precision Dark" redesign, 6 commits + pushed** (`ac3e6e1`..`a153f2b`, CI `37127009398` green): tokens v2 (`-soft` semantics, tracking, containers, tap-target); global focus/`color-scheme`; primitives (`.btn`/`.badge`/`.field`/`.input`/`.empty-state`/`.skeleton`/`.data-table`/`.list-card`/`.status-page`/`.nav-badge`, `Price`/`formatEUR` Intl); `SiteHeader`+`MobileNav`+`SiteFooter`+`shell.css`, `CartDrawer` class-based; `ProductCard` real media everywhere + `sharp` + `lib/media.ts`; `FilterDrawer` mobile; PDP gallery+`VariantPicker`; cart/checkout two-col; auth/account/wishlist classes; `blocks.css` via `registry.tsx` — all 14 blocks off inline styles, `Section`→data-attrs (#152 updated); `builder.css` deduped + `@media (pointer:coarse)` 44px floor. uisight clean 15→0 findings; `style={{` 269→20. e2e 11/11.
 
 43. **Entry 48** — **redesign review round: 3 reviewers all FIX → 30+ fixed**: draft `_status` leaks on product/category/shop/not-found (pre-existing convention gap), checkout 3DS double-PaymentIntent path + empty-cart masking done/confirming + guest email persisted, out-of-stock no longer addable, pickMedia cross-size dims (#287), focus-restore + aria contracts on all three drawers, hero-split flex, btn--success AA, rail sticky offset, tap-target gaps, dead rules pruned. 108 web unit, e2e 11/11, uisight clean.
+
+44. **Entry 49** — **admin theme swap**: `THEME_PRESETS` registry +
+   `Theme.extras` preset tuning; `skins/*.css` overlays via `#theme-skin`.
+   TDD `#288–#293` → 406 unit. Review FIX → fixed.
+
+45. **Entry 50 P0** — **schema+registry**: `resolveSlotLimits`, RGB
+   presets, `BUILDER_DESIGNS` + `builder-settings` global (never-throw
+   resolver), `hasRgb`/`ramSlots`/`m2Slots`/`rgbColor` fields. TDD
+   `#294–#311` → 424 unit.
+
+46. **Entry 51 P1** — **`rig-dark` is the site default** (tokens
+   retokenized; `dark`/`light`/`midnight` stay presets; `THEME_PRESETS`
+   +`'rig-dark'` skin; next/font Inter+Space_Grotesk → `--font-*` vars).
+   TDD `#318–#319` → 432 unit.

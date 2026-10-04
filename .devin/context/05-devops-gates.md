@@ -15,6 +15,7 @@ Postgres/Vercel are plan-level, not operational facts.
 | `pnpm -r typecheck` / `pnpm lint` | tsc --noEmit / 4 eslint tasks (incl. hex rule + plugin boundaries) |
 | `pnpm seed` / `pnpm payload -- <cmd>` | reseed dev DB / Payload CLI (`generate:types`, `generate:importmap`) |
 | `pnpm loadtest` / `pnpm workflow:check` | load test (needs running server) / workflow validator |
+| `npx lighthouse@12 <url>` | audit vs prod `next start` :3000; gate perf ≥90 (±5 throttle variance — rerun), a11y/BP/SEO 100. `/checkout` BP/SEO dip is expected (Stripe 3p cookie + deliberate robots disallow — entry 56) |
 
 Gate trio after every change: `pnpm test` + `pnpm -r typecheck` +
 `pnpm lint` (+ `pnpm build` for build-relevant work; + `test:e2e` for

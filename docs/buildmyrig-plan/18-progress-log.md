@@ -2,6 +2,24 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (56) — Lighthouse re-run on the entry-55 build (Round D)
+
+`npx lighthouse@12`, headless Chrome vs prod `next start` on :3000 (entry-17 recipe; `--only-categories=performance,accessibility,best-practices,seo`). First audit of the post-redesign pages — entry 17 predated Precision Dark, `rig-dark` and `rig-studio`.
+
+| Page | Perf | A11y | BP | SEO | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `/` | **88** (82–91 over 3 runs) | 100 | 100 | 100 | LCP 3.5–3.9 s (`p.hero__sub`, same element as entry 17); FCP 1.1 s, CLS 0 |
+| `/shop` | 92 | 100 | 100 | 100 | LCP 3.4 s, CLS 0, TBT 60 ms |
+| `/builder` | 94 | 100 | 100 | 100 | LCP 2.6 s, CLS 0, TBT 190 ms |
+| `/checkout` | 90 | 100 | 79 | 63 | both deficits deliberate/inherent — see below |
+
+- **`/checkout` SEO 63** — `robots.txt` `Disallow: /checkout` is intentional (same block as `/admin` `/account` `/cart` `/api`); `is-crawlable: 0` is correct behavior for a payment page, not a bug.
+- **`/checkout` BP 79** — Stripe's `m.stripe.com` third-party cookie (fraud detection, loaded by Stripe.js on the payment form) trips `third-party-cookies` + `inspector-issues`; inherent to Stripe checkout, unactionable without dropping the provider. The 610 ms `redirects` flag is the same startup-normalization artifact as entry 17 (curl: direct 200, 0 hops).
+- **A11y 100 everywhere** post-redesign — the Precision Dark palette + rig-studio UI hold the entry-17/18 contrast work; CLS 0 on all four pages, no console errors.
+- **Watch item — home LCP ~3.5–3.9 s** vs the 2.6 s entry-17 baseline: no structural regression found (render-blocking 130 ms, unused JS 57 KiB, root doc 10 ms) and the 82–91 score band matches entry 18's throttle-variance precedent — but it sits at the ≥90 gate's edge on this ~1.4 GB-free machine. Flagged for a future perf pass (font-loading/hero) rather than silently accepted.
+
+**Round D status**: Lighthouse re-run done; remaining — €0 checkout non-Stripe confirm path, mobile `FilterDrawer`.
+
 ## 2026-10-03 (55) — Megaplan review round 2: 3 majors + minors fixed across UI/theme/backend/store
 
 Second fresh-context review of the committed megaplan (3 disjoint read-only reviewers: builder/rules, provider+studio UI, theme). Verdict **FIX** — UI found 3 majors, other seams SHIP with minors. All majors + high-value minors fixed and re-gated.
