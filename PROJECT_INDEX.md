@@ -28,11 +28,11 @@ Where things live. Not a manual — a map. Domain rules:
 ## Tests
 
 - Vitest per package (`pnpm test`, turbo); numbered cumulatively
-  (#1–#182 + e2e). apps/web vitest scoped to `src/**` by
+  (#1–#401 + e2e). apps/web vitest scoped to `src/**` by
   `vitest.config.ts` (also provides the `@` alias — keep both).
 - Playwright: `apps/web/e2e/{smoke,auth,builder,search-wishlist,
-  cart-drawer}.spec.ts`, `playwright.config.ts` — needs a prod build +
-  running `next start` on :3000.
+  cart-drawer,filter-drawer}.spec.ts`, `playwright.config.ts` — needs a
+  prod build + running `next start` on :3000.
 
 ## Generated / do-not-edit
 
@@ -75,7 +75,10 @@ Where things live. Not a manual — a map. Domain rules:
   `kit/{useBuildActions,option-rows,build-io,BuilderToasts}`.
   `designs/rig-studio/` = full UI (P3): `index.tsx` + Studio* parts,
   `RigBlueprint` SVG, `studio-lib.ts` pure layer,
-  `.bdesign-rig-studio`-scoped `rig-studio.css`.
+  `.bdesign-rig-studio`-scoped `rig-studio.css`. Classic design mobile:
+  `configure/StepPanel` dual-mounts `OptionsFilterBar` (inline
+  `.panel-filters` ≥900px + shared `src/components/FilterDrawer` ≤900px,
+  entry 59).
 - Analytics: `apps/web/src/lib/analytics.ts` (Plausible `track()`,
   gated on `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`).
 - Site settings / search / wishlist: `plugin-pages/src/{globals,lib}/`
