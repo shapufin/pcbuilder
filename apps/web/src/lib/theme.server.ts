@@ -2,6 +2,7 @@ import { getPayloadClient } from './shop'
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
+  altThemePreset,
   buildThemeCss,
   resolveTheme,
   type ThemePresetDef,
@@ -90,10 +91,31 @@ export async function getThemeSkinCss(): Promise<string> {
 }
 
 /**
+ * Blocking no-FOUC script the layout inlines after the theme <style> tags
+ * (entry 60): if the visitor picked the alt preset, flip the media attrs
+ * so the default pair is inert and #theme-alt applies — before first
+ * paint. ThemeToggle duplicates this flip client-side (a raw inline
+ * script can't share module imports).
+ */
+export const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('bmr_theme')==='alt'){var d=document;d.getElementById('theme-vars').media='not all';var s=d.getElementById('theme-skin');if(s)s.media='not all';d.getElementById('theme-alt').media='all';}}catch(e){}`
+
+/**
  * Vars + skin in one `findGlobal` — the layout calls this once per render
  * (entry-49 review: the split getters read the global twice).
+ *
+ * `altCss` (entry 60) is the visitor-toggle counterpart preset rendered
+ * inert as #theme-alt: altThemePreset() picks the pair, the alt preset's
+ * OWN colors/extras ship (admin overrides don't transfer), and the
+ * admin's radius/fonts are kept so toggling doesn't shift type/layout.
+ * 'light'/'dark' ship no skin, so the alt block needs none.
  */
-export async function getThemeAssets(): Promise<{ css: string; skin: string }> {
+export async function getThemeAssets(): Promise<{
+  css: string
+  skin: string
+  altCss: string
+  altLabel: string
+  defaultLabel: string
+}> {
   let resolved
   try {
     const payload = await getPayloadClient()
@@ -115,5 +137,17 @@ export async function getThemeAssets(): Promise<{ css: string; skin: string }> {
       console.error('[theme] skin load failed, skipping overlay:', err)
     }
   }
-  return { css: buildThemeCss(resolved), skin }
+  const altPreset = altThemePreset(resolved.preset)
+  const altCss = buildThemeCss({
+    ...resolveTheme({ preset: altPreset }),
+    radius: resolved.radius,
+    fonts: resolved.fonts,
+  })
+  return {
+    css: buildThemeCss(resolved),
+    skin,
+    altCss,
+    altLabel: (THEME_PRESETS[altPreset] as ThemePresetDef).label,
+    defaultLabel: (THEME_PRESETS[resolved.preset] as ThemePresetDef).label,
+  }
 }

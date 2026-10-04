@@ -11,7 +11,7 @@ import { CartDrawer } from '../components/CartDrawer'
 import { SiteHeader } from '../components/SiteHeader'
 import { SiteFooter } from '../components/SiteFooter'
 import { getSiteSettings } from '@/lib/site-settings.server'
-import { getThemeAssets } from '@/lib/theme.server'
+import { getThemeAssets, THEME_BOOT_SCRIPT } from '@/lib/theme.server'
 import { JsonLd, organizationJsonLd } from '@/lib/jsonld'
 
 // Plausible (12-integrations-ops.md): script only when a domain is configured,
@@ -51,8 +51,13 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${grotesk.variable}`}>
       <body>
-        <style id="theme-vars" dangerouslySetInnerHTML={{ __html: theme.css }} />
-        {theme.skin ? <style id="theme-skin" dangerouslySetInnerHTML={{ __html: theme.skin }} /> : null}
+        <style id="theme-vars" media="all" dangerouslySetInnerHTML={{ __html: theme.css }} />
+        {theme.skin ? <style id="theme-skin" media="all" dangerouslySetInnerHTML={{ __html: theme.skin }} /> : null}
+        {/* Entry 60 visitor toggle: the full alt preset ships inert
+            (media="not all"); the boot script flips it on pre-paint when
+            localStorage.bmr_theme === 'alt'. */}
+        <style id="theme-alt" media="not all" dangerouslySetInnerHTML={{ __html: theme.altCss }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
@@ -61,7 +66,10 @@ export default async function RootLayout({
           <Script src="https://plausible.io/js/script.js" data-domain={plausibleDomain} strategy="afterInteractive" />
         ) : null}
         <EcommerceShell>
-          <SiteHeader navLinks={siteSettings.navLinks} />
+          <SiteHeader
+            navLinks={siteSettings.navLinks}
+            themeLabels={{ altLabel: theme.altLabel, defaultLabel: theme.defaultLabel }}
+          />
           <CartDrawer />
           <div id="main-content">{children}</div>
           <SiteFooter />

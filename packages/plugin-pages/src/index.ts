@@ -55,6 +55,7 @@ export {
   DEFAULT_THEME,
   LIGHT_COLORS,
   THEME_PRESETS,
+  altThemePreset,
   buildThemeCss,
   resolveTheme,
   themePresetOptions,

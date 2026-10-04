@@ -3,8 +3,10 @@ import { CartBadge } from './CartBadge'
 import { AccountNav } from './AccountNav'
 import { WishlistNav } from './WishlistNav'
 import { MobileNav } from './MobileNav'
+import { ThemeToggle } from './ThemeToggle'
 
 type NavLink = { label: string; url: string }
+type ThemeLabels = { altLabel: string; defaultLabel: string }
 
 /**
  * Phase-0 redesign: sticky blurred header extracted from the root layout's
@@ -13,7 +15,13 @@ type NavLink = { label: string; url: string }
  * e2e contracts kept: banner role carries Builder/Cart/Shop links and the
  * searchbox labelled "Search products".
  */
-export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
+export function SiteHeader({
+  navLinks,
+  themeLabels,
+}: {
+  navLinks: NavLink[]
+  themeLabels?: ThemeLabels
+}) {
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -40,6 +48,9 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
           </button>
         </form>
         <div className="site-header__actions">
+          {themeLabels ? (
+            <ThemeToggle altLabel={themeLabels.altLabel} defaultLabel={themeLabels.defaultLabel} />
+          ) : null}
           <AccountNav />
           <WishlistNav />
           <Link href="/cart" id="cart-anchor">

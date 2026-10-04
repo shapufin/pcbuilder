@@ -122,6 +122,31 @@
   color: var(--color-text);
 }
 
+/* Visitor theme toggle (entry 60) — ghost icon button matching the
+   header action links. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  color: var(--color-text);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 /* Count badge — cart + wishlist header counts. */
 .nav-badge {
   display: inline-flex;

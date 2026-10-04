@@ -212,6 +212,15 @@ export const THEME_PRESETS = {
 
 export type ThemePreset = keyof typeof THEME_PRESETS
 
+/**
+ * Visitor-toggle counterpart preset (entry 60): 'light' pairs with
+ * 'dark'; every dark-flavored preset pairs with 'light'. The alt preset
+ * ships preset-default colors — admin overrides stay scoped to the
+ * admin's own preset.
+ */
+export const altThemePreset = (preset: ThemePreset): ThemePreset =>
+  preset === 'light' ? 'dark' : 'light'
+
 export const themePresetOptions = (): Array<{ label: string; value: ThemePreset }> =>
   (Object.entries(THEME_PRESETS) as Array<[ThemePreset, ThemePresetDef]>).map(([value, def]) => ({
     label: def.label,

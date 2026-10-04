@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
-import { DEFAULT_THEME, buildThemeCss, resolveTheme } from '@buildmyrig/plugin-pages'
+import {
+  DEFAULT_THEME,
+  THEME_PRESETS,
+  buildThemeCss,
+  resolveTheme,
+} from '@buildmyrig/plugin-pages'
 
 const findGlobal = vi.fn()
 
@@ -9,7 +14,8 @@ vi.mock('./shop', () => ({
   getPayloadClient: async () => ({ findGlobal }),
 }))
 
-const { getThemeCss, getThemeSkinCss, getThemeAssets } = await import('./theme.server')
+const { getThemeCss, getThemeSkinCss, getThemeAssets, THEME_BOOT_SCRIPT } =
+  await import('./theme.server')
 
 /**
  * Phase 5 Step C (entry 21) - app-side theme accessor. Same never-throw
@@ -138,5 +144,55 @@ describe('getThemeCss - server theme injection', () => {
     for (const [key, val] of Object.entries(DEFAULT_THEME.extras)) {
       expect(value(`--color-${key}`), `tokens.css --color-${key}`).toBe(val)
     }
+  })
+})
+
+/**
+ * Visitor theme toggle (entry 60) — the layout ships a second complete
+ * preset in #theme-alt so a header toggle can swap palettes client-side.
+ * Alt pairing: admin 'light' -> 'dark'; every dark-flavored preset ->
+ * 'light'. Admin color overrides stay scoped to the admin preset.
+ */
+describe('getThemeAssets - visitor alt theme (entry 60)', () => {
+  beforeEach(() => {
+    findGlobal.mockReset()
+  })
+
+  it('#402 dark-flavored admin preset pairs alt=light, labels included', async () => {
+    findGlobal.mockResolvedValue({ preset: 'rig-dark' })
+    const assets = await getThemeAssets()
+    expect(assets.altLabel).toBe(THEME_PRESETS.light.label)
+    expect(assets.defaultLabel).toBe(THEME_PRESETS['rig-dark'].label)
+    expect(assets.altCss).toContain(`--color-bg: ${THEME_PRESETS.light.colors.bg};`)
+    expect(assets.altCss).toContain('--font-body:')
+  })
+
+  it('#403 admin light preset pairs alt=dark (Precision Dark)', async () => {
+    findGlobal.mockResolvedValue({ preset: 'light' })
+    const assets = await getThemeAssets()
+    expect(assets.altLabel).toBe(THEME_PRESETS.dark.label)
+    expect(assets.altCss).toContain(`--color-bg: ${THEME_PRESETS.dark.colors.bg};`)
+  })
+
+  it('#404 admin color overrides do not leak into the alt preset', async () => {
+    findGlobal.mockResolvedValue({ preset: 'rig-dark', colors: { bg: '#010203' } })
+    const assets = await getThemeAssets()
+    expect(assets.css).toContain('--color-bg: #010203;')
+    expect(assets.altCss).not.toContain('#010203')
+    expect(assets.altCss).toContain(`--color-bg: ${THEME_PRESETS.light.colors.bg};`)
+  })
+
+  it('#405 payload failure still emits the default pairing, never throws', async () => {
+    findGlobal.mockRejectedValue(new Error('no such table: globals'))
+    const assets = await getThemeAssets()
+    expect(assets.altLabel).toBe(THEME_PRESETS.light.label)
+    expect(assets.altCss).toContain(`--color-bg: ${THEME_PRESETS.light.colors.bg};`)
+  })
+
+  it('#406 THEME_BOOT_SCRIPT flips media attrs on the stored alt choice', () => {
+    expect(THEME_BOOT_SCRIPT).toContain('bmr_theme')
+    expect(THEME_BOOT_SCRIPT).toContain('theme-vars')
+    expect(THEME_BOOT_SCRIPT).toContain('theme-alt')
+    expect(THEME_BOOT_SCRIPT).toContain('not all')
   })
 })
