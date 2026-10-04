@@ -1,5 +1,6 @@
 import {
   attributeDefs,
+  attributeTypeNames,
   buildTemplateDefs,
   productDefs,
   rules,
@@ -70,7 +71,7 @@ const seed = async (): Promise<void> => {
   for (const [slug, valueType, unit, values] of attributeDefs) {
     const attrType = await payload.create({
       collection: 'attribute-types',
-      data: { name: slug, slug, valueType, unit: unit ?? undefined },
+      data: { name: attributeTypeNames[slug] ?? slug, slug, valueType, unit: unit ?? undefined },
     })
     attributeTypes[slug] = attrType
     for (const v of values) {

@@ -237,3 +237,17 @@ export const attributeDefs: AttributeDef[] = [
   ['wattage', 'number', 'W', ['550', '650', '750', '850', '1000']],
   ['refresh-rate', 'number', 'Hz', ['144', '240']],
 ]
+
+/**
+ * Display names for the attribute types (entry 64). The slug is the URL
+ * filter param; the name is what the facet sidebar and the PDP compatibility
+ * list render — without this map the seed writes the raw slug as the name.
+ */
+export const attributeTypeNames: Record<string, string> = {
+  socket: 'Socket',
+  'ram-type': 'RAM Type',
+  'form-factor': 'Form Factor',
+  capacity: 'Capacity',
+  wattage: 'Wattage',
+  'refresh-rate': 'Refresh Rate',
+}

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { attributeDefs, buildTemplateDefs, productDefs, rules, slotCategoryDefs } from './seed-data.ts'
+import {
+  attributeDefs,
+  attributeTypeNames,
+  buildTemplateDefs,
+  productDefs,
+  rules,
+  slotCategoryDefs,
+} from './seed-data.ts'
 
 /**
  * Seed-data invariants (plan item C6). The seed only runs on a fresh DB, so a
@@ -117,6 +124,15 @@ describe('seed data invariants', () => {
       if (spec.hasRgb !== undefined) {
         expect(typeof spec.hasRgb, `${p.title} hasRgb`).toBe('boolean')
       }
+    }
+  })
+
+  it('#420 every attribute type ships a human display name (entry 64 facets/PDP)', () => {
+    for (const [slug] of attributeDefs) {
+      const name = attributeTypeNames[slug]
+      expect(name, `attributeTypeNames['${slug}']`).toBeTruthy()
+      // A name equal to the slug means the sidebar renders "ram-type".
+      expect(name, `attributeTypeNames['${slug}']`).not.toBe(slug)
     }
   })
 })
