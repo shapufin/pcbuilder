@@ -20,8 +20,26 @@ describe('FilterDrawer trigger', () => {
     expect(html).toContain('filter-drawer__open')
     expect(html).toContain('aria-haspopup="dialog"')
     expect(html).toContain('aria-expanded="false"')
-    expect(html).toContain('aria-controls="filter-drawer-panel"')
+    // useId suffix — the trigger must point at the panel it owns.
+    expect(html).toMatch(/aria-controls="filter-drawer-panel[^"]*"/)
     expect(html).toContain('Filters')
+  })
+
+  it('#415 two mounted drawers get distinct panel ids (no duplicate aria-controls)', () => {
+    const html = renderToStaticMarkup(
+      <div>
+        <FilterDrawer>
+          <div />
+        </FilterDrawer>
+        <FilterDrawer>
+          <div />
+        </FilterDrawer>
+      </div>,
+    )
+    const ids = [...html.matchAll(/aria-controls="([^"]+)"/g)].map((m) => m[1])
+    expect(ids).toHaveLength(2)
+    expect(new Set(ids).size).toBe(2)
+    for (const id of ids) expect(id).toMatch(/^filter-drawer-panel/)
   })
 
   it('#397 activeCount renders a count badge on the trigger; absent when zero', () => {

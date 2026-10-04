@@ -19,7 +19,8 @@ test.describe('mobile filter drawer (classic builder)', () => {
     await expect(page.locator('.panel-filters')).toBeHidden()
 
     await trigger.click()
-    const dialog = page.locator('#filter-drawer-panel')
+    // Panel id carries a useId suffix — select by role (entry 63 review fix).
+    const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('role', 'dialog')
     await expect(dialog).toHaveAttribute('aria-modal', 'true')

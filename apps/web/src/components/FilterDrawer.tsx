@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 /**
  * The open drawer, presentational so the a11y contract is testable without
@@ -9,11 +9,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * live-filter content (builder) just stays open until ×/Escape/backdrop.
  */
 export function FilterDrawerPanel({
+  id = 'filter-drawer-panel',
   label = 'Product filters',
   onClose,
   closeRef,
   children,
 }: {
+  id?: string
   label?: string
   onClose: () => void
   closeRef?: React.Ref<HTMLButtonElement>
@@ -22,7 +24,7 @@ export function FilterDrawerPanel({
   return (
     <div className="filter-drawer__backdrop" onClick={onClose}>
       <div
-        id="filter-drawer-panel"
+        id={id}
         role="dialog"
         aria-modal="true"
         aria-label={label}
@@ -70,6 +72,9 @@ export function FilterDrawer({
   const [open, setOpen] = useState(false)
   const openRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  // Two drawers on one page would otherwise collide on the panel id the
+  // trigger points at via aria-controls.
+  const panelId = `filter-drawer-panel${useId()}`
 
   const close = useCallback(() => {
     setOpen(false)
@@ -96,14 +101,14 @@ export function FilterDrawer({
         className="btn btn--secondary filter-drawer__open"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls="filter-drawer-panel"
+        aria-controls={panelId}
         onClick={() => setOpen(true)}
       >
         Filters
         {activeCount ? <span className="filter-drawer__count">{activeCount}</span> : null}
       </button>
       {open ? (
-        <FilterDrawerPanel label={label} onClose={close} closeRef={closeRef}>
+        <FilterDrawerPanel id={panelId} label={label} onClose={close} closeRef={closeRef}>
           {children}
         </FilterDrawerPanel>
       ) : null}
