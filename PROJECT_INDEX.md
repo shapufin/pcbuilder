@@ -122,7 +122,12 @@ Where things live. Not a manual — a map. Domain rules:
   `compatRows`) → `app/shop/[categorySlug]/page.tsx` sidebar groups and
   the PDP Compatibility list (entry 64).
 - Workflow: `.devin/` (rules, context, hooks, config, tracking),
-  `AGENTS.md`, `CLAUDE.md`, this file.
+  `AGENTS.md` (single source of truth), `CLAUDE.md`, this file.
+- Other-AI entry points (entry 65, thin pointers → AGENTS.md):
+  `.github/copilot-instructions.md`, `.cursor/rules/buildmyrig.mdc`,
+  `.windsurf/rules/buildmyrig.md`, `GEMINI.md`, `CONVENTIONS.md`
+  (Aider). OpenCode/Codex read `AGENTS.md` natively. `pnpm
+  workflow:check` validates all of them.
 
 ## Docs map
 

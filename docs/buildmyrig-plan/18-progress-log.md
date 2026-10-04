@@ -2,6 +2,33 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (65) — AI entry points for every tool (workflow layer)
+
+The workflow layer was reachable from Claude (CLAUDE.md overlay) and any
+AGENTS.md-native tool, but Copilot, Cursor, Windsurf, Gemini CLI and Aider
+started from nothing. Added thin pointers — no duplicated rules:
+
+- `.github/copilot-instructions.md` (Copilot), `GEMINI.md` (Gemini CLI),
+  `CONVENTIONS.md` (Aider, auto-read), `.cursor/rules/buildmyrig.mdc`
+  (`alwaysApply: true` frontmatter — Cursor ignores a rule without it) and
+  `.windsurf/rules/buildmyrig.md` (`trigger: always_on` — same requirement).
+- **Not** added: `opencode.json` — OpenCode reads `AGENTS.md` natively, and its
+  V2 `instructions` array does not resolve files yet, so a config file would be
+  noise. Verified against the OpenCode/Cursor/Windsurf/Gemini docs rather than
+  guessed.
+- Every pointer states the non-negotiables (no unasked commit/push, TDD +
+  gates, plugin boundary, no raw hex, server-side pricing, read the matching
+  `.devin/context/` file) and defers to `AGENTS.md` for everything else.
+- **`scripts/check-workflow.mjs` extended**: the five pointers are now required
+  files; each must reference `AGENTS.md` **and** `.devin/context/`, stay under
+  4 000 chars, and the Cursor/Windsurf ones must carry their frontmatter —
+  so a pointer can neither rot nor grow into a second source of truth. Guard
+  verified by breaking `CONVENTIONS.md` on purpose (check failed, then passed
+  after restore).
+
+**Gates: `workflow:check` PASS** (now 5 more validated artifacts); no product
+code touched, so the unit/typecheck/lint/build/e2e results from entry 64 stand.
+
 ## 2026-10-04 (64) — Spec facets, PDP compatibility list, critical-path/LCP pass
 
 The last three unblocked backlog items (audit S2 facets + counts, audit S3 compat-hint stub, home-LCP watch item) in one round.

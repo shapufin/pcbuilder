@@ -32,6 +32,17 @@ Full state: `AGENTS.md`. Deep docs: `docs/buildmyrig-plan/00-index.md`.
   auth/payments) — dispatch per `.devin/rules/agents.md`
 - Multi-step design reasoning → sequential-thinking
 
+## AI entry points (every tool lands on the same rules)
+
+`AGENTS.md` is the single source of truth; `CLAUDE.md` is its thin overlay.
+Natively reading AGENTS.md: **Claude Code/Desktop**, **OpenCode**, **Codex**,
+**Cursor** (also `.cursor/rules/buildmyrig.mdc`), **Windsurf** (also
+`.windsurf/rules/buildmyrig.md`). Pointers added in entry 65:
+`.github/copilot-instructions.md` (Copilot), `GEMINI.md` (Gemini CLI),
+`CONVENTIONS.md` (Aider). `pnpm workflow:check` fails if a pointer stops
+referencing AGENTS.md/`.devin/context/` or grows past 4 000 chars — keep them
+thin, never a second copy of the rules.
+
 ## Critical guardrails
 
 - Never commit/push unless the user explicitly asks.

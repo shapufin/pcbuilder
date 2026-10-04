@@ -58,6 +58,13 @@ manager, id3 staff `staff@buildmyrig.test`).
   auth/payments); dispatch per `.devin/rules/agents.md`.
 - Multi-step design reasoning → sequential-thinking.
 
+## AI entry points
+
+`AGENTS.md` is the single source of truth (`CLAUDE.md` overlays it). Pointers:
+`.github/copilot-instructions.md`, `GEMINI.md`, `CONVENTIONS.md` (Aider),
+`.cursor/rules/buildmyrig.mdc`, `.windsurf/rules/buildmyrig.md`; OpenCode and
+Codex read `AGENTS.md` natively. `workflow:check` fails if a pointer drifts.
+
 ## Critical guardrails
 
 - Plugin boundary: no cross-plugin or plugin→`apps/web` imports (lint-enforced).
@@ -131,6 +138,13 @@ Last 1–2 dates stay here; older entries live in
 25–51 verbatim).
 Tests numbered cumulatively (#1–#428 + e2e; per-package counts in 05).
 
+60. **Entry 65** — **AI entry points**: thin pointers to AGENTS.md for
+   Copilot (`.github/copilot-instructions.md`), Gemini CLI (`GEMINI.md`),
+   Aider (`CONVENTIONS.md`), Cursor (`.cursor/rules/buildmyrig.mdc`) and
+   Windsurf (`.windsurf/rules/buildmyrig.md`); OpenCode/Codex read
+   AGENTS.md natively (no `opencode.json` — V2 `instructions` unresolved).
+   `workflow:check` requires all five + pins their references, frontmatter
+   and 4 000-char cap (guard proven by breakage). PASS.
 59. **Entry 64** — **last unblocked backlog, all closed**: **spec facets +
    per-facet counts** (`lib/facets.ts`; `?socket=AM5`; counts from the
    non-facet set; audit S2) + **PDP compatibility list** (`compatRows()`;
@@ -153,13 +167,8 @@ Tests numbered cumulatively (#1–#428 + e2e; per-package counts in 05).
    excluded, hidden when none. Two stale S3 "gaps" (gallery, variant
    picker) re-marked done — both landed entry 47. e2e-only round:
    `related-products.spec.ts` → **16/16 e2e**, build 25/25. SHIP.
-56. **Entry 61** — **PDP spec-table nested `specsJson`** (audit S3):
-   `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
-   dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
-   531 unit; live REST probe rendered nested rows, restored. SHIP.
-43–55. **Entries 47–60** — Precision Dark redesign, theme-swap registry,
-   megaplan P0–P4 + review-fix round (rig-dark default, design registry,
-   rig-studio UI, `NEXT_BUILD_CPUS`), Lighthouse re-run, €0 confirm-free +
-   settlement-core + SEC-001, CI build-flake fix, mobile FilterDrawer
-   (Round D done), visitor theme toggle. Full text in
+43–56. **Entries 47–61** — Precision Dark redesign, theme-swap registry,
+   megaplan P0–P4 + review-fix round, Lighthouse re-run, €0 confirm-free +
+   settlement-core + SEC-001, CI build-flake fix, mobile FilterDrawer,
+   visitor theme toggle, PDP `specRows()` nested-spec fix. Full text in
    `.devin/tracking/agents-archive-2026-10.md`.

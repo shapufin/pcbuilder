@@ -169,3 +169,8 @@ Session history (one line each, entries 1–24 in the progress log):
    `useSyncExternalStore`, no effect/mismatch) flips media attrs +
    stores `bmr_theme`; `THEME_BOOT_SCRIPT` re-applies pre-paint. TDD
    #402–#408 → 525 unit, build 25/25, **15/15 e2e**. Review SHIP.
+
+56. **Entry 61** — **PDP spec-table nested `specsJson`** (audit S3):
+   `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
+   dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
+   531 unit; live REST probe rendered nested rows, restored. SHIP.
