@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { specRows } from './specs'
+import { compatRows, specRows } from './specs'
 
 /**
  * Product spec table (entry 61, audit S3 gap): specsJson can hold nested
@@ -55,5 +55,43 @@ describe('specRows — specsJson display flattening', () => {
     expect(specRows(null)).toEqual([])
     expect(specRows(undefined)).toEqual([])
     expect(specRows({})).toEqual([])
+  })
+})
+
+/**
+ * PDP compatibility list (entry 64, audit S3 "compat hint is a stub"):
+ * renders the product's attributeValues (attribute-type name + value)
+ * with a builder link — real data instead of a placeholder link.
+ */
+describe('compatRows — PDP compatibility list', () => {
+  it('#421 populated refs render name/value rows; displayLabel wins', () => {
+    const rows = compatRows([
+      { attributeType: { id: 1, name: 'Socket' }, value: { id: 11, value: 'AM5' } },
+      {
+        attributeType: { id: 2, name: 'Wattage' },
+        value: { id: 13, value: '750', displayLabel: '750 W' },
+      },
+    ])
+    expect(rows).toEqual([
+      { name: 'Socket', value: 'AM5' },
+      { name: 'Wattage', value: '750 W' },
+    ])
+  })
+
+  it('#422 unresolved id refs are skipped; non-arrays yield nothing', () => {
+    expect(compatRows([{ attributeType: 1, value: 11 }])).toEqual([])
+    expect(compatRows([{ attributeType: null, value: null }])).toEqual([])
+    expect(compatRows([null, 'x', 42])).toEqual([])
+    expect(compatRows(undefined)).toEqual([])
+    expect(compatRows({})).toEqual([])
+  })
+
+  it('#423 blank displayLabel falls back to the raw value; nameless type skipped', () => {
+    expect(
+      compatRows([
+        { attributeType: { name: 'Form Factor' }, value: { value: 'ATX', displayLabel: '  ' } },
+        { attributeType: { name: '' }, value: { value: 'x' } },
+      ]),
+    ).toEqual([{ name: 'Form Factor', value: 'ATX' }])
   })
 })

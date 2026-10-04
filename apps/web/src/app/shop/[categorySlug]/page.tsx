@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import type { Where } from 'payload'
 import { getPayloadClient, productFilters } from '@/lib/shop'
+import { buildFacets, facetSelection } from '@/lib/facets'
 import { JsonLd, itemListJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { PageRenderer } from '@/blocks/PageRenderer'
 import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
@@ -29,41 +31,51 @@ export async function generateMetadata({ params }: Props): Promise<import('next'
   }
 }
 
-type FilterLink = { label: string; href: string; active?: boolean }
+type FilterLink = { label: string; href: string; active?: boolean; count?: number }
+type FacetGroup = { name: string; links: FilterLink[] }
 
-function Filters({ brand, price, sort }: { brand: FilterLink[]; price: FilterLink[]; sort: FilterLink[] }) {
+function FilterList({ links }: { links: FilterLink[] }) {
+  return (
+    <ul className="filter-list">
+      {links.map((l) => (
+        <li key={l.label}>
+          <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
+            {l.label}
+            {typeof l.count === 'number' ? (
+              <span className="filter-list__count">{l.count}</span>
+            ) : null}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function Filters({
+  brand,
+  facets,
+  price,
+  sort,
+}: {
+  brand: FilterLink[]
+  facets: FacetGroup[]
+  price: FilterLink[]
+  sort: FilterLink[]
+}) {
   return (
     <>
       <p className="filter-group__title">Brand</p>
-      <ul className="filter-list">
-        {brand.map((l) => (
-          <li key={l.label}>
-            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <FilterList links={brand} />
+      {facets.map((f) => (
+        <Fragment key={f.name}>
+          <p className="filter-group__title">{f.name}</p>
+          <FilterList links={f.links} />
+        </Fragment>
+      ))}
       <p className="filter-group__title">Price</p>
-      <ul className="filter-list">
-        {price.map((l) => (
-          <li key={l.label}>
-            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <FilterList links={price} />
       <p className="filter-group__title">Sort</p>
-      <ul className="filter-list">
-        {sort.map((l) => (
-          <li key={l.label}>
-            <Link href={l.href} aria-current={l.active ? 'true' : undefined}>
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <FilterList links={sort} />
     </>
   )
 }
@@ -89,26 +101,40 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const cat = category as CategoryWithBlocks
 
   const { and, sort, page } = productFilters(sp)
-  const [products, brands] = await Promise.all([
+  const inCategory: Where[] = [
+    { 'category.slug': { equals: categorySlug } } as Where,
+    { _status: { equals: 'published' } } as Where,
+    ...and,
+  ]
+  const [attributeTypes, attributeValues, brands] = await Promise.all([
+    payload.find({ collection: 'attribute-types', limit: 50, sort: 'name' }),
+    payload.find({ collection: 'attribute-values', limit: 200, sort: 'value' }),
+    // Facet options come from the brands collection — a hardcoded slug list
+    // silently renders dead filters the moment seed/admin data diverges.
+    payload.find({ collection: 'brands', limit: 100, sort: 'name' }),
+  ])
+  const selection = facetSelection(attributeTypes.docs, attributeValues.docs, sp)
+  const [products, facetSource] = await Promise.all([
     payload.find({
       collection: 'products',
-      where: {
-        and: [
-          { 'category.slug': { equals: categorySlug } } as Where,
-          { _status: { equals: 'published' } } as Where,
-          ...and,
-        ],
-      },
+      where: { and: [...inCategory, ...selection.where] },
       sort,
       page,
       limit: 12,
       // depth 1: card media + brand names need populated docs, not ids.
       depth: 1,
     }),
-    // Facet options come from the brands collection — a hardcoded slug list
-    // silently renders dead filters the moment seed/admin data diverges.
-    payload.find({ collection: 'brands', limit: 100, sort: 'name' }),
+    // Counts come from the non-facet filtered set (brand/price/search only):
+    // a selected facet must not zero out its own sibling counts.
+    payload.find({
+      collection: 'products',
+      where: { and: inCategory },
+      limit: 500,
+      depth: 0,
+      select: { attributeValues: true },
+    }),
   ])
+  const facets = buildFacets(facetSource.docs, attributeTypes.docs, attributeValues.docs)
 
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
   const currentBrand = first(sp.brand)
@@ -132,6 +158,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
         label: b.name,
         href: currentBrand === b.slug ? qs({ brand: undefined }) : qs({ brand: b.slug }),
         active: currentBrand === b.slug,
+      }))}
+      facets={facets.map((f) => ({
+        name: f.name,
+        links: f.options.map((o) => ({
+          label: o.label,
+          count: o.count,
+          href:
+            selection.active[f.slug] === o.value
+              ? qs({ [f.slug]: undefined })
+              : qs({ [f.slug]: o.value }),
+          active: selection.active[f.slug] === o.value,
+        })),
       }))}
       price={[
         { label: 'Under €100', href: qs({ price_gte: undefined, price_lte: '10000' }), active: currentPrice === priceBand(undefined, '10000') },

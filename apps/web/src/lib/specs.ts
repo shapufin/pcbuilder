@@ -1,4 +1,34 @@
 export type SpecRow = { key: string; value: string }
+export type CompatRow = { name: string; value: string }
+
+/**
+ * PDP compatibility list (entry 64). Products carry
+ * `attributeValues[{attributeType, value}]`; at depth ≥2 both sides are
+ * populated docs. Unresolved ids are skipped rather than printed as numbers —
+ * a compatibility list showing "1" is worse than an absent one.
+ */
+export function compatRows(attributeValues: unknown): CompatRow[] {
+  if (!Array.isArray(attributeValues)) return []
+  const rows: CompatRow[] = []
+  for (const entry of attributeValues) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const { attributeType, value } = entry as { attributeType?: unknown; value?: unknown }
+    if (typeof attributeType !== 'object' || attributeType === null) continue
+    if (typeof value !== 'object' || value === null) continue
+    const name = (attributeType as { name?: unknown }).name
+    const label = (value as { displayLabel?: unknown }).displayLabel
+    const raw = (value as { value?: unknown }).value
+    const text =
+      typeof label === 'string' && label.trim()
+        ? label.trim()
+        : typeof raw === 'string' && raw.trim()
+          ? raw
+          : null
+    if (typeof name !== 'string' || !name.trim() || !text) continue
+    rows.push({ name, value: text })
+  }
+  return rows
+}
 
 /** One array element rendered inline: objects become "k: v" pairs. */
 const leaf = (v: unknown): string => {

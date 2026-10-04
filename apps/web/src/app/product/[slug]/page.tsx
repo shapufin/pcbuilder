@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { mediaDoc, pickMedia } from '@/lib/media'
-import { specRows } from '@/lib/specs'
+import { compatRows, specRows } from '@/lib/specs'
 import { ViewItemTracker } from './ViewItemTracker'
 import { WishlistButton } from '@/components/WishlistButton'
 import { ProductGallery } from './ProductGallery'
@@ -53,6 +53,9 @@ export default async function ProductPage({ params }: Props) {
     depth: 1,
   })
   const specs = (product as { specsJson?: Record<string, unknown> | null }).specsJson
+  // Depth 2 above populates attributeType/value — the compatibility list
+  // renders real catalogue attributes (entry 64).
+  const compat = compatRows((product as { attributeValues?: unknown }).attributeValues)
   // plugin-ecommerce `inventory: true` adds `inventory` to variants; null =
   // untracked = treat as in stock (don't lie to buyers or schema.org).
   const inStock =
@@ -142,6 +145,25 @@ export default async function ProductPage({ params }: Props) {
               })()}
             </tbody>
           </table>
+
+          {compat.length > 0 ? (
+            <section className="pdp__compat" aria-labelledby="pdp-compat-title">
+              <h2 id="pdp-compat-title" className="pdp__compat-title">
+                Compatibility
+              </h2>
+              <ul className="compat-list">
+                {compat.map((row) => (
+                  <li key={row.name}>
+                    <span className="compat-list__key">{row.name}</span>
+                    <span className="compat-list__val">{row.value}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/builder" className="pdp__compat-link">
+                Check compatibility in the PC Builder →
+              </Link>
+            </section>
+          ) : null}
         </section>
 
         <aside className="buy-box">
