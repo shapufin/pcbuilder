@@ -55,7 +55,11 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   rolls the claim back via stamp-equality CAS (#394). Tx carries
   `paymentProvider:'free'`, `amount:0`; settlement key `free:<txId>`
   means no reservation is created or converted. Never trust a
-  client-sent "free" flag — recompute is server-side only.
+  client-sent "free" flag — recompute is server-side only. The applied
+  discount is **re-validated at confirm time** (SEC-001): `maxUses` is
+  otherwise enforced only at apply time, and settlement's CAS stops the
+  counter overshooting while still settling — pre-loaded carts could
+  each land at €0. Skipped once `purchasedAt` is set (replay/resume).
 - Discount `usedCount` increment lives in webhook settlement
   (`countDiscountUsage`): at-most-once via a **CAS on the transaction's
   `discountCounted` marker** (field added by `transactionsCollectionOverride`

@@ -135,6 +135,8 @@ clamp, sitemap params).
 - ~~€0 checkout non-Stripe confirm path~~ ✅ done (entry 57):
   `POST /api/carts/:id/confirm-free` + shared `lib/settle-transaction.ts`
   core; real orders, idempotent replay/resume, no Stripe needed.
+  Security-review SEC-001 fixed: confirm-time `validateDiscount`
+  re-check (#395).
 
 ---
 

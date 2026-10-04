@@ -14,7 +14,9 @@ Fully-discounted carts no longer dead-end at "contact sales" — they settle int
 
 Post-implementation review (code-review-checklist): **FIX → 2 findings fixed** — (1) a lost cart claim that raced the winner's transaction-create returned a misleading `409 cart already purchased`; now a bounded re-find (4×250 ms, webhook cadence) lets the tx land first. (2) `payload.create(transactions)` throwing after the cart CAS won left the cart `purchasedAt`-claimed forever with no transaction; the claim now rolls back via stamp-equality CAS so a retry can complete (#394).
 
-**Gates: TDD #383–#394 → 509 unit (web 172 · shop 144 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck 6/6, lint 4/4, `NEXT_BUILD_CPUS=4 pnpm build` green, 12/12 e2e, `workflow:check` PASS.** Not committed — awaits explicit request.
+Security review (auth+payments round): **no high-confidence vulnerabilities** — IDOR/404 authz, Payload CSRF origin allowlist, `escapeHtml` on every email interpolation, server-set order amounts all verified clean. One **Medium business-logic finding fixed (SEC-001)**: `validateDiscount` enforces `maxUses` at *apply* time only, and settlement's CAS stops the counter overshooting while still settling — so N carts pre-loaded with one limited-use 100%-off code could each land at €0 (the Stripe path can't reach this state; it rejects €0 PaymentIntents, so this endpoint made it reachable). Fix: confirm-free now re-runs `validateDiscount` on the cart's applied code **before** the CAS claim (422 `discount code no longer valid — …`), skipped once `purchasedAt` is set so replay/crash-resume is never blocked (#395; #388's fixture became a realistic 100%-off code).
+
+**Gates: TDD #383–#395 → 510 unit (web 172 · shop 145 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck 6/6, lint 4/4, `NEXT_BUILD_CPUS=4 pnpm build` green, 12/12 e2e, `workflow:check` PASS.** Committed on `main` — refactor `eef6a91`, endpoint `278f478`, checkout `522430f`, docs `83585ea`, SEC-001 fix follows (unpushed).
 
 ## 2026-10-04 (56) — Lighthouse re-run on the entry-55 build (Round D)
 

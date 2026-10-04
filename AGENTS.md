@@ -112,8 +112,8 @@ prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
 discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
-Sentry, Plausible); **Round D remaining**: €0 checkout non-Stripe path,
-mobile `FilterDrawer`; the entry-55 commits await push. Detail:
+Sentry, Plausible); **Round D remaining**: mobile `FilterDrawer`;
+entries 55–57 committed locally, awaiting push. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -122,7 +122,7 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#394 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#395 + e2e; per-package counts in 05).
 
 52. **Entry 57 Round D** — **€0 checkout**: `POST
    /api/carts/:id/confirm-free` (owner-or-secret 404; server
@@ -132,8 +132,11 @@ Tests numbered cumulatively (#1–#394 + e2e; per-package counts in 05).
    unchanged). Tx `paymentProvider:'free'`; replay returns existing
    order, pending tx resumes. Checkout: "Place free order" + keyless-€0
    path. Review FIX → 2 fixed (lost-claim premature 409 → bounded
-   re-find; tx-create failure → stamp-CAS claim rollback). TDD
-   #383–#394 → 509 unit; trio + build + 12/12 e2e green.
+   re-find; tx-create failure → stamp-CAS claim rollback). Security
+   review → no high-confidence vulns; SEC-001 fixed (confirm-time
+   discount re-validation — apply-time-only maxUses let pre-loaded
+   carts over-redeem a 100%-off code). TDD #383–#395 → 510 unit;
+   trio + build + 12/12 e2e green.
 
 51. **Entry 56 Round D** — **Lighthouse re-run** on the entry-55 build
    (first post-redesign audit, entry-17 recipe): `/` 88 (82–91 band —
