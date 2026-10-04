@@ -25,6 +25,32 @@ const required = [
 ];
 for (const f of required) if (!ok(f)) fail(`missing required file: ${f}`);
 
+// 1b. Other-AI entry points (entry 65) — thin pointers, never a second
+// source of truth. OpenCode/Codex/Claude read AGENTS.md/CLAUDE.md natively;
+// these cover Copilot, Cursor, Windsurf, Gemini CLI and Aider.
+const entryPoints = [
+  '.github/copilot-instructions.md',
+  '.cursor/rules/buildmyrig.mdc',
+  '.windsurf/rules/buildmyrig.md',
+  'GEMINI.md',
+  'CONVENTIONS.md',
+];
+for (const f of entryPoints) {
+  if (!ok(f)) { fail(`missing AI entry point: ${f}`); continue; }
+  const src = read(f);
+  if (!/AGENTS\.md/.test(src)) fail(`${f}: must point at AGENTS.md (single source of truth)`);
+  if (!/\.devin\/context\//.test(src)) fail(`${f}: must point at .devin/context/`);
+  if (src.length > 4000) fail(`${f} over budget: ${src.length} chars > 4000 (keep pointers thin)`);
+}
+// Windsurf + Cursor need their frontmatter or the rule is ignored entirely.
+const frontmatter = {
+  '.cursor/rules/buildmyrig.mdc': /^---\r?\n[\s\S]*?alwaysApply:\s*true/,
+  '.windsurf/rules/buildmyrig.md': /^---\r?\n[\s\S]*?trigger:\s*always_on/,
+};
+for (const [f, re] of Object.entries(frontmatter)) {
+  if (ok(f) && !re.test(read(f))) fail(`${f}: missing required frontmatter (${re})`);
+}
+
 // 2. Context files indexed both ways
 const ctxDir = join(root, '.devin/context');
 const ctxFiles = existsSync(ctxDir)
