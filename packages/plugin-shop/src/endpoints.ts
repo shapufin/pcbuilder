@@ -4,6 +4,7 @@ import { addItem } from '@payloadcms/plugin-ecommerce'
 import { rateLimit } from '@buildmyrig/lib'
 import { cartItemMatcher, collectBuildIssues } from './lib/line-item-hooks.ts'
 import { validateDiscount } from './lib/pricing.ts'
+import { claimSettlement, settleClaimedTransaction } from './lib/settle-transaction.ts'
 
 /**
  * POST /api/carts/:id/add-build — add a configured build as a composite line.
@@ -30,6 +31,7 @@ const validateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const discountValidateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const discountApplyLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const shippingLimiter = rateLimit({ windowMs: 60_000, max: 20 })
+const confirmFreeLimiter = rateLimit({ windowMs: 60_000, max: 10 })
 
 const schema = z.object({
   configuredBuild: z.coerce.string().min(1),
@@ -360,5 +362,218 @@ export const cartShippingCountryEndpoint: Endpoint = {
         total: updated.total ?? (typeof cart.subtotal === 'number' ? cart.subtotal : 0),
       },
     })
+  },
+}
+
+const confirmFreeSchema = z.object({
+  secret: z.string().optional(),
+  customerEmail: z.string().min(3).max(320),
+  shippingAddress: z.record(z.string(), z.unknown()).optional(),
+})
+
+/** Relationship fields arrive as raw ids or populated objects — normalize both. */
+const orderIdOf = (v: unknown): unknown =>
+  v && typeof v === 'object' && 'id' in v ? (v as { id: unknown }).id : v
+
+/**
+ * POST /api/carts/:id/confirm-free — the non-Stripe confirm path for carts
+ * whose server-computed total is €0 (Round D). Stripe rejects €0
+ * PaymentIntents, so without this a fully-discounted cart could never become
+ * an order. Same settlement core as the Stripe webhook (`lib/settle-transaction`)
+ * — CAS claim + fencing token + resumable decrement — keyed `free:<txId>` so
+ * reservation conversion simply no-ops (no hold is ever created).
+ *
+ * Idempotency: the cart's `purchasedAt` CAS is the once-only gate. A lost
+ * claim falls through to the cart's existing transaction — settled → return
+ * its order (replay); pending → resume settling it (crash recovery). A
+ * settled Stripe payment on the same cart also surfaces here as a replay.
+ */
+export const cartConfirmFreeEndpoint: Endpoint = {
+  path: '/:id/confirm-free',
+  method: 'post',
+  handler: async (req: PayloadRequest) => {
+    const limited = limitByIp(confirmFreeLimiter, req)
+    if (limited) return limited
+    const cartID = req.routeParams?.id
+    if (!cartID) return bad(400, 'cart ID required')
+    let body: unknown
+    try {
+      body = await req.json?.()
+    } catch {
+      return bad(400, 'invalid JSON body')
+    }
+    const parsed = confirmFreeSchema.safeParse(body)
+    if (!parsed.success) return bad(400, 'invalid body', parsed.error.flatten())
+
+    let cart:
+      | {
+          id: string | number
+          customer?: unknown
+          secret?: string | null
+          items?: Record<string, unknown>[]
+          total?: number
+        }
+      | null
+    try {
+      cart = (await req.payload.findByID({
+        collection: 'carts',
+        id: coerceDocId(cartID),
+        depth: 0,
+        overrideAccess: true,
+      })) as typeof cart
+    } catch {
+      cart = null
+    }
+    if (!cart) return bad(404, 'cart not found')
+    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
+    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
+    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
+    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+
+    const items = Array.isArray(cart.items) ? cart.items : []
+    if (items.length === 0) return bad(422, 'cart is empty')
+    // The client never sets this number — the cart beforeChange hook does.
+    if (!(typeof cart.total === 'number' && cart.total <= 0)) {
+      return bad(422, 'cart total is not free — use the payment flow')
+    }
+    const reasons = await collectBuildIssues(items, req)
+    if (reasons.length > 0) return Response.json({ error: 'build validation failed', reasons }, { status: 422 })
+
+    // Mirror the upstream initiatePayment flatten: relationship fields to ids,
+    // custom properties (lineType/configuredBuild/subItems/buildName) preserved.
+    const flattenedItems = items.map((item) => {
+      const { product, variant, ...rest } = item as Record<string, unknown>
+      const productID = product && typeof product === 'object' ? (product as { id: unknown }).id : product
+      const variantID = variant
+        ? typeof variant === 'object'
+          ? (variant as { id: unknown }).id
+          : variant
+        : undefined
+      return {
+        ...rest,
+        product: productID,
+        quantity: item.quantity,
+        ...(variantID !== undefined ? { variant: variantID } : {}),
+      }
+    })
+
+    // Once-only cart claim: the first concurrent request wins; losers fall
+    // through to the transaction-resume path below. The stamp is kept so a
+    // failed transaction-create can roll the claim back instead of wedging
+    // the cart as 'purchased' with no transaction behind it.
+    const purchaseStamp = new Date().toISOString()
+    const claimed = await req.payload.db.updateOne({
+      collection: 'carts',
+      data: { purchasedAt: purchaseStamp },
+      options: { atomic: true },
+      req,
+      where: {
+        and: [{ id: { equals: cart.id } }, { purchasedAt: { exists: false } }],
+      },
+    } as never)
+
+    let transaction: Record<string, any> | null = null
+    if (!claimed) {
+      // Lost the claim — the winner may still be creating its transaction, so
+      // give it a bounded moment (same cadence as the webhook's lost-claim
+      // wait) before reporting the cart as purchased.
+      for (let attempt = 0; attempt < 4 && !transaction; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 250))
+        const found = await req.payload.find({
+          collection: 'transactions',
+          where: { cart: { equals: cart.id } } as never,
+          sort: '-createdAt',
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+          req,
+        })
+        transaction = (found.docs[0] as Record<string, any> | undefined) ?? null
+      }
+      if (!transaction) return bad(409, 'cart already purchased')
+      if (transaction.order) {
+        return ok({ ok: true, orderId: orderIdOf(transaction.order), alreadyConfirmed: true })
+      }
+    }
+
+    try {
+      if (claimed) {
+        transaction = (await req.payload.create({
+          collection: 'transactions',
+          data: {
+            // Mirrors the Stripe adapter's initiatePayment shape minus the
+            // Stripe group; `paymentProvider` marks the non-adapter path.
+            ...(req.user ? { customer: req.user.id } : { customerEmail: parsed.data.customerEmail }),
+            amount: 0,
+            cart: cart.id,
+            currency: 'EUR',
+            items: flattenedItems,
+            paymentProvider: 'free',
+            status: 'pending',
+          } as never,
+          overrideAccess: true,
+          req,
+        })) as Record<string, any>
+      }
+      // Non-null here: `claimed` just created it; a lost claim already
+      // early-returned on null above.
+      const tx = transaction as Record<string, any>
+      const claimToken = await claimSettlement(req.payload, req, tx.id)
+      if (!claimToken) {
+        // A concurrent confirm owns the settlement — surface its order if it
+        // already landed, otherwise tell the client to retry shortly.
+        const latest = (await req.payload
+          .findByID({
+            collection: 'transactions',
+            id: tx.id,
+            depth: 0,
+            overrideAccess: true,
+            req,
+          })
+          .catch(() => null)) as Record<string, any> | null
+        if (latest?.order) {
+          return ok({ ok: true, orderId: orderIdOf(latest.order), alreadyConfirmed: true })
+        }
+        return bad(409, 'checkout already in progress — retry shortly')
+      }
+      const settled = await settleClaimedTransaction({
+        payload: req.payload,
+        req,
+        transaction: tx,
+        claimToken,
+        amount: 0,
+        currency: 'EUR',
+        items:
+          Array.isArray(tx.items) && tx.items.length > 0
+            ? (tx.items as Record<string, unknown>[])
+            : flattenedItems,
+        shippingAddress: parsed.data.shippingAddress,
+        paymentKey: `free:${String(tx.id)}`,
+      })
+      if (!settled) return bad(409, 'checkout already in progress — retry shortly')
+      return ok({ ok: true, orderId: settled.orderId, alreadyConfirmed: false })
+    } catch (err) {
+      if (claimed && !transaction) {
+        // The transaction itself never landed — release the cart claim (only
+        // if it still carries our stamp, so a later settler isn't unclaimed).
+        await req.payload.db
+          .updateOne({
+            collection: 'carts',
+            data: { purchasedAt: null },
+            req,
+            where: {
+              and: [{ id: { equals: cart.id } }, { purchasedAt: { equals: purchaseStamp } }],
+            },
+          } as never)
+          .catch(() => null)
+      }
+      // Settlement stays resumable: the cart is claimed, the transaction is
+      // 'processing' with its fencing token — a retry resumes or the stale
+      // window (>60s) re-claims it.
+      req.payload.logger.error(
+        `[confirm-free] settlement failed for cart ${String(cartID)}: ${String(err)} — retry will resume`,
+      )
+      return bad(500, 'could not confirm the order — retry shortly')
+    }
   },
 }

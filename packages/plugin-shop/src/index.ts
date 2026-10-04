@@ -27,6 +27,7 @@ import {
   cartValidateBuildsEndpoint,
   cartApplyDiscountEndpoint,
   cartShippingCountryEndpoint,
+  cartConfirmFreeEndpoint,
   discountValidateEndpoint,
 } from './endpoints.ts'
 import { ordersCollectionOverride } from './collections/orders.ts'
@@ -186,6 +187,14 @@ export const shopPlugin =
               type: 'text',
               admin: { hidden: true },
             },
+            // Round D: €0 carts settle via /confirm-free with no payment
+            // adapter, so `paymentMethod` (adapter-select, absent in keyless
+            // dev) can't mark them — this text field can.
+            {
+              name: 'paymentProvider',
+              type: 'text',
+              admin: { readOnly: true, description: "'free' for €0 orders settled without a payment adapter" },
+            },
           ],
           hooks: {
             ...defaultCollection.hooks,
@@ -229,6 +238,7 @@ export const shopPlugin =
               cartValidateBuildsEndpoint,
               cartApplyDiscountEndpoint,
               cartShippingCountryEndpoint,
+              cartConfirmFreeEndpoint,
             ],
           } as CollectionConfig
         },
