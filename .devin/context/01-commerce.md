@@ -15,6 +15,11 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   `pending → processing` claim on the transaction — replays are deduped.
   Do not settle order state anywhere else; whichever side wins the CAS
   (webhook or plugin-ecommerce confirm poll) creates the order row.
+- **Shared settlement core (entry 57)**: `lib/settle-transaction.ts`
+  holds `claimSettlement` (CAS + fencing token), `settleClaimedTransaction`
+  (order create/reuse → `purchasedAt` → resumable decrement → discount →
+  settle), `countDiscountUsage`, `postSettleSteps`. The webhook and
+  `confirm-free` are thin callers; keep settlement logic there only.
 - **Entry-44 settlement hardening**:
   - A claim lost to `processing` waits (4×250 ms re-check) and runs
     post-steps if the competitor landed; `processing` older than 60 s is
@@ -38,8 +43,19 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
 - The `transactions` schema conditionally gains `paymentMethod` +
   `stripe` columns when an adapter exists — dev `push` self-heals on
   first key-ful boot; prod must migrate *before* setting keys.
-- Inventory decrement lives in `stripe-webhooks.ts` (entry 13) — do not
-  add a second decrement path.
+- Inventory decrement lives in `lib/settle-transaction.ts` (entry 13/57)
+  — do not add a second decrement path.
+- **€0 checkout (entry 57)**: `POST /api/carts/:id/confirm-free`
+  (10/min/IP, owner-or-secret → 404) settles fully-discounted carts
+  without Stripe — requires server `cart.total <= 0` (422), non-empty
+  cart, `collectBuildIssues` preflight. Once-only `purchasedAt` CAS on the
+  cart is the idempotency gate: a lost claim re-finds the transaction for
+  ~1 s (winner may still be creating it), then replays its `order`,
+  resumes a pending one, or 409s when wedged. A failed transaction-create
+  rolls the claim back via stamp-equality CAS (#394). Tx carries
+  `paymentProvider:'free'`, `amount:0`; settlement key `free:<txId>`
+  means no reservation is created or converted. Never trust a
+  client-sent "free" flag — recompute is server-side only.
 - Discount `usedCount` increment lives in webhook settlement
   (`countDiscountUsage`): at-most-once via a **CAS on the transaction's
   `discountCounted` marker** (field added by `transactionsCollectionOverride`

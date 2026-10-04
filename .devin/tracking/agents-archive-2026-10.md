@@ -83,3 +83,17 @@ Session history (one line each, entries 1–24 in the progress log):
    retokenized; `dark`/`light`/`midnight` stay presets; `THEME_PRESETS`
    +`'rig-dark'` skin; next/font Inter+Space_Grotesk → `--font-*` vars).
    TDD `#318–#319` → 432 unit.
+
+47. **Entry 52 P2** — **builder-design brain**: `BuilderProvider` owns
+   index/engine/`resolveSlotLimits`/hydration; designs = `useBuilder()`
+   consumers (`state`/`actions`/`meta`+`actionStatus`). `designs.ts`
+   registry + `BuilderShell` + `getBuilderDesign()` wire the admin pick.
+   Store += `rgbColor` + `applyTemplate` reset; `kit/` shared logic.
+   #320–331 → 446 unit, gates + build green. Review FIX → fixed.
+
+48. **Entry 53 P3** — **`rig-studio` full UI** (RIG_model1 port, real
+   `useBuilder()` data only): header/bay/swap-modal + blueprint SVG +
+   toolbar/pills/telemetry/price cards + matrix view; `studio-lib` pure
+   layer #332–352; `rig-studio.css` fully `.bdesign-rig-studio`-scoped;
+   lucide-react 1.47.0. Review FIX→fixed (CSS scoping, bay→zone hover).
+

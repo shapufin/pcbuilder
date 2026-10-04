@@ -122,7 +122,18 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#394 + e2e; per-package counts in 05).
+
+52. **Entry 57 Round D** — **€0 checkout**: `POST
+   /api/carts/:id/confirm-free` (owner-or-secret 404; server
+   `total<=0` 422; `collectBuildIssues` preflight; `purchasedAt` CAS
+   idempotency) reuses the settlement core extracted to
+   `lib/settle-transaction.ts` — webhook now a thin wrapper (26/26
+   unchanged). Tx `paymentProvider:'free'`; replay returns existing
+   order, pending tx resumes. Checkout: "Place free order" + keyless-€0
+   path. Review FIX → 2 fixed (lost-claim premature 409 → bounded
+   re-find; tx-create failure → stamp-CAS claim rollback). TDD
+   #383–#394 → 509 unit; trio + build + 12/12 e2e green.
 
 51. **Entry 56 Round D** — **Lighthouse re-run** on the entry-55 build
    (first post-redesign audit, entry-17 recipe): `/` 88 (82–91 band —
@@ -152,19 +163,7 @@ Tests numbered cumulatively (#1–#377 + e2e; per-package counts in 05).
    flip → `rig-studio`** (#363–364). #353–#365 → 480 unit, trio + build
    + 12/12 e2e (deploy verified live). Review FIX → all 9 fixed.
 
-48. **Entry 53 P3** — **`rig-studio` full UI** (RIG_model1 port, real
-   `useBuilder()` data only): header/bay/swap-modal + blueprint SVG +
-   toolbar/pills/telemetry/price cards + matrix view; `studio-lib` pure
-   layer #332–352; `rig-studio.css` fully `.bdesign-rig-studio`-scoped;
-   lucide-react 1.47.0. Review FIX→fixed (CSS scoping, bay→zone hover).
-
-47. **Entry 52 P2** — **builder-design brain**: `BuilderProvider` owns
-   index/engine/`resolveSlotLimits`/hydration; designs = `useBuilder()`
-   consumers (`state`/`actions`/`meta`+`actionStatus`). `designs.ts`
-   registry + `BuilderShell` + `getBuilderDesign()` wire the admin pick.
-   Store += `rgbColor` + `applyTemplate` reset; `kit/` shared logic.
-   #320–331 → 446 unit, gates + build green. Review FIX → fixed.
-
-43–46. **Entries 47–51** — Precision Dark redesign, theme-swap registry,
-   megaplan P0/P1 (rig-dark default). Full text in
+43–48. **Entries 47–53** — Precision Dark redesign, theme-swap registry,
+   megaplan P0–P3 (rig-dark default, provider/design-registry brain,
+   rig-studio UI). Full text in
    `.devin/tracking/agents-archive-2026-10.md`.

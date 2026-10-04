@@ -132,7 +132,9 @@ clamp, sitemap params).
   (entry 56): `/` 88 (82–91 band, watch item), `/shop` 92, `/builder` 94,
   `/checkout` 90; a11y 100 everywhere; checkout BP/SEO deficits are
   deliberate robots disallow + Stripe 3p cookie.
-- €0 checkout non-Stripe confirm path (entry-44 note below).
+- ~~€0 checkout non-Stripe confirm path~~ ✅ done (entry 57):
+  `POST /api/carts/:id/confirm-free` + shared `lib/settle-transaction.ts`
+  core; real orders, idempotent replay/resume, no Stripe needed.
 
 ---
 
@@ -211,10 +213,12 @@ Decisions applied per best-practice (the widenings matched the spec exactly; the
 - **Deploy path**: Postgres + Vercel; blocked on B3 + owner infra decisions.
 - **Lighthouse re-run**: ✅ **done (entry 56)** — see progress log;
   home-LCP watch item flagged for a future perf pass.
-- **€0 checkout path** (entry 44): fully-discounted carts degrade to a
-  "contact sales" notice because Stripe rejects €0 PaymentIntents — a
-  proper fix needs a non-Stripe confirm path (create order, mark paid, no
-  PI). Rare enough to stay a backlog item.
+- **€0 checkout path** (entry 44): ✅ **done (entry 57)** —
+  `POST /api/carts/:id/confirm-free` settles €0 carts via the shared
+  settlement core (`lib/settle-transaction.ts`, extracted from the Stripe
+  webhook — behavior identical, 26/26 tests unchanged). Owner-or-secret →
+  404, server `total<=0` → 422, `purchasedAt` CAS idempotency, replay +
+  crash-resume. Checkout shows "Place free order" and completes keyless.
 
 ---
 

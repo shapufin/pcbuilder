@@ -2,6 +2,20 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (57) — €0 checkout non-Stripe confirm path (Round D)
+
+Fully-discounted carts no longer dead-end at "contact sales" — they settle into real orders server-side, with the same CAS/fencing/resumable-decrement hardening as Stripe settlement.
+
+- **New endpoint** `POST /api/carts/:id/confirm-free` (`endpoints.ts`, 10/min/IP): zod-validated `{secret?, customerEmail, shippingAddress}` → cart load + owner-or-secret (404 otherwise — existence not leaked) → non-empty cart (422) → **server `cart.total <= 0` required** (422 otherwise — client totals never trusted) → `collectBuildIssues` preflight (422 with reasons) → **once-only `purchasedAt` CAS claim** on the cart.
+- **Shared settlement core** — the entry-44 hardened block inside `settlePaymentIntent` extracted to `lib/settle-transaction.ts` (`claimSettlement` CAS + fencing token, `settleClaimedTransaction`, `countDiscountUsage`, `postSettleSteps`). `stripe-webhooks.ts` is now a thin wrapper — PI resolution and the lost-claim bounded wait unchanged (26/26 webhook tests pass untouched). `decrementStock`/reservation rules unchanged — still only settlement decrements.
+- **Free path**: won claim → transaction `{amount:0, currency:'EUR', items: flattened cart lines (upstream initiatePayment shape), status:'pending', paymentProvider:'free'}` (new read-only tx field — the plugin's `paymentMethod` select doesn't exist when no adapter is configured) → same settlement core keyed `free:<txId>` — reservation conversion no-ops since no hold exists. Lost cart claim → latest transaction for the cart: `order` set → replay `{orderId, alreadyConfirmed:true}`; no order → resume settlement (crash recovery); no tx → 409.
+- **Client** (`checkout/page.tsx`): `isFree` renders the shared address+email fieldset with a "Place free order" action instead of the Stripe form — `Elements` never mounts, `initiatePayment`/`confirmOrder` never run. `!hasStripe && isFree` now completes in keyless dev (only non-free carts hit the "Stripe not configured" wall). Sidebar shows "Free — no payment required".
+- Order gets the full email+analytics path for free via the existing orders `afterChange` hooks; `totalsSnapshot`/`discountCodeApplied` come from the transaction-snapshot hook, so a full-discount code counts `usedCount` exactly once (CAS marker) even across replays.
+
+Post-implementation review (code-review-checklist): **FIX → 2 findings fixed** — (1) a lost cart claim that raced the winner's transaction-create returned a misleading `409 cart already purchased`; now a bounded re-find (4×250 ms, webhook cadence) lets the tx land first. (2) `payload.create(transactions)` throwing after the cart CAS won left the cart `purchasedAt`-claimed forever with no transaction; the claim now rolls back via stamp-equality CAS so a retry can complete (#394).
+
+**Gates: TDD #383–#394 → 509 unit (web 172 · shop 144 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck 6/6, lint 4/4, `NEXT_BUILD_CPUS=4 pnpm build` green, 12/12 e2e, `workflow:check` PASS.** Not committed — awaits explicit request.
+
 ## 2026-10-04 (56) — Lighthouse re-run on the entry-55 build (Round D)
 
 `npx lighthouse@12`, headless Chrome vs prod `next start` on :3000 (entry-17 recipe; `--only-categories=performance,accessibility,best-practices,seo`). First audit of the post-redesign pages — entry 17 predated Precision Dark, `rig-dark` and `rig-studio`.
