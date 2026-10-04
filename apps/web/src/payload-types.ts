@@ -1255,6 +1255,10 @@ export interface Transaction {
    */
   inventoryComplete?: boolean | null;
   settlementToken?: string | null;
+  /**
+   * 'free' for €0 orders settled without a payment adapter
+   */
+  paymentProvider?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1977,6 +1981,7 @@ export interface TransactionsSelect<T extends boolean = true> {
   inventoryProgress?: T;
   inventoryComplete?: T;
   settlementToken?: T;
+  paymentProvider?: T;
   updatedAt?: T;
   createdAt?: T;
 }
