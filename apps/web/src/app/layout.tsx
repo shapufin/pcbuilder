@@ -51,12 +51,32 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${grotesk.variable}`}>
       <body>
-        <style id="theme-vars" media="all" dangerouslySetInnerHTML={{ __html: theme.css }} />
-        {theme.skin ? <style id="theme-skin" media="all" dangerouslySetInnerHTML={{ __html: theme.skin }} /> : null}
+        {/* suppressHydrationWarning on the three theme styles: the boot
+            script below rewrites their `media` attrs pre-hydration, which is
+            intentional DOM state React must not treat as a mismatch. */}
+        <style
+          id="theme-vars"
+          media="all"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: theme.css }}
+        />
+        {theme.skin ? (
+          <style
+            id="theme-skin"
+            media="all"
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: theme.skin }}
+          />
+        ) : null}
         {/* Entry 60 visitor toggle: the full alt preset ships inert
             (media="not all"); the boot script flips it on pre-paint when
             localStorage.bmr_theme === 'alt'. */}
-        <style id="theme-alt" media="not all" dangerouslySetInnerHTML={{ __html: theme.altCss }} />
+        <style
+          id="theme-alt"
+          media="not all"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: theme.altCss }}
+        />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <a href="#main-content" className="skip-link">
           Skip to content
