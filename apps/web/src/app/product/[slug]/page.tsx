@@ -8,6 +8,7 @@ import { ViewItemTracker } from './ViewItemTracker'
 import { WishlistButton } from '@/components/WishlistButton'
 import { ProductGallery } from './ProductGallery'
 import { VariantPicker } from './VariantPicker'
+import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
 import './product.css'
 
 type Props = {
@@ -80,6 +81,26 @@ export default async function ProductPage({ params }: Props) {
     }
   })
 
+  // RelatedProducts rail (entry 62): same category, published, never the
+  // viewed product. Depth 1 populates brand/gallery for ProductCard.
+  const related = (
+    product.category && typeof product.category === 'object'
+      ? await payload.find({
+          collection: 'products',
+          where: {
+            and: [
+              { category: { equals: product.category.id } },
+              { id: { not_equals: product.id } },
+              { _status: { equals: 'published' } },
+            ],
+          },
+          limit: 4,
+          depth: 1,
+          sort: 'title',
+        })
+      : { docs: [] }
+  ).docs
+
   return (
     <main className="pdp">
       <nav className="pdp__breadcrumb" aria-label="Breadcrumb">
@@ -146,6 +167,19 @@ export default async function ProductPage({ params }: Props) {
           )}
         </aside>
       </div>
+
+      {related.length > 0 ? (
+        <section className="pdp__related" aria-labelledby="pdp-related-title">
+          <h2 id="pdp-related-title" className="pdp__related-title">
+            Related products
+          </h2>
+          <ProductCardGrid>
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </ProductCardGrid>
+        </section>
+      ) : null}
 
       <ViewItemTracker
         item={product.title}
