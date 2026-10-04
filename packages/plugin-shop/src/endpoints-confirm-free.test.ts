@@ -224,7 +224,7 @@ describe('POST /api/carts/:id/confirm-free', () => {
     const { payload, store } = makePayload({
       carts: [freeCart({ discountCode: 55 })],
       products: [{ id: 31, inventory: 5 }],
-      discountCodes: [{ id: 55, code: 'FREE100', usedCount: 0 }],
+      discountCodes: [{ id: 55, code: 'FREE100', type: 'percentage', value: 100, enabled: true, usedCount: 0 }],
     })
     const first = await call(payload, { body: { secret: 's3cret' } })
     expect(first.status).toBe(200)
@@ -355,5 +355,25 @@ describe('POST /api/carts/:id/confirm-free', () => {
     expect(store.orders).toHaveLength(1)
     expect(store.transactions).toHaveLength(1)
     expect(store.products[0].inventory).toBe(4)
+  })
+
+  it('#395 exhausted discount code is rejected at confirm time (SEC-001)', async () => {
+    // Apply-time validation is the only gate on maxUses, and settlement's CAS
+    // only stops the counter overshooting — it still settles. Without this
+    // re-check N pre-loaded carts could each land at €0 on one 1-use code.
+    const { payload, store } = makePayload({
+      carts: [freeCart({ discountCode: 55 })],
+      products: [{ id: 31, inventory: 5 }],
+      discountCodes: [
+        { id: 55, code: 'FREE100', type: 'percentage', value: 100, enabled: true, maxUses: 1, usedCount: 1 },
+      ],
+    })
+    const res = await call(payload, { body: { secret: 's3cret' } })
+    expect(res.status).toBe(422)
+    expect((await res.json()).error).toMatch(/no longer valid/)
+    expect(store.orders).toHaveLength(0)
+    expect(store.transactions).toHaveLength(0)
+    expect(store.carts[0].purchasedAt).toBeUndefined()
+    expect(store['discount-codes'][0].usedCount).toBe(1)
   })
 })

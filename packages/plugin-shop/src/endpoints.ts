@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { addItem } from '@payloadcms/plugin-ecommerce'
 import { rateLimit } from '@buildmyrig/lib'
 import { cartItemMatcher, collectBuildIssues } from './lib/line-item-hooks.ts'
-import { validateDiscount } from './lib/pricing.ts'
+import { validateDiscount, type DiscountCodeDoc } from './lib/pricing.ts'
 import { claimSettlement, settleClaimedTransaction } from './lib/settle-transaction.ts'
 
 /**
@@ -412,6 +412,9 @@ export const cartConfirmFreeEndpoint: Endpoint = {
           secret?: string | null
           items?: Record<string, unknown>[]
           total?: number
+          subtotal?: number
+          discountCode?: unknown
+          purchasedAt?: string | null
         }
       | null
     try {
@@ -456,6 +459,33 @@ export const cartConfirmFreeEndpoint: Endpoint = {
         ...(variantID !== undefined ? { variant: variantID } : {}),
       }
     })
+
+    // Confirm-time discount re-check (entry-57 security review, SEC-001):
+    // `validateDiscount` runs at apply time only, and settlement's maxUses CAS
+    // stops the *counter* overshooting while still settling the order — so N
+    // carts pre-loaded with the same limited-use code could each land at €0.
+    // Re-validate here, before any state change, so a doomed attempt never
+    // claims the cart. Skipped once the cart is already purchased: replay and
+    // crash-resume must not be blocked (the claim is committed by then).
+    if (!cart.purchasedAt && cart.discountCode) {
+      const codeID =
+        typeof cart.discountCode === 'object'
+          ? (cart.discountCode as { id: unknown }).id
+          : cart.discountCode
+      const code = (await req.payload
+        .findByID({
+          collection: 'discount-codes',
+          id: coerceDocId(codeID),
+          depth: 0,
+          overrideAccess: true,
+          req,
+        })
+        .catch(() => null)) as DiscountCodeDoc | null
+      const check = validateDiscount(code, typeof cart.subtotal === 'number' ? cart.subtotal : 0)
+      if (!check.valid) {
+        return bad(422, `discount code no longer valid — ${String(check.reason)}`)
+      }
+    }
 
     // Once-only cart claim: the first concurrent request wins; losers fall
     // through to the transaction-resume path below. The stamp is kept so a
