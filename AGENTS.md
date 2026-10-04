@@ -116,9 +116,10 @@ degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
 59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
 `ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
-spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts**; entries
-55–62 pushed, flake fix `596aa7a` — **CI all-8 green (37194748589)**.
-Detail:
+spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts** +
+**entry 63: review fixes** (useId panel ids, hydration guard); entries
+55–62 pushed at `ecdc822`, flake fix `596aa7a` — **CI all-8 green
+(37194748589)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -127,8 +128,16 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#414 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#415 + e2e; per-package counts in 05).
 
+58. **Entry 63** — **review-fix round on 59–62** (both review findings
+   closed): `FilterDrawer` panel id → `useId` (trigger `aria-controls`
+   matches the panel; #415 pins two drawers → distinct ids; e2e selects
+   by role) + `suppressHydrationWarning` on the three theme style tags
+   (boot script rewrites `media` pre-hydration; **dev-mode verified: 0
+   console messages** — gotcha #40) + stale generated types synced
+   (`paymentProvider`, entry-57 drift). 532 unit, typecheck 6/6, lint
+   4/4, build 25/25, 16/16 e2e. SHIP.
 57. **Entry 62** — **PDP RelatedProducts rail** (audit S3 nearly done):
    ≤4 same-category published products via `ProductCardGrid`, self
    excluded, hidden when none. Two stale S3 "gaps" (gallery, variant
@@ -144,18 +153,9 @@ Tests numbered cumulatively (#1–#414 + e2e; per-package counts in 05).
    `useSyncExternalStore`, no effect/mismatch) flips media attrs +
    stores `bmr_theme`; `THEME_BOOT_SCRIPT` re-applies pre-paint. TDD
    #402–#408 → 525 unit, build 25/25, **15/15 e2e**. Review SHIP.
-54. **Entry 59 Round D** — **mobile FilterDrawer, classic builder**
-   (last Round-D item): `OptionsFilterBar` mounts twice (inline
-   `.panel-filters` hidden ≤900px + inside the shared drawer) — state
-   was already in `builder-store`. `FilterDrawerPanel` extracted
-   (CartDrawerOverlay precedent) + `label`/`activeCount` props; drawer
-   CSS moved `shop.css` → `primitives.css`; `useId` for the dual-mounted
-   input. TDD #396–#401 → 518 unit; typecheck+lint (web), build 25/25,
-   **14/14 e2e** (new `filter-drawer.spec.ts` — live evidence: trigger
-   ↔ inline swap, dialog contract, cross-copy filter sync). Review SHIP.
-43–53. **Entries 47–58** — Precision Dark redesign, theme-swap registry,
+43–54. **Entries 47–59** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P4 + review-fix round (rig-dark default, design registry,
    rig-studio UI, `NEXT_BUILD_CPUS`), Lighthouse re-run (a11y 100;
-   home-perf watch), €0 confirm-free + settlement-core + SEC-001,
-   entries-55–57 push + CI build-flake fix. Full text in
+   home-perf watch), €0 confirm-free + settlement-core + SEC-001, push +
+   CI build-flake fix, mobile FilterDrawer (Round D done). Full text in
    `.devin/tracking/agents-archive-2026-10.md`.

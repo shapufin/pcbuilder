@@ -28,7 +28,7 @@ Where things live. Not a manual — a map. Domain rules:
 ## Tests
 
 - Vitest per package (`pnpm test`, turbo); numbered cumulatively
-  (#1–#408 + e2e). apps/web vitest scoped to `src/**` by
+  (#1–#415 + e2e). apps/web vitest scoped to `src/**` by
   `vitest.config.ts` (also provides the `@` alias — keep both).
 - Playwright: `apps/web/e2e/{smoke,auth,builder,search-wishlist,
   cart-drawer,filter-drawer,theme-toggle,related-products}.spec.ts`,

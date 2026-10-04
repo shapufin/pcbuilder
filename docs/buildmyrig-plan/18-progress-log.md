@@ -2,6 +2,16 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (63) — Review-fix round on entries 59–62 (both findings fixed)
+
+The review of entries 59–62 shipped SHIP with two low-severity observations; both are now closed rather than carried.
+
+- **`FilterDrawer` panel id → `useId`** (`components/FilterDrawer.tsx`): the panel was hardcoded `filter-drawer-panel` while the search input had already moved to `useId`. Safe today (one drawer per page; `AnimatePresence mode="wait"` guarantees a single `StepPanel`) but a latent `aria-controls` collision. `FilterDrawerPanel` takes an optional `id` (default preserved for the standalone presentational contract); the trigger's `aria-controls` and the panel now share one generated id. **TDD #415** asserts two mounted drawers produce distinct ids; the e2e switched from `#filter-drawer-panel` to `getByRole('dialog')`.
+- **Hydration guard on the theme styles** (`app/layout.tsx`): the boot script rewrites `media` on `#theme-vars`/`#theme-skin`/`#theme-alt` pre-hydration. Verified the behavior in **dev mode** (where React emits hydration warnings — `next start` strips them): **0 console messages** with `bmr_theme=alt`, and the e2e already proves React never reverts the flip. Added `suppressHydrationWarning` to the three tags so the pattern stays silent by contract. Gotcha #40 + `04` note.
+- **Stale generated types synced** (`apps/web/src/payload-types.ts`): the dev boot regenerated `paymentProvider` into the `Transaction`/`TransactionsSelect` types — the field landed with entry 57 but the committed types were never regenerated, so the file had been one field behind the schema. Diff reviewed (5 added lines, both the interface and the select map) and kept; every gate below ran with the synced types.
+
+**Gates: 532 unit (web 194 · shop 145 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck 6/6, lint 4/4, `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), 16/16 e2e, `workflow:check` PASS** (`.next` cleared before the build per gotcha #39). Review: SHIP — no findings outstanding.
+
 ## 2026-10-04 (62) — PDP RelatedProducts rail (audit S3, last gap)
 
 Pre-round audit pass found two S3 "gaps" were stale: the gallery and the multi-variant picker both landed in entry 47 (placeholder media + option buttons with live price/stock). The real remaining gap was RelatedProducts, plus the compat-hint stub link.

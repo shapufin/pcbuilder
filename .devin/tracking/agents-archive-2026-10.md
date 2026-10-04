@@ -152,3 +152,13 @@ Session history (one line each, entries 1–24 in the progress log):
    `apps/web/.next` after the dev-boot teardown; reproduced locally
    (cut the line-242 import string → same TS1002; after the clear, build
    25/25). Gotcha #39 + 05 CI note. CI all 8 gates green (37194748589).
+
+54. **Entry 59 Round D** — **mobile FilterDrawer, classic builder**
+   (last Round-D item): `OptionsFilterBar` mounts twice (inline
+   `.panel-filters` hidden ≤900px + inside the shared drawer) — state
+   was already in `builder-store`. `FilterDrawerPanel` extracted
+   (CartDrawerOverlay precedent) + `label`/`activeCount` props; drawer
+   CSS moved `shop.css` → `primitives.css`; `useId` for the dual-mounted
+   input. TDD #396–#401 → 518 unit; typecheck+lint (web), build 25/25,
+   **14/14 e2e** (new `filter-drawer.spec.ts` — live evidence: trigger
+   ↔ inline swap, dialog contract, cross-copy filter sync). Review SHIP.

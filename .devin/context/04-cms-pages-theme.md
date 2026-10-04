@@ -76,7 +76,11 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   setState-in-effect) flips `media` attrs + stores `bmr_theme`
   (`'alt'`/`'default'`); `THEME_BOOT_SCRIPT` inline after the style tags
   re-applies before paint. Own-tab writes notify via `bmr_theme_change`
-  (storage events don't fire same-tab). `#402–#408` + e2e.
+  (storage events don't fire same-tab). `#402–#408` + e2e. The three theme
+  style tags carry `suppressHydrationWarning` (entry 63) — the boot script
+  mutates their `media` attrs pre-hydration by design. The drawer/panel
+  ids in `FilterDrawer` use `useId` (entry 63) so two drawers can't
+  collide on `aria-controls`.
 - Payload group-field semantics: validators see *omitted* group fields
   as empty on PATCH — optional fields must accept empty (`optionalField`
   pattern, `#141b`); `{"colors":{}}` merges as a no-op — clear with
