@@ -117,9 +117,9 @@ Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
 59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
 `ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
 spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts** +
-**entry 63: review fixes** (useId panel ids, hydration guard); entries
-55–62 pushed at `ecdc822`, flake fix `596aa7a` — **CI all-8 green
-(37194748589)**. Detail:
+**entry 63: review fixes** (useId panel ids, hydration guard, types
+sync); entries 55–63 pushed at `d5fc10b`, flake fix `596aa7a` — **CI
+all-8 green (37208259966)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
