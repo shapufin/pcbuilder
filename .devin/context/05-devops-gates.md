@@ -102,6 +102,10 @@ sequence when adding tests.
 ## CI (`.github/workflows/ci.yml`)
 
 All 8 gates blocking; Postgres 16 service proves schema push each run.
+The schema-push dev boot is torn down with a SIGKILL, which can leave a
+partially written `.next/dev/types/validator.ts` that the build's type
+check then fails on (entry 58) — the workflow therefore runs
+`rm -rf apps/web/.next` after the teardown, before `pnpm build`.
 Local equivalent when changing schema: one dev boot. Push only when the
 user asks.
 

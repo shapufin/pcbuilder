@@ -97,3 +97,25 @@ Session history (one line each, entries 1–24 in the progress log):
    layer #332–352; `rig-studio.css` fully `.bdesign-rig-studio`-scoped;
    lucide-react 1.47.0. Review FIX→fixed (CSS scoping, bay→zone hover).
 
+
+49. **Entry 54 P4** — **megaplan complete**: DeployModal real 4-stage
+   pipeline (validate → power → save → cart; halts on errors),
+   SavedBuildsModal 3-tab (authed/guest refs, presets, export/import);
+   seed §7 (specsJson/hasRgb/slot caps, ram+storage max→4); **default
+   flip → `rig-studio`** (#363–364). #353–#365 → 480 unit, trio + build
+   + 12/12 e2e (deploy verified live). Review FIX → all 9 fixed.
+
+50. **Entry 55 review-fix round** — 3-reviewer pass on the committed
+   megaplan: **FIX → all fixed**. Majors: `saveBuild` stale in-flight
+   re-stamp (draft-signature guard + dedup), `share()` false-success
+   toast (now `Promise<boolean>`), DeployModal double-pipeline (shell
+   `busy` gate + live region). Minors: `clearSavedBuild`/`buildName`,
+   `pruneUnknown` hydration cleanup, `rgbColor` rehydrate re-validation
+   (`builderDraftMerge`), skin-failure fallback split, `resolvedMax`
+   shared cap math, spec-field int/min validation, create-access pin
+   (#374), stale `[[...segments]]/importMap.js` deleted. Gotchas:
+   Turbopack remaps `require.resolve` (css → asset error; pkg → module
+   id) → `loadSkin` walks up from `import.meta.url`; 15 build workers
+   OOM at ~2 GB free → `NEXT_BUILD_CPUS=4` knob. #366–#377 → 492 unit,
+   trio + build + 12/12 e2e green. Committed `1a3ed2f..79cbf96`
+   (pushed at `0565804`).

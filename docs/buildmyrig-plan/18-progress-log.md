@@ -2,6 +2,19 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (58) — push of entries 55–57 + CI build flake fixed
+
+Entries 55–57 pushed to `origin/main` (`9b6efa6..0565804`), then a CI failure on that push was root-caused and fixed.
+
+- **Push**: `1a3ed2f..0565804` (13 commits — review-fix round 2, Lighthouse re-run, €0 confirm-free + SEC-001) fast-forwarded to `origin/main`; no PRs existed, so the push was the merge. Push-status surfaces synced (`c2e82b5`): AGENTS current-status + session log, `00-index` tail, entry-57 gates line (which still read "SEC-001 fix follows (unpushed)"), and `15-delivery-phases` — including clearing a stale "Entries 25–34 are uncommitted" claim that had survived three rounds.
+- **CI red on `0565804`** (run 37193975900): lint, typecheck, test and the Postgres schema push all passed; **`pnpm build` failed the type check** with `.next/dev/types/validator.ts(242,42): error TS1002: Unterminated string literal` + "Failed to type check".
+- **Root cause**: the schema-push step boots `next dev` (push mode runs only on a dev boot), which generates `.next/dev/types/validator.ts`; `apps/web/tsconfig.json:40` includes `.next/dev/types/**/*.ts`; the teardown is a SIGKILL (`pkill -f "turbo dev"` + `fuser -k 3000/tcp`), which can land mid-write and leave a truncated file that the **prod build's** type check then parses. **Intermittent** — the next push of the same tree (`c2e82b5`, run 37194231923) passed all 8 gates, which is what identified it as a race rather than a code defect.
+- **Fix** (`596aa7a`): the workflow clears `apps/web/.next` after the dev-boot teardown, before `pnpm build` — restoring the fresh-checkout state the build already proves it handles, so the dev boot can no longer influence the build's inputs.
+- **Verification**: reproduced locally by cutting `validator.ts` inside the line-242 `import("…")` string → identical `TS1002` + "Failed to type check"; `rm -rf apps/web/.next` → build green (25/25 pages, 4 workers). CI on the fix: **run 37194748589 all 8 gates green**.
+- Documented as gotcha #39 (`06-gotchas.md`) + a note in the `05-devops-gates.md` CI section, since the same trap bites locally after any killed `pnpm dev`.
+
+**Gates: 510 unit + 12 e2e, typecheck 6/6, lint 4/4, build green, CI all 8 gates green (37194748589).** Pushed at `596aa7a`.
+
 ## 2026-10-04 (57) — €0 checkout non-Stripe confirm path (Round D)
 
 Fully-discounted carts no longer dead-end at "contact sales" — they settle into real orders server-side, with the same CAS/fencing/resumable-decrement hardening as Stripe settlement.

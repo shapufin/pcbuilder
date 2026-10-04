@@ -88,7 +88,7 @@ manager, id3 staff `staff@buildmyrig.test`).
 ## Current status (2026-10-04)
 
 Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
-(37117923390). **Entries 25–45 committed + pushed to `origin/main`**
+(37194748589). **Entries 25–45 committed + pushed to `origin/main`**
 (`135b463`). **RIG Studio megaplan (entries 45–54) pushed** at `9b6efa6`;
 **entries 55–57 pushed** at `0565804` (`1a3ed2f..0565804`: review-fix
 round 2, Lighthouse re-run, €0 confirm-free + SEC-001 re-check).
@@ -114,7 +114,8 @@ discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
 Sentry, Plausible); **Round D remaining**: mobile `FilterDrawer`;
-entries 55–57 pushed at `0565804` (CI pending). Detail:
+entries 55–57 pushed at `0565804`; the CI build flake on that push was
+fixed at `596aa7a` — **CI all 8 gates green (37194748589)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -124,6 +125,18 @@ Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
 Tests numbered cumulatively (#1–#395 + e2e; per-package counts in 05).
+
+53. **Entry 58 — push + CI build flake** — entries 55–57 pushed
+   (`9b6efa6..0565804`; no PRs, so the push *was* the merge) + push-status
+   doc sync (`c2e82b5`). CI then failed on `0565804` at `pnpm build`
+   only: `.next/dev/types/validator.ts(242,42) TS1002 Unterminated string
+   literal` — the schema-push `next dev` writes dev route types, tsconfig
+   includes `.next/dev/types/**/*.ts`, and the SIGKILL teardown left a
+   truncated file the prod type check parsed (**intermittent** — the same
+   tree's next push passed). Fixed in `596aa7a` by clearing
+   `apps/web/.next` after the dev-boot teardown; reproduced locally
+   (cut the line-242 import string → same TS1002; after the clear, build
+   25/25). Gotcha #39 + 05 CI note. CI all 8 gates green (37194748589).
 
 52. **Entry 57 Round D** — **€0 checkout**: `POST
    /api/carts/:id/confirm-free` (owner-or-secret 404; server
@@ -146,26 +159,11 @@ Tests numbered cumulatively (#1–#395 + e2e; per-package counts in 05).
    = Stripe 3p cookie + deliberate robots disallow — not regressions.
    **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**
 
-50. **Entry 55 review-fix round** — 3-reviewer pass on the committed
-   megaplan: **FIX → all fixed**. Majors: `saveBuild` stale in-flight
-   re-stamp (draft-signature guard + dedup), `share()` false-success
-   toast (now `Promise<boolean>`), DeployModal double-pipeline (shell
-   `busy` gate + live region). Minors: `clearSavedBuild`/`buildName`,
-   `pruneUnknown` hydration cleanup, `rgbColor` rehydrate re-validation
-   (`builderDraftMerge`), skin-failure fallback split, `resolvedMax`
-   shared cap math, spec-field int/min validation, create-access pin
-   (#374), stale `[[...segments]]/importMap.js` deleted. Gotchas:
-   Turbopack remaps `require.resolve` (css → asset error; pkg → module
-   id) → `loadSkin` walks up from `import.meta.url`; 15 build workers
-   OOM at ~2 GB free → `NEXT_BUILD_CPUS=4` knob. #366–#377 → 492 unit,
-   trio + build + 12/12 e2e green. **Committed `1a3ed2f..79cbf96`.**
-
-49. **Entry 54 P4** — **megaplan complete**: DeployModal real 4-stage
-   pipeline (validate → power → save → cart; halts on errors),
-   SavedBuildsModal 3-tab (authed/guest refs, presets, export/import);
-   seed §7 (specsJson/hasRgb/slot caps, ram+storage max→4); **default
-   flip → `rig-studio`** (#363–364). #353–#365 → 480 unit, trio + build
-   + 12/12 e2e (deploy verified live). Review FIX → all 9 fixed.
+49–50. **Entries 54–55** — megaplan P4 (DeployModal pipeline,
+   SavedBuildsModal, `rig-studio` default) + the review-fix round 2
+   (save/deploy races, draft-merge validation, phantom-pick pruning,
+   Turbopack `loadSkin` gotcha, `NEXT_BUILD_CPUS`). Full text in
+   `.devin/tracking/agents-archive-2026-10.md`.
 
 43–48. **Entries 47–53** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P3 (rig-dark default, provider/design-registry brain,
