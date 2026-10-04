@@ -126,7 +126,10 @@ clamp, sitemap params).
 
 ## Round D — Parked / product backlog
 
-- Mobile `FilterDrawer` (parked since entry 16).
+- ~~Mobile `FilterDrawer` (parked since entry 16)~~ ✅ done (entry 59):
+  the shop drawer landed entry 47; this round put the classic builder's
+  `OptionsFilterBar` into the shared drawer ≤900px (state was already in
+  `builder-store`; `useId` for the dual-mounted input).
 - Postgres/Vercel deploy path (plan-level; dev-first until then).
 - ~~Lighthouse re-run after the checkout/analytics changes.~~ ✅ done
   (entry 56): `/` 88 (82–91 band, watch item), `/shop` 92, `/builder` 94,
@@ -210,8 +213,11 @@ Decisions applied per best-practice (the widenings matched the spec exactly; the
 
 ## Round D — per item
 
-- **FilterDrawer**: revive only with a mobile pass; needs the store's filter
-  state extracted from `OptionsFilterBar` — separate round, UX-reviewed first.
+- ~~**FilterDrawer**: revive only with a mobile pass; needs the store's filter
+  state extracted from `OptionsFilterBar` — separate round, UX-reviewed
+  first.~~ ✅ **done (entry 59)** — UX pass picked the full-drawer layout
+  (shop parity); state extraction was already done in the P2 provider
+  refactor.
 - **Deploy path**: Postgres + Vercel; blocked on B3 + owner infra decisions.
 - **Lighthouse re-run**: ✅ **done (entry 56)** — see progress log;
   home-LCP watch item flagged for a future perf pass.

@@ -47,9 +47,9 @@ build-time globbing only, no patched release).
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 57, #1–#395 + 12 e2e)**: web 172 · plugin-shop 145 ·
-plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **510 unit +
-12 e2e**. Numbers are cumulative and cited in test titles; keep the
+**Test counts (entry 59, #1–#401 + 14 e2e)**: web 180 · plugin-shop 145 ·
+plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **518 unit +
+14 e2e**. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
 
 ## turbo strict env mode

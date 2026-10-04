@@ -80,6 +80,13 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   next add, then evict-oldest down to `max` (store contract).
   `SummaryClient` is OUTSIDE the provider — it calls `useBuildActions`
   with its own `useBuilderIndex`.
+- **Classic mobile filters (entry 59)**: `OptionsFilterBar` (search +
+  brand chips; `query`/`brand` already in `builder-store`) mounts twice —
+  inline `.panel-filters` (hidden ≤900px) + inside the shared
+  `components/FilterDrawer` (`label="Part filters"`, `activeCount`
+  badge). Drawer base CSS lives in `primitives.css`; each page opts the
+  trigger in at its own breakpoint. `useId()` on the search input —
+  two mounts would duplicate a hardcoded id.
 - **P3 (entry 53)**: `app/builder/designs/rig-studio/` is the full
   RIG_model1 port — pure `useBuilder()` presentation, no
   index/engine/fetch/store imports inside the dir (verified by review

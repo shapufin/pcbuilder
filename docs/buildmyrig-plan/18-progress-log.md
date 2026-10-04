@@ -2,6 +2,17 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (59) — Mobile FilterDrawer for the classic builder (Round D, last item)
+
+The parked "mobile FilterDrawer" backlog item (parked since entry 16) was actually two pieces: the shop category drawer (landed entry 47) and the classic builder's `OptionsFilterBar` mobile pass. This round lands the second — **Round D is now complete**.
+
+- **Shared drawer generalized**: `components/FilterDrawer.tsx` splits a presentational `FilterDrawerPanel` (same `CartDrawerOverlay` precedent — the open-state a11y contract is SSR-testable) and gains optional `label` (default `"Product filters"` — shop call site unchanged) + `activeCount` (accent badge on the trigger). The `.filter-drawer__*` base block moves from `shop.css` to `primitives.css` (single-source convention); `shop.css` keeps only its ≤860px opt-in.
+- **Builder wiring**: `StepPanel` mounts the same controlled `OptionsFilterBar` twice — inline `.panel-filters` (hidden ≤900px in `builder.css`, the `cfg-layout` collapse breakpoint) and inside the drawer (`label="Part filters"`). Filter state was already in `builder-store` — the "extraction" the parked plan note required was done in the P2 provider refactor, so typing in the drawer copy reflects in the inline copy instantly. `OptionsFilterBar` uses `useId()` for the search input — two mounts would duplicate the old hardcoded `option-search` id.
+- **TDD #396–#401**: trigger a11y contract, `activeCount` badge, panel aria-label (default + override), unique ids across two mounts, StepPanel dual render, CSS single-sourcing + breakpoint wiring (fs asserts, css-token-purity style).
+- **e2e** `filter-drawer.spec.ts` (+2 specs, 390px + 1280px): ≤900px the trigger replaces the inline bar, the sheet opens with `role="dialog"`/`aria-modal`, live-filter sync across both mounted copies, Escape closes; ≥900px the inline bar stays and the trigger hides.
+
+**Gates: TDD #396–#401 → 518 unit (web 180 · shop 145 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck + lint (apps/web — other packages untouched), `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), 14/14 e2e, `workflow:check` PASS.** Review (code-review-checklist): SHIP. uisight unavailable this session (browser context dead) — live evidence via the new Playwright specs instead.
+
 ## 2026-10-04 (58) — push of entries 55–57 + CI build flake fixed
 
 Entries 55–57 pushed to `origin/main` (`9b6efa6..0565804`), then a CI failure on that push was root-caused and fixed.

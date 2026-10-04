@@ -113,9 +113,9 @@ prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
 discount counting, `charge.succeeded`), checkout 3DS-return + €0
 degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
-Sentry, Plausible); **Round D remaining**: mobile `FilterDrawer`;
-entries 55–57 pushed at `0565804`; the CI build flake on that push was
-fixed at `596aa7a` — **CI all 8 gates green (37194748589)**. Detail:
+Sentry, Plausible); **Round D complete** (mobile `FilterDrawer` on the
+classic builder, entry 59 — uncommitted); entries 55–57 pushed at
+`0565804`, CI-flake fix `596aa7a` — **CI all 8 gates green (37194748589)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -124,8 +124,17 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#395 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#401 + e2e; per-package counts in 05).
 
+54. **Entry 59 Round D** — **mobile FilterDrawer, classic builder**
+   (last Round-D item): `OptionsFilterBar` mounts twice (inline
+   `.panel-filters` hidden ≤900px + inside the shared drawer) — state
+   was already in `builder-store`. `FilterDrawerPanel` extracted
+   (CartDrawerOverlay precedent) + `label`/`activeCount` props; drawer
+   CSS moved `shop.css` → `primitives.css`; `useId` for the dual-mounted
+   input. TDD #396–#401 → 518 unit; typecheck+lint (web), build 25/25,
+   **14/14 e2e** (new `filter-drawer.spec.ts` — live evidence: trigger
+   ↔ inline swap, dialog contract, cross-copy filter sync). Review SHIP.
 53. **Entry 58 — push + CI build flake** — entries 55–57 pushed
    (`9b6efa6..0565804`; no PRs, so the push *was* the merge) + push-status
    doc sync (`c2e82b5`). CI then failed on `0565804` at `pnpm build`
@@ -159,13 +168,7 @@ Tests numbered cumulatively (#1–#395 + e2e; per-package counts in 05).
    = Stripe 3p cookie + deliberate robots disallow — not regressions.
    **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**
 
-49–50. **Entries 54–55** — megaplan P4 (DeployModal pipeline,
-   SavedBuildsModal, `rig-studio` default) + the review-fix round 2
-   (save/deploy races, draft-merge validation, phantom-pick pruning,
-   Turbopack `loadSkin` gotcha, `NEXT_BUILD_CPUS`). Full text in
-   `.devin/tracking/agents-archive-2026-10.md`.
-
-43–48. **Entries 47–53** — Precision Dark redesign, theme-swap registry,
-   megaplan P0–P3 (rig-dark default, provider/design-registry brain,
-   rig-studio UI). Full text in
-   `.devin/tracking/agents-archive-2026-10.md`.
+43–50. **Entries 47–55** — Precision Dark redesign, theme-swap registry,
+   megaplan P0–P4 + review-fix round (rig-dark default, design registry,
+   rig-studio UI, DeployModal/SavedBuildsModal, `NEXT_BUILD_CPUS`).
+   Full text in `.devin/tracking/agents-archive-2026-10.md`.
