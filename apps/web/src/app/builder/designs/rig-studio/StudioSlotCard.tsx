@@ -1,5 +1,6 @@
 'use client'
 
+import { resolvedMax } from '@buildmyrig/lib'
 import { ArrowRightLeft, X, type LucideIcon } from 'lucide-react'
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilder } from '../../builder-provider'
@@ -42,7 +43,7 @@ export function StudioSlotCard({
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
   const firstPick = picks[0]
   const limit = state.limits[category.id]
-  const max = limit?.max ?? category.maxSelectable
+  const max = resolvedMax(state.limits, category)
   const cappedBy = limit?.cappedBy
   const subtotal = picks.reduce((sum, e) => sum + priceCentsOf(e), 0)
   const zone = zoneForCategory(category.slug)
@@ -53,8 +54,23 @@ export function StudioSlotCard({
       data-zone={zone}
       onMouseEnter={zone && onHoverZone ? () => onHoverZone(zone) : undefined}
       onMouseLeave={zone && onHoverZone ? () => onHoverZone(null) : undefined}
-      onFocus={zone && onHoverZone ? () => onHoverZone(zone) : undefined}
-      onBlur={zone && onHoverZone ? () => onHoverZone(null) : undefined}
+      onFocus={
+        zone && onHoverZone
+          ? (e) => {
+              // focusin bubbles per child — only set the zone when focus
+              // arrives from OUTSIDE the card, else tabbing between Remove
+              // and Swap flickers hoverZone (entry-55 review).
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHoverZone(zone)
+            }
+          : undefined
+      }
+      onBlur={
+        zone && onHoverZone
+          ? (e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHoverZone(null)
+            }
+          : undefined
+      }
     >
       <div className="studio-slot__top">
         <span className="studio-slot__icon" aria-hidden="true">

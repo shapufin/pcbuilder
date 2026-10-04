@@ -15,6 +15,7 @@ export function StudioModalShell({
   icon,
   onClose,
   wide,
+  busy,
   children,
 }: {
   title: string
@@ -22,10 +23,22 @@ export function StudioModalShell({
   icon?: ReactNode
   onClose: () => void
   wide?: boolean
+  /** Blocks Escape/backdrop/X while a destructive-on-reopen op runs
+   *  (DeployModal pipeline — a remount would double-run save+cart). */
+  busy?: boolean
   children: ReactNode
 }) {
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
+  // Latest-value refs: keeping busy/onClose out of the mount effect's deps
+  // stops an idle→running flip from re-running cleanup (which restored focus
+  // behind the modal and flickered the scroll-lock mid-pipeline).
+  const onCloseRef = useRef(onClose)
+  const busyRef = useRef(busy)
+  useEffect(() => {
+    onCloseRef.current = onClose
+    busyRef.current = busy
+  })
 
   useEffect(() => {
     const previousFocus =
@@ -35,7 +48,7 @@ export function StudioModalShell({
     closeRef.current?.focus()
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !busyRef.current) onCloseRef.current()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -43,7 +56,7 @@ export function StudioModalShell({
       document.body.style.overflow = previousOverflow
       previousFocus?.focus()
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div className="studio-modal">
@@ -51,7 +64,8 @@ export function StudioModalShell({
         type="button"
         className="studio-modal__backdrop"
         aria-label="Close dialog"
-        onClick={onClose}
+        onClick={busy ? undefined : onClose}
+        disabled={busy}
         tabIndex={-1}
       />
       <div
@@ -78,6 +92,7 @@ export function StudioModalShell({
             className="studio-modal__close"
             aria-label="Close"
             onClick={onClose}
+            disabled={busy}
           >
             <X size={16} aria-hidden="true" />
           </button>

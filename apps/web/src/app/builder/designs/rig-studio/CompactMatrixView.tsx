@@ -1,5 +1,6 @@
 'use client'
 
+import { resolvedMax } from '@buildmyrig/lib'
 import { ArrowRightLeft, Table } from 'lucide-react'
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilder } from '../../builder-provider'
@@ -82,7 +83,7 @@ export function CompactMatrixView({
                 .filter((e): e is NonNullable<typeof e> => Boolean(e))
               const watts = picks.reduce((s, e) => s + wattsOf(e), 0)
               const cents = picks.reduce((s, e) => s + priceCentsOf(e), 0)
-              const max = limits[category.id]?.max ?? category.maxSelectable
+              const max = resolvedMax(limits, category)
               const names = picks.map((e) => e.display?.name ?? e.id).join(', ')
               const zone = zoneForCategory(category.slug)
               return (

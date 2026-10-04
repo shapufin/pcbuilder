@@ -2,6 +2,7 @@
 
 import type { CSSProperties, KeyboardEvent } from 'react'
 import type { ComponentSpecEntry } from '@buildmyrig/lib'
+import { resolvedMax } from '@buildmyrig/lib'
 import { useBuilder } from '../../builder-provider'
 import {
   categoryForZone,
@@ -88,7 +89,7 @@ export function RigBlueprint({
   const caseFanCount = caseFanCategory ? (selections[caseFanCategory.id] ?? []).length : 0
 
   const ramCategory = catOf('ram')
-  const ramMax = ramCategory ? (limits[ramCategory.id]?.max ?? ramCategory.maxSelectable) : 0
+  const ramMax = ramCategory ? resolvedMax(limits, ramCategory) : 0
   // N DIMM groups by actual picks, visually capped at the resolved limit
   // (§6.3): over-cap picks stay visible while the store still holds them.
   const dimmSlots = Math.min(MAX_DIMM_SLOTS, Math.max(ramMax, ramEntries.length))

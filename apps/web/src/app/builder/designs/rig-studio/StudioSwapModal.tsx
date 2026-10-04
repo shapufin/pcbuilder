@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef } from 'react'
+import { resolvedMax } from '@buildmyrig/lib'
 import { AlertTriangle, ArrowRightLeft, Check, X } from 'lucide-react'
 import { formatEUR } from '@/components/ui/Price'
 import { trackBuildStepCompleted } from '@/lib/analytics'
@@ -62,7 +63,7 @@ export function StudioSwapModal({
   const rows = meta.optionRows(category.id)
   const selectedIds = state.selections[category.id] ?? []
   const limit = state.limits[category.id]
-  const max = limit?.max ?? category.maxSelectable
+  const max = resolvedMax(state.limits, category)
   const currentNames = selectedIds
     .map((id) => meta.entryOf(id)?.display?.name ?? id)
     .join(', ')
@@ -77,7 +78,13 @@ export function StudioSwapModal({
     const stepIndex = state.categories.findIndex((c) => c.id === category.id)
     const selectedCount = Math.min(selectedIds.length + 1, max)
     trackBuildStepCompleted(category.name, Math.max(0, stepIndex), selectedCount)
-    onToast?.(`${row.entry.display?.name ?? 'Component'} installed`, 'success')
+    // At cap the store evicts the oldest pick (evict-oldest contract) — say
+    // so, or the user can't tell their earlier pick was dropped (entry-55).
+    const evicted = max > 1 && selectedIds.length >= max
+    onToast?.(
+      `${row.entry.display?.name ?? 'Component'} installed${evicted ? ' — oldest pick evicted' : ''}`,
+      'success',
+    )
     if (max <= 1) onClose()
   }
 

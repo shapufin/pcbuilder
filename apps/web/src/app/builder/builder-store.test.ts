@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DEFAULT_RGB_ACCENT } from '@buildmyrig/lib'
-import { builderDraftPartialize, useBuilderStore } from './builder-store'
+import { builderDraftMerge, builderDraftPartialize, useBuilderStore } from './builder-store'
 
 /**
  * Entry-15 review findings (#93–94): the server-persisted draft reference
@@ -122,5 +122,129 @@ describe('builder store — rgbColor', () => {
     expect(s.selections).toEqual({})
     expect(s.buildId).toBeNull()
     expect(s.shareId).toBeNull()
+  })
+})
+
+/**
+ * Entry-55 review: phantom ids from stale drafts/templates, named-draft refs,
+ * and tampered persisted colors.
+ */
+describe('builder store — saved refs, prune, merge', () => {
+  beforeEach(() => {
+    useBuilderStore.setState({
+      mode: 'scratch',
+      templateId: null,
+      buildId: null,
+      shareId: null,
+      buildName: null,
+      selections: {},
+      rgbColor: DEFAULT_RGB_ACCENT,
+      stepIndex: 0,
+      query: '',
+      brand: null,
+    })
+  })
+
+  it('#375 saveBuild stores the name; every invalidation clears it', () => {
+    const s = useBuilderStore.getState()
+    s.saveBuild('b1', 'sh1', 'My rig')
+    let now = useBuilderStore.getState()
+    expect(now.buildName).toBe('My rig')
+    s.toggleSelect('cpu', 'c1', 1)
+    now = useBuilderStore.getState()
+    expect(now.buildId).toBeNull()
+    expect(now.buildName).toBeNull()
+
+    useBuilderStore.getState().saveBuild('b2', 'sh2', 'Named')
+    useBuilderStore.getState().clearSavedBuild()
+    now = useBuilderStore.getState()
+    expect(now.buildId).toBeNull()
+    expect(now.shareId).toBeNull()
+    expect(now.buildName).toBeNull()
+    expect(builderDraftPartialize(now).buildName).toBeNull()
+  })
+
+  it('#376 pruneUnknown drops dead component ids and invalidates the draft', () => {
+    const s = useBuilderStore.getState()
+    s.saveBuild('b1', 'sh1')
+    useBuilderStore.setState({
+      selections: { cpu: ['c1', 'ghost'], ram: ['dead'], storage: [] },
+    })
+    useBuilderStore.getState().pruneUnknown(new Set(['c1']))
+    const now = useBuilderStore.getState()
+    expect(now.selections).toEqual({ cpu: ['c1'] })
+    expect(now.buildId).toBeNull()
+    expect(now.shareId).toBeNull()
+
+    // No-op when everything resolves — refs stay.
+    useBuilderStore.getState().saveBuild('b2', 'sh2')
+    useBuilderStore.getState().pruneUnknown(new Set(['c1']))
+    expect(useBuilderStore.getState().buildId).toBe('b2')
+  })
+
+  it('#377 persisted merge re-validates rgbColor (tampered draft → default)', () => {
+    // zustand persist merge runs on rehydrate — exercised directly since the
+    // node test env has no localStorage.
+    expect(builderDraftMerge({ rgbColor: 'rosso' }, useBuilderStore.getState()).rgbColor).toBe(
+      DEFAULT_RGB_ACCENT,
+    )
+    expect(builderDraftMerge({ rgbColor: '#7df4ff' }, useBuilderStore.getState()).rgbColor).toBe(
+      '#7df4ff',
+    )
+    // missing key → default (a draft without a color gets the default accent)
+    expect(builderDraftMerge({}, useBuilderStore.getState()).rgbColor).toBe(DEFAULT_RGB_ACCENT)
+  })
+
+  it('#381 merge sanitizes malformed selections + clears refs that no longer match', () => {
+    const current = useBuilderStore.getState()
+    // Tampered draft: a string where an array belongs used to crash
+    // pruneUnknown's ids.filter on every mount (entry-55 review M3).
+    const merged = builderDraftMerge(
+      {
+        selections: { cpu: 'not-an-array', ram: ['r1', 42, 'r2'], gpu: ['g1'] },
+        buildId: { bad: true },
+        shareId: 'sh-ok',
+        buildName: 7,
+        mode: 'bogus',
+        stepIndex: 1.5,
+      },
+      current,
+    )
+    expect(merged.selections).toEqual({ ram: ['r1', 'r2'], gpu: ['g1'] })
+    // dropped entries invalidate the saved refs (they describe another draft)
+    expect(merged.buildId).toBeNull()
+    expect(merged.shareId).toBeNull()
+    expect(merged.buildName).toBeNull()
+    expect(merged.mode).toBe('scratch')
+    expect(merged.stepIndex).toBe(0)
+
+    // clean draft keeps its refs and valid fields
+    const clean = builderDraftMerge(
+      {
+        selections: { cpu: ['c1'] },
+        buildId: 9,
+        shareId: 'sh-ok',
+        buildName: 'Rig',
+        mode: 'guided',
+        stepIndex: 3,
+      },
+      current,
+    )
+    expect(clean.selections).toEqual({ cpu: ['c1'] })
+    expect(clean.buildId).toBe('9')
+    expect(clean.shareId).toBe('sh-ok')
+    expect(clean.buildName).toBe('Rig')
+    expect(clean.mode).toBe('guided')
+    expect(clean.stepIndex).toBe(3)
+  })
+
+  it('#382 a resolved cap of 0 rejects adds but still allows deselect', () => {
+    const s = useBuilderStore.getState()
+    s.toggleSelect('storage', 'd1', 0)
+    expect(useBuilderStore.getState().selections.storage ?? []).toEqual([])
+    // deselect path stays live for already-phantom picks
+    useBuilderStore.setState({ selections: { storage: ['d1'] } })
+    useBuilderStore.getState().toggleSelect('storage', 'd1', 0)
+    expect(useBuilderStore.getState().selections.storage).toEqual([])
   })
 })

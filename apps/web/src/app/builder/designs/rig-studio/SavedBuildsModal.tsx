@@ -16,6 +16,7 @@ import {
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilder } from '../../builder-provider'
 import { parseBuildJson, serializeBuild } from '../../kit/build-io'
+import { copyText } from '../../kit/clipboard'
 import {
   addSavedRef,
   loadSavedRefs,
@@ -44,19 +45,6 @@ interface OwnedBuildDoc {
   updatedAt?: string
   priceSnapshot?: number
   status?: string
-}
-
-const copyText = async (text: string): Promise<void> => {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    const input = document.createElement('textarea')
-    input.value = text
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    input.remove()
-  }
 }
 
 const dateFmt = new Intl.DateTimeFormat('en-IE', { dateStyle: 'medium' })
@@ -176,6 +164,9 @@ export function SavedBuildsModal({
         return
       }
       setDocs((current) => current?.filter((d) => d.id !== doc.id) ?? null)
+      // Deleting the ACTIVE draft leaves store refs pointing at a dead doc —
+      // the next save/share would reuse a 404ing shareId (entry-55 review).
+      if (doc.shareId && savedBuild?.shareId === doc.shareId) actions.clearSavedBuild()
       onToast?.(`Deleted "${doc.name}"`, 'info')
     } catch {
       onToast?.('Delete failed', 'error')
@@ -210,6 +201,10 @@ export function SavedBuildsModal({
       onToast?.(parsed.error, 'error')
       return
     }
+    if (parsed.slots.length === 0) {
+      onToast?.('That build has no components', 'error')
+      return
+    }
     actions.applyTemplate(`import:${Date.now()}`, parsed.slots, 'template', parsed.rgbColor)
     onToast?.(`Imported "${parsed.name ?? 'build'}"`, 'success')
     setImportText('')
@@ -218,6 +213,12 @@ export function SavedBuildsModal({
 
   const importFile = (file: File | undefined) => {
     if (!file) return
+    // Generous cap — a legit export is a few KB; this is a parse guard,
+    // not a security boundary.
+    if (file.size > 512 * 1024) {
+      onToast?.('File too large for a build export', 'error')
+      return
+    }
     const reader = new FileReader()
     reader.onload = () => importText2(String(reader.result ?? ''))
     reader.onerror = () => onToast?.('Could not read that file', 'error')
@@ -292,7 +293,17 @@ export function SavedBuildsModal({
 
           {user ? (
             docsError ? (
-              <p className="studio-saved__empty">Could not load your saved builds.</p>
+              <div className="studio-saved__empty">
+                <p>Could not load your saved builds.</p>
+                <button
+                  type="button"
+                  className="studio-btn"
+                  onClick={() => setDocsAttempt((a) => a + 1)}
+                >
+                  <RotateCcw size={13} aria-hidden="true" />
+                  Retry
+                </button>
+              </div>
             ) : docs === null ? (
               <p className="studio-saved__empty">Loading saved builds…</p>
             ) : docs.length === 0 ? (
@@ -437,7 +448,11 @@ export function SavedBuildsModal({
               <button
                 type="button"
                 className="studio-btn"
-                onClick={() => void copyText(exportJson).then(() => onToast?.('JSON copied', 'info'))}
+                onClick={() =>
+                  void copyText(exportJson).then((ok) =>
+                    onToast?.(ok ? 'JSON copied' : 'Copy failed — use Download instead', ok ? 'info' : 'error'),
+                  )
+                }
               >
                 <FileDown size={13} aria-hidden="true" />
                 Copy JSON
@@ -447,7 +462,9 @@ export function SavedBuildsModal({
                 className="studio-btn"
                 disabled={!hasParts}
                 onClick={() =>
-                  void actions.share().then(() => onToast?.('Share link copied', 'success'))
+                  void actions.share().then((ok) =>
+                    onToast?.(ok ? 'Share link copied' : 'Could not create the share link', ok ? 'success' : 'error'),
+                  )
                 }
               >
                 <Link2 size={13} aria-hidden="true" />

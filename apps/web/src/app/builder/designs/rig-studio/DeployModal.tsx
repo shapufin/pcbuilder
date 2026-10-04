@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Check,
   CheckCircle2,
@@ -10,9 +10,11 @@ import {
   RotateCw,
   ShieldCheck,
 } from 'lucide-react'
+import { resolvedMax } from '@buildmyrig/lib'
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilder } from '../../builder-provider'
 import { buildManifest } from '../../kit/build-io'
+import { copyText } from '../../kit/clipboard'
 import { checkCompatibility, checkPowerEnvelope } from '../../kit/deploy-checks'
 import type { BuilderToast } from '../../kit/BuilderToasts'
 import { StudioModalShell } from './StudioModalShell'
@@ -64,6 +66,10 @@ export function DeployModal({ onClose, onToast }: { onClose: () => void; onToast
   const [phase, setPhase] = useState<Phase>('idle')
   const [stages, setStages] = useState<Stage[]>(freshStages)
   const [copied, setCopied] = useState(false)
+  // Airtight re-entry guard — `phase` state alone can't cover two clicks in
+  // one event batch; combined with busy-gated close the pipeline can't
+  // double-run save+cart.
+  const runningRef = useRef(false)
 
   const setStage = (i: number, status: StageStatus, lines: string[] = []) =>
     setStages((current) => current.map((s, j) => (j === i ? { ...s, status, lines } : s)))
@@ -84,89 +90,88 @@ export function DeployModal({ onClose, onToast }: { onClose: () => void; onToast
   })
 
   const run = async () => {
-    if (phase === 'running') return
+    if (phase === 'running' || runningRef.current) return
+    runningRef.current = true
     setPhase('running')
     setStages(freshStages())
+    try {
+      // Stage 1 — compatibility matrix. overLimit covers imported/hydrated
+      // drafts that bypassed client caps — the server only WARNs on spec-cap
+      // overage (validationSnapshot), so an over-cap build would dispatch to
+      // cart without this check (entry-55 review).
+      setStage(0, 'running')
+      const overLimit = categories.flatMap((c) => {
+        const count = (selections[c.id] ?? []).length
+        const max = resolvedMax(limits, c)
+        return count > max ? [`${c.name}: ${count} installed, max ${max}`] : []
+      })
+      const compat = checkCompatibility({
+        missingRequired,
+        validation: meta.validateCurrent(),
+        overLimit,
+      })
+      await delay(STAGE_MIN_MS)
+      if (!compat.ok) {
+        setStage(0, 'failed', compat.blockers)
+        setPhase('failed')
+        onToast?.('Deploy halted — resolve compatibility blockers', 'error')
+        return
+      }
+      setStage(0, 'passed', compat.notes)
 
-    // Stage 1 — compatibility matrix. overLimit covers imported/hydrated
-    // drafts that bypassed client caps (the save endpoint 422s them —
-    // better to fail here with the real reason than opaque at stage 3).
-    setStage(0, 'running')
-    const overLimit = categories.flatMap((c) => {
-      const count = (selections[c.id] ?? []).length
-      const max = limits[c.id]?.max ?? c.maxSelectable ?? 1
-      return count > max ? [`${c.name}: ${count} installed, max ${max}`] : []
-    })
-    const compat = checkCompatibility({
-      missingRequired,
-      validation: meta.validateCurrent(),
-      overLimit,
-    })
-    await delay(STAGE_MIN_MS)
-    if (!compat.ok) {
-      setStage(0, 'failed', compat.blockers)
-      setPhase('failed')
-      onToast?.('Deploy halted — resolve compatibility blockers', 'error')
-      return
-    }
-    setStage(0, 'passed', compat.notes)
+      // Stage 2 — power envelope.
+      setStage(1, 'running')
+      const power = checkPowerEnvelope({
+        recommendedPsuWatts: result.recommendedPsuWatts,
+        psuRatedWatts: psuRatedWatts(selections, index),
+        powerWarnings: result.powerWarnings,
+      })
+      await delay(STAGE_MIN_MS)
+      if (!power.ok) {
+        setStage(1, 'failed', power.blockers)
+        setPhase('failed')
+        onToast?.('Deploy halted — power envelope rejected', 'error')
+        return
+      }
+      setStage(1, 'passed', power.notes)
 
-    // Stage 2 — power envelope.
-    setStage(1, 'running')
-    const power = checkPowerEnvelope({
-      recommendedPsuWatts: result.recommendedPsuWatts,
-      psuRatedWatts: psuRatedWatts(selections, index),
-      powerWarnings: result.powerWarnings,
-    })
-    await delay(STAGE_MIN_MS)
-    if (!power.ok) {
-      setStage(1, 'failed', power.blockers)
-      setPhase('failed')
-      onToast?.('Deploy halted — power envelope rejected', 'error')
-      return
-    }
-    setStage(1, 'passed', power.notes)
+      // Stage 3 — manifest registration (server draft + shareId).
+      setStage(2, 'running')
+      const saved = await minDelay(STAGE_MIN_MS, actions.saveDraft())
+      if (!saved) {
+        setStage(2, 'failed', ['The build draft could not be saved — retry'])
+        setPhase('failed')
+        onToast?.('Deploy halted — save failed', 'error')
+        return
+      }
+      setStage(2, 'passed', [`Draft registered · ${saved.shareId}`])
 
-    // Stage 3 — manifest registration (server draft + shareId).
-    setStage(2, 'running')
-    const saved = await minDelay(STAGE_MIN_MS, actions.saveDraft())
-    if (!saved) {
-      setStage(2, 'failed', ['The build draft could not be saved — retry'])
-      setPhase('failed')
-      onToast?.('Deploy halted — save failed', 'error')
-      return
+      // Stage 4 — dispatch: add-build composite line → cart → drawer.
+      setStage(3, 'running')
+      const added = await minDelay(STAGE_MIN_MS, actions.addToCart())
+      if (!added) {
+        setStage(3, 'failed', ['Add to cart failed — the drawer stayed empty'])
+        setPhase('failed')
+        onToast?.('Deploy halted — dispatch failed', 'error')
+        return
+      }
+      setStage(3, 'passed', ['Composite line added to cart'])
+      setPhase('done')
+      onToast?.('Rig dispatched to cart', 'success')
+    } finally {
+      runningRef.current = false
     }
-    setStage(2, 'passed', [`Draft registered · ${saved.shareId}`])
-
-    // Stage 4 — dispatch: add-build composite line → cart → drawer.
-    setStage(3, 'running')
-    const added = await minDelay(STAGE_MIN_MS, actions.addToCart())
-    if (!added) {
-      setStage(3, 'failed', ['Add to cart failed — the drawer stayed empty'])
-      setPhase('failed')
-      onToast?.('Deploy halted — dispatch failed', 'error')
-      return
-    }
-    setStage(3, 'passed', ['Composite line added to cart'])
-    setPhase('done')
-    onToast?.('Rig dispatched to cart', 'success')
   }
 
   const copyManifest = async () => {
     const text = `BuildMyRig — Deployment manifest\n${'-'.repeat(46)}\n${manifestLines.join('\n')}`
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      const input = document.createElement('textarea')
-      input.value = text
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
+    if (await copyText(text)) {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+      onToast?.('Build manifest copied', 'info')
+    } else {
+      onToast?.('Copy failed — select the manifest text instead', 'error')
     }
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
-    onToast?.('Build manifest copied', 'info')
   }
 
   const doneCount = stages.filter((s) => s.status === 'passed').length
@@ -178,6 +183,7 @@ export function DeployModal({ onClose, onToast }: { onClose: () => void; onToast
       subtitle="4-stage validation pipeline — real ops, not a demo"
       icon={<ShieldCheck size={16} />}
       onClose={onClose}
+      busy={phase === 'running'}
     >
       <div className="studio-deploy-progress">
         <div className="studio-deploy-progress__labels">
@@ -189,7 +195,7 @@ export function DeployModal({ onClose, onToast }: { onClose: () => void; onToast
         </div>
       </div>
 
-      <div className="studio-deploy-stages">
+      <div className="studio-deploy-stages" aria-live="polite">
         {stages.map((stage) => (
           <div
             key={stage.title}

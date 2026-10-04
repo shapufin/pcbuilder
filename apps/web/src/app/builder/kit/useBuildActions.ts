@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BuilderIndex, ComponentSpecEntry } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
@@ -8,8 +8,10 @@ import { flyToCart } from '@/lib/fly-to-cart'
 import { track } from '@/lib/analytics'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { useBuilderStore } from '../builder-store'
+import { addSavedRef, loadSavedRefs, storeSavedRefs } from './saved-refs'
+import { canReuseInflight, draftSignature, shouldApplySavedBuild } from './save-guard'
 
-export type SavedBuild = { buildId: string; shareId: string }
+export type SavedBuild = { buildId: string; shareId: string; name?: string }
 
 /** Per-action state machines — designs render button labels/disabled states
  *  from these (via BuilderContext `state.actionStatus` inside the provider,
@@ -40,11 +42,13 @@ export function useBuildActions(index: BuilderIndex | null) {
   // on every unrelated store update.
   const buildId = useBuilderStore((s) => s.buildId)
   const shareId = useBuilderStore((s) => s.shareId)
+  const buildName = useBuilderStore((s) => s.buildName)
   const savedBuild = useMemo(
-    () => (buildId && shareId ? { buildId, shareId } : null),
-    [buildId, shareId],
+    () => (buildId && shareId ? { buildId, shareId, ...(buildName ? { name: buildName } : {}) } : null),
+    [buildId, shareId, buildName],
   )
   const saveBuild = useBuilderStore((s) => s.saveBuild)
+  const clearSavedBuild = useBuilderStore((s) => s.clearSavedBuild)
 
   const { user, cart, cartID, refreshCart, isLoading: cartLoading } = useEcommerce()
   const openCartDrawer = useCartDrawerStore((s) => s.open)
@@ -67,26 +71,91 @@ export function useBuildActions(index: BuilderIndex | null) {
     (selections[category.id] ?? []).map((id) => ({ category, entry: entryOf(id) })),
   )
 
-  /** POST /api/builder/builds — the client never sends a price; the server re-resolves it. */
-  const ensureSavedBuild = async (name?: string): Promise<SavedBuild | null> => {
-    if (savedBuild) return savedBuild
-    const slots = categories
-      .filter((c) => (selections[c.id] ?? []).length > 0)
-      .map((c) => ({ categoryId: c.id, componentIds: selections[c.id] }))
-    try {
-      const res = await fetch('/api/builder/builds', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slots, rgbColor, ...(name?.trim() ? { name: name.trim() } : {}) }),
-      })
-      if (!res.ok) return null
-      const data = (await res.json()) as { id: string; shareId: string }
-      const next = { buildId: data.id, shareId: data.shareId }
-      saveBuild(next.buildId, next.shareId)
-      return next
-    } catch {
-      return null
+  /**
+   * POST /api/builder/builds — the client never sends a price; the server
+   * re-resolves it. Dedup/discard decisions read the LIVE store, not
+   * render-captured refs: a pipeline caller holding a stale closure (deploy
+   * stage 3 → stage 4) must not re-POST, and an in-flight save is reused
+   * only while the draft signature still matches — a mid-flight selection
+   * change starts a fresh save so callers never receive refs for a config
+   * they no longer see (entry-55 review M1).
+   */
+  const inflightRef = useRef<{ signature: string; promise: Promise<SavedBuild | null> } | null>(null)
+  const ensureSavedBuild = (name?: string): Promise<SavedBuild | null> => {
+    const live = useBuilderStore.getState()
+    const trimmedName = name?.trim()
+    if (live.buildId && live.shareId) {
+      const existing: SavedBuild = {
+        buildId: live.buildId,
+        shareId: live.shareId,
+        ...(live.buildName ? { name: live.buildName } : {}),
+      }
+      // Rename path: saving an already-saved draft with a name PATCHes the
+      // doc (owner-scoped update; name-only writes skip slots validation).
+      if (trimmedName && trimmedName !== live.buildName && user) {
+        void (async () => {
+          try {
+            const res = await fetch(`/api/configured-builds/${live.buildId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: trimmedName }),
+            })
+            if (res.ok) saveBuild(String(live.buildId), String(live.shareId), trimmedName)
+          } catch {
+            /* best-effort rename — the draft itself is already saved */
+          }
+        })()
+        return Promise.resolve({ ...existing, name: trimmedName })
+      }
+      return Promise.resolve(existing)
     }
+    const signature = draftSignature(live.selections)
+    if (canReuseInflight(inflightRef.current, signature)) return inflightRef.current!.promise
+    const slots = categories
+      .filter((c) => (live.selections[c.id] ?? []).length > 0)
+      .map((c) => ({ categoryId: c.id, componentIds: live.selections[c.id] }))
+    const posted = (async (): Promise<SavedBuild | null> => {
+      try {
+        const res = await fetch('/api/builder/builds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slots, rgbColor, ...(trimmedName ? { name: trimmedName } : {}) }),
+        })
+        if (!res.ok) return null
+        const data = (await res.json()) as { id: string | number; shareId: string }
+        const next: SavedBuild = {
+          buildId: String(data.id),
+          shareId: data.shareId,
+          ...(trimmedName ? { name: trimmedName } : {}),
+        }
+        const current = useBuilderStore.getState()
+        if (shouldApplySavedBuild(current, signature)) {
+          saveBuild(next.buildId, next.shareId, next.name)
+        }
+        // Guest saves register a browser-local ref regardless of the stamp —
+        // the ref points at the doc as POSTed even when the draft has moved
+        // on (it's a list of saved drafts, not the live config). Writing it
+        // here (rather than a watcher) keeps authed shareIds out of the
+        // guest list past logout (entry-55 review).
+        if (!user) {
+          const priceCents = slots
+            .flatMap((s) => s.componentIds)
+            .reduce((sum, id) => sum + (index?.components.find((c) => c.id === id)?.priceCents ?? 0), 0)
+          storeSavedRefs(
+            addSavedRef(loadSavedRefs(), { shareId: next.shareId, savedAt: Date.now(), priceCents }),
+          )
+        }
+        return next
+      } catch {
+        return null
+      }
+    })()
+    const inflight = { signature, promise: posted }
+    inflightRef.current = inflight
+    void posted.finally(() => {
+      if (inflightRef.current === inflight) inflightRef.current = null
+    })
+    return posted
   }
 
   /** Entry 15: sign-in keeps the guest build (claim attaches it to the account);
@@ -96,7 +165,7 @@ export function useBuildActions(index: BuilderIndex | null) {
   const saveToAccount = async (name?: string): Promise<boolean> => {
     if (!user) {
       track('Sign In To Save')
-      router.push('/auth/login?next=%2Fbuilder%2Fsummary')
+      router.push(`/auth/login?next=${encodeURIComponent(window.location.pathname)}`)
       return false
     }
     setSaveState('saving')
@@ -117,7 +186,7 @@ export function useBuildActions(index: BuilderIndex | null) {
         return true
       }
       if (res.status === 401) {
-        router.push('/auth/login?next=%2Fbuilder%2Fsummary')
+        router.push(`/auth/login?next=${encodeURIComponent(window.location.pathname)}`)
       } else {
         setSaveState('error')
       }
@@ -167,7 +236,7 @@ export function useBuildActions(index: BuilderIndex | null) {
         headers,
         body: JSON.stringify({
           configuredBuild: saved.buildId,
-          buildName: 'Custom build',
+          buildName: saved.name ?? 'Custom build',
           subItems,
           ...(secret ? { secret } : {}),
         }),
@@ -184,7 +253,7 @@ export function useBuildActions(index: BuilderIndex | null) {
         /* drawer rehydrates on its next fetch */
       }
       try {
-        if (from) flyToCart(from, 'Custom build')
+        if (from) flyToCart(from, saved.name ?? 'Custom build')
         openCartDrawer()
         track('Add Build to Cart')
       } catch {
@@ -198,22 +267,33 @@ export function useBuildActions(index: BuilderIndex | null) {
     }
   }
 
-  const share = async () => {
+  /** Resolves true only when a link actually reached the clipboard —
+   *  callers must gate their success toast on it (entry-55 review M2). */
+  const share = async (): Promise<boolean> => {
     const saved = await ensureSavedBuild()
-    if (!saved) return
+    if (!saved) return false
     const url = `${window.location.origin}/build/${saved.shareId}`
+    let copied = false
     try {
       await navigator.clipboard.writeText(url)
+      copied = true
     } catch {
-      const input = document.createElement('input')
-      input.value = url
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand('copy')
-      input.remove()
+      try {
+        const input = document.createElement('input')
+        input.value = url
+        document.body.appendChild(input)
+        input.select()
+        copied = document.execCommand('copy')
+        input.remove()
+      } catch {
+        copied = false
+      }
     }
-    setShareState('copied')
-    window.setTimeout(() => setShareState('idle'), 2000)
+    if (copied) {
+      setShareState('copied')
+      window.setTimeout(() => setShareState('idle'), 2000)
+    }
+    return copied
   }
 
   return {
@@ -221,6 +301,7 @@ export function useBuildActions(index: BuilderIndex | null) {
     saveToAccount,
     addToCart,
     share,
+    clearSavedBuild,
     saveState,
     saveView,
     cartState,

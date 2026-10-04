@@ -1,10 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
+import { useCallback, useState, type CSSProperties } from 'react'
 import { useBuilder } from '../../builder-provider'
 import { BuilderToasts, useToast } from '../../kit/BuilderToasts'
-import { addSavedRef, loadSavedRefs, storeSavedRefs } from '../../kit/saved-refs'
 import { StudioHeader } from './StudioHeader'
 import { StudioBay } from './StudioBay'
 import { StudioSwapModal } from './StudioSwapModal'
@@ -32,7 +30,6 @@ import './rig-studio.css'
  */
 export function RigStudioDesign() {
   const { state } = useBuilder()
-  const { user } = useEcommerce()
   const { toasts, add, dismiss } = useToast()
   const [view, setView] = useState<StudioView>('studio')
   const [swapCategoryId, setSwapCategoryId] = useState<string | null>(null)
@@ -48,19 +45,9 @@ export function RigStudioDesign() {
   const closeDeploy = useCallback(() => setDeployOpen(false), [])
   const closeSaved = useCallback(() => setSavedOpen(false), [])
 
-  // P4: every successful GUEST save registers a guest-visible ref
-  // (bmr_studio_builds) — nameless on silent saves so an explicit modal
-  // save's name is preserved by addSavedRef's merge. Authed saves are
-  // skipped: their list comes from REST, and persisting shareIds on a
-  // shared machine would widen the capability set past logout (review F2).
-  const savedShareId = state.savedBuild?.shareId ?? null
-  const totalCents = state.totalCents
-  useEffect(() => {
-    if (!savedShareId || user) return
-    storeSavedRefs(
-      addSavedRef(loadSavedRefs(), { shareId: savedShareId, savedAt: Date.now(), priceCents: totalCents }),
-    )
-  }, [savedShareId, totalCents, user])
+  // Guest saved-build refs (bmr_studio_builds) are written at save time by
+  // useBuildActions.ensureSavedBuild — a watch effect would leak an authed
+  // shareId into the guest list on logout (entry-55 review F7).
 
   return (
     <main

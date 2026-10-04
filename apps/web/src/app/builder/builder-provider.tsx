@@ -4,6 +4,7 @@ import { createContext, use, useEffect, useMemo, useRef, useSyncExternalStore } 
 import {
   createRuleEngine,
   resolveSlotLimits,
+  resolvedMax,
   type BuilderIndex,
   type ComponentSpecEntry,
   type EngineResult,
@@ -64,7 +65,10 @@ export interface BuilderContextValue {
     saveToAccount: (name?: string) => Promise<boolean>
     /** Resolves to true when the build actually landed in the cart. */
     addToCart: (from?: DOMRect) => Promise<boolean>
-    share: () => Promise<void>
+    /** Resolves to true only when a link actually reached the clipboard. */
+    share: () => Promise<boolean>
+    /** Drop the saved-draft refs (deleted server doc, manual invalidation). */
+    clearSavedBuild: () => void
     /** Hydrate a doc's slots into the draft (saved-build Load, presets, import). */
     applyTemplate: (
       templateId: string,
@@ -152,6 +156,17 @@ export function BuilderProvider({
     trackBeginBuilder(template?.name)
   }, [hydrated, template])
 
+  // Phantom-id prune (entry-55 review): hydrated drafts, shareId loads and
+  // presets can carry component ids the index no longer serves — invisible
+  // picks that still count toward caps and 422 at save. Runs whenever
+  // selections change once the index has resolved; pruneUnknown is a no-op
+  // ({}) when everything resolves.
+  useEffect(() => {
+    if (!index) return
+    const valid = new Set(index.components.map((c) => c.id))
+    useBuilderStore.getState().pruneUnknown(valid)
+  }, [index, selections])
+
   const categories = useMemo(
     () => (index ? [...index.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
     [index],
@@ -179,6 +194,7 @@ export function BuilderProvider({
     saveToAccount,
     addToCart,
     share,
+    clearSavedBuild,
     saveState,
     saveView,
     cartState,
@@ -224,7 +240,7 @@ export function BuilderProvider({
     // OGNI design. Cap shrink non pota i picks esistenti da solo — ma il
     // prossimo ADD applica la slice dello store (evict-oldest fino a `max`),
     // quindi con cap 2 e 4 picks un nuovo pick tiene solo gli ultimi 2.
-    const max = limits[categoryId]?.max ?? category?.maxSelectable ?? 1
+    const max = resolvedMax(limits, { id: categoryId, maxSelectable: category?.maxSelectable })
     toggleSelect(categoryId, componentId, max)
   }
 
@@ -268,6 +284,7 @@ export function BuilderProvider({
       saveToAccount,
       addToCart,
       share,
+      clearSavedBuild,
       applyTemplate,
       retry,
     },

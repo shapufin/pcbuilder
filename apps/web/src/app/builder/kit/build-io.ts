@@ -5,8 +5,10 @@ import type { TemplateSlot } from '../builder-store'
 /**
  * Design kit (entry 50 P2) — I/O del build in forma pura: manifest leggibile
  * per il Deploy, serializzazione/export e import validato.
- * Le selezioni dello store sono keyate per categoryId; l'export parla per
- * slug (stabile tra ambienti diversi, gli id numerici no).
+ * Le selezioni dello store sono keyate per categoryId; l'export usa gli slug
+ * di categoria (leggibili) ma i componentIds restano id del DB — il round-trip
+ * vale nello stesso ambiente; la portabilità cross-env richiederebbe slug di
+ * componente (backlog — entry-55 review).
  */
 
 export interface BuildSlot {
