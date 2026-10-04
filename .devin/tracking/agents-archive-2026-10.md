@@ -140,3 +140,15 @@ Session history (one line each, entries 1–24 in the progress log):
    discount re-validation — apply-time-only maxUses let pre-loaded
    carts over-redeem a 100%-off code). TDD #383–#395 → 510 unit;
    trio + build + 12/12 e2e green.
+
+53. **Entry 58 — push + CI build flake** — entries 55–57 pushed
+   (`9b6efa6..0565804`; no PRs, so the push *was* the merge) + push-status
+   doc sync (`c2e82b5`). CI then failed on `0565804` at `pnpm build`
+   only: `.next/dev/types/validator.ts(242,42) TS1002 Unterminated string
+   literal` — the schema-push `next dev` writes dev route types, tsconfig
+   includes `.next/dev/types/**/*.ts`, and the SIGKILL teardown left a
+   truncated file the prod type check parsed (**intermittent** — the same
+   tree's next push passed). Fixed in `596aa7a` by clearing
+   `apps/web/.next` after the dev-boot teardown; reproduced locally
+   (cut the line-242 import string → same TS1002; after the clear, build
+   25/25). Gotcha #39 + 05 CI note. CI all 8 gates green (37194748589).

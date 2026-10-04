@@ -2,6 +2,15 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (62) — PDP RelatedProducts rail (audit S3, last gap)
+
+Pre-round audit pass found two S3 "gaps" were stale: the gallery and the multi-variant picker both landed in entry 47 (placeholder media + option buttons with live price/stock). The real remaining gap was RelatedProducts, plus the compat-hint stub link.
+
+- **PDP**: after `.pdp__layout`, a "Related products" section renders up to 4 same-category published products through the shared `ProductCard`/`ProductCardGrid` — `where: category=… AND id≠current AND _status=published`, `sort: title`, `depth: 1` (brand + gallery populated for cards). Section hides entirely when there are no siblings.
+- **e2e** `related-products.spec.ts`: real PDP renders a labelled region with 1–4 `/product/` links, never the viewed product's slug.
+
+**Gates: typecheck+lint (web) clean, `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), **16/16 e2e** (+1 new spec), `workflow:check` PASS.** Review (code-review-checklist): SHIP. Unit count unchanged at 531 — this round is e2e-verified (query + shared components, no new pure logic). S3 is now complete except the compat-hint stub link.
+
 ## 2026-10-04 (61) — Spec table handles nested specsJson (audit S3 gap)
 
 The PDP spec table did `String(v)` per key — any nested `specsJson` object rendered `[object Object]` (latent on seed data: every product's `specsJson` is flat or null, but the field accepts arbitrary JSON).

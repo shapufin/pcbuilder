@@ -31,7 +31,7 @@ Where things live. Not a manual — a map. Domain rules:
   (#1–#408 + e2e). apps/web vitest scoped to `src/**` by
   `vitest.config.ts` (also provides the `@` alias — keep both).
 - Playwright: `apps/web/e2e/{smoke,auth,builder,search-wishlist,
-  cart-drawer,filter-drawer,theme-toggle}.spec.ts`,
+  cart-drawer,filter-drawer,theme-toggle,related-products}.spec.ts`,
   `playwright.config.ts` — needs a prod build + running `next start` on
   :3000.
 

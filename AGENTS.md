@@ -116,8 +116,9 @@ degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
 59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
 `ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
-spec-table fix** (audit S3); entries 55–60 pushed at `277262b`, flake
-fix `596aa7a` — **CI all-8 green (37194748589)**. Detail:
+spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts**; entries
+55–62 pushed, flake fix `596aa7a` — **CI all-8 green (37194748589)**.
+Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -128,6 +129,11 @@ Last 1–2 dates stay here; older entries live in
 25–51 verbatim).
 Tests numbered cumulatively (#1–#414 + e2e; per-package counts in 05).
 
+57. **Entry 62** — **PDP RelatedProducts rail** (audit S3 nearly done):
+   ≤4 same-category published products via `ProductCardGrid`, self
+   excluded, hidden when none. Two stale S3 "gaps" (gallery, variant
+   picker) re-marked done — both landed entry 47. e2e-only round:
+   `related-products.spec.ts` → **16/16 e2e**, build 25/25. SHIP.
 56. **Entry 61** — **PDP spec-table nested `specsJson`** (audit S3):
    `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
    dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
@@ -147,21 +153,9 @@ Tests numbered cumulatively (#1–#414 + e2e; per-package counts in 05).
    input. TDD #396–#401 → 518 unit; typecheck+lint (web), build 25/25,
    **14/14 e2e** (new `filter-drawer.spec.ts` — live evidence: trigger
    ↔ inline swap, dialog contract, cross-copy filter sync). Review SHIP.
-53. **Entry 58 — push + CI build flake** — entries 55–57 pushed
-   (`9b6efa6..0565804`; no PRs, so the push *was* the merge) + push-status
-   doc sync (`c2e82b5`). CI then failed on `0565804` at `pnpm build`
-   only: `.next/dev/types/validator.ts(242,42) TS1002 Unterminated string
-   literal` — the schema-push `next dev` writes dev route types, tsconfig
-   includes `.next/dev/types/**/*.ts`, and the SIGKILL teardown left a
-   truncated file the prod type check parsed (**intermittent** — the same
-   tree's next push passed). Fixed in `596aa7a` by clearing
-   `apps/web/.next` after the dev-boot teardown; reproduced locally
-   (cut the line-242 import string → same TS1002; after the clear, build
-   25/25). Gotcha #39 + 05 CI note. CI all 8 gates green (37194748589).
-
-43–52. **Entries 47–57** — Precision Dark redesign, theme-swap registry,
+43–53. **Entries 47–58** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P4 + review-fix round (rig-dark default, design registry,
-   rig-studio UI, DeployModal/SavedBuildsModal, `NEXT_BUILD_CPUS`),
-   Lighthouse re-run (a11y 100; home-perf watch), €0 confirm-free path +
-   settlement-core extraction + SEC-001 discount re-check. Full text in
+   rig-studio UI, `NEXT_BUILD_CPUS`), Lighthouse re-run (a11y 100;
+   home-perf watch), €0 confirm-free + settlement-core + SEC-001,
+   entries-55–57 push + CI build-flake fix. Full text in
    `.devin/tracking/agents-archive-2026-10.md`.
