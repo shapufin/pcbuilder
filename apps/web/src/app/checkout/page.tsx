@@ -79,7 +79,7 @@ export default function CheckoutPage() {
   const total = totals?.total ?? subtotal
   const appliedCode = typeof totals?.discountCode === 'object' && totals?.discountCode ? totals.discountCode.code : null
   // €0 orders (full discount / free-shipping stack): Stripe rejects a €0
-  // PaymentIntent, so degrade honestly instead of dead-ending at the API.
+  // PaymentIntent — these confirm server-side via /confirm-free, no card UI.
   const isFree = total <= 0
 
   const titleOf = (item: Item): string => {
@@ -167,6 +167,56 @@ export default function CheckoutPage() {
       setState('paying')
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Payment failed.')
+      setState('error')
+    }
+  }
+
+  // €0 carts (full discount / free-shipping stack): Stripe rejects a €0
+  // PaymentIntent, so the order is confirmed server-side without a charge.
+  // The endpoint re-verifies the total — nothing here is trusted.
+  const placeFreeOrder = async () => {
+    if (!cartId) return
+    const buyerEmail = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+      setEmailInvalid(true)
+      setMessage('Enter a valid email for your order confirmation.')
+      setState('error')
+      return
+    }
+    const checked = validateShippingAddress(address)
+    if (!checked.ok) {
+      setMessage(checked.errors.join(' '))
+      setState('error')
+      return
+    }
+    setState('confirming')
+    try {
+      const res = await fetch(`/api/carts/${cartId}/confirm-free`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secret: window.localStorage.getItem('cart_secret') ?? undefined,
+          customerEmail: buyerEmail,
+          shippingAddress: checked.address,
+        }),
+      })
+      const data = (await res.json().catch(() => null)) as
+        | { error?: string; reasons?: string[] }
+        | null
+      if (!res.ok) {
+        setMessage(
+          data?.reasons && data.reasons.length > 0
+            ? data.reasons.join(' · ')
+            : data?.error || 'Could not place the order.',
+        )
+        setState('error')
+        return
+      }
+      setMessage('Order confirmed.')
+      track('purchase', { currency: 'EUR' })
+      setState('done')
+    } catch {
+      setMessage('Could not place the order — try again.')
       setState('error')
     }
   }
@@ -280,7 +330,7 @@ export default function CheckoutPage() {
   return (
     <main className="checkout-page">
       <h1 className="page__title">Checkout</h1>
-      {!hasStripe ? (
+      {!hasStripe && !isFree ? (
         <p className="checkout-msg checkout-msg--warn">
           Stripe is not configured. Set <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> and <code>STRIPE_SECRET_KEY</code> in your
           environment to enable card payments.
@@ -308,11 +358,6 @@ export default function CheckoutPage() {
                   Payment received — finalizing your order…
                 </p>
               )
-            ) : isFree ? (
-              <p className="checkout-msg checkout-msg--muted">
-                Your total is €0 — free orders can&apos;t be placed through card checkout yet. Contact
-                sales and we&apos;ll complete it manually.
-              </p>
             ) : (
               <>
                 <fieldset className="checkout-form__section">
@@ -357,9 +402,15 @@ export default function CheckoutPage() {
                     className="input"
                   />
                 </div>
-                <button type="button" onClick={startPayment} disabled={state === 'initiating'} className="btn btn--primary">
-                  {state === 'initiating' ? 'Preparing payment…' : 'Continue to payment'}
-                </button>
+                {isFree ? (
+                  <button type="button" onClick={placeFreeOrder} disabled={state === 'confirming'} className="btn btn--primary">
+                    {state === 'confirming' ? 'Placing order…' : 'Place free order'}
+                  </button>
+                ) : (
+                  <button type="button" onClick={startPayment} disabled={state === 'initiating'} className="btn btn--primary">
+                    {state === 'initiating' ? 'Preparing payment…' : 'Continue to payment'}
+                  </button>
+                )}
               </>
             )}
             <div aria-live="polite">
@@ -447,7 +498,7 @@ export default function CheckoutPage() {
               </div>
             </div>
             <p className="checkout-msg checkout-msg--muted">
-              Payment method: <strong>Card (Stripe)</strong>
+              Payment method: <strong>{isFree ? 'Free — no payment required' : 'Card (Stripe)'}</strong>
             </p>
           </aside>
         </div>
