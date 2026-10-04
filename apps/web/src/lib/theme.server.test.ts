@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
-import { DEFAULT_THEME, resolveTheme } from '@buildmyrig/plugin-pages'
+import { DEFAULT_THEME, buildThemeCss, resolveTheme } from '@buildmyrig/plugin-pages'
 
 const findGlobal = vi.fn()
 
@@ -9,7 +9,7 @@ vi.mock('./shop', () => ({
   getPayloadClient: async () => ({ findGlobal }),
 }))
 
-const { getThemeCss, getThemeSkinCss } = await import('./theme.server')
+const { getThemeCss, getThemeSkinCss, getThemeAssets } = await import('./theme.server')
 
 /**
  * Phase 5 Step C (entry 21) - app-side theme accessor. Same never-throw
@@ -60,8 +60,44 @@ describe('getThemeCss - server theme injection', () => {
     // else checks this chain.
     expect(value('--font-sans'), 'tokens.css --font-sans').toMatch(/^var\(--font-inter,/)
     expect(value('--font-display'), 'tokens.css --font-display').toBe(
-      'var(--font-space-grotesk, var(--font-sans))',
+      'var(--font-heading, var(--font-space-grotesk, var(--font-sans)))',
     )
+  })
+
+  it('#368 layout.tsx declares the next/font variables tokens.css wraps', () => {
+    // The --font-sans/--font-display chains resolve through the variables
+    // next/font puts on <html> — renaming `variable:` there silently falls
+    // back to system fonts (entry-55 review).
+    const layout = fs.readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8')
+    expect(layout).toContain("variable: '--font-inter'")
+    expect(layout).toContain("variable: '--font-space-grotesk'")
+  })
+
+  it('#369 getThemeAssets: a skin fs failure skips ONLY the overlay, keeps preset vars', async () => {
+    vi.resetModules()
+    const fresh = await import('./theme.server')
+    findGlobal.mockResolvedValue({ preset: 'midnight' })
+    // Skin failure must cover BOTH load paths: the require.resolve read and
+    // the import.meta.url walk-up fallback (existsSync false → dir missing).
+    const spyRead = vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
+      throw new Error('corrupt skin')
+    })
+    const spyExists = vi.spyOn(fs, 'existsSync').mockReturnValue(false)
+    const assets = await fresh.getThemeAssets()
+    spyRead.mockRestore()
+    spyExists.mockRestore()
+    expect(assets.skin).toBe('')
+    // Midnight preset vars, not a silent revert to the rig-dark default —
+    // exact-equality pins it (every preset emits the same extras KEYS).
+    expect(assets.css).toBe(buildThemeCss(resolveTheme({ preset: 'midnight' })))
+  })
+
+  it('#370 getThemeAssets: payload failure falls back to the default theme', async () => {
+    findGlobal.mockRejectedValue(new Error('no such table: globals'))
+    const assets = await getThemeAssets()
+    expect(assets.css).toContain(`--color-bg: ${DEFAULT_THEME.colors.bg};`)
+    // rig-dark ships a skin — the overlay is part of the default fallback.
+    expect(assets.skin).toContain('::selection')
   })
 
   it('#290 preset extras (scrim/glow/soft surfaces) flow through getThemeCss', async () => {

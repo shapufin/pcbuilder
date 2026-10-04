@@ -9,6 +9,7 @@ import {
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Server-side reader for the `theme` global (entry 21, Step C). Never
@@ -30,14 +31,40 @@ export async function getThemeCss(): Promise<string> {
 // a skin while the dev server runs needs a restart to take effect.
 const skinCache = new Map<string, string>()
 
+// cwd-independent fallback: import.meta.url is a real file URL in both
+// vitest sources and Turbopack output chunks — walk up to the first
+// node_modules carrying the package. Only reached when the primary
+// require.resolve path fails (e.g. `next start` launched outside the app
+// dir); turbopackIgnore keeps the fallback out of output tracing — the
+// primary path already traces skins/* correctly when it resolves.
+const findUiSkinsDir = (): string | null => {
+  let dir = path.dirname(fileURLToPath(import.meta.url))
+  for (;;) {
+    const candidate = path.join(dir, 'node_modules', '@buildmyrig', 'ui', 'skins')
+    if (fs.existsSync(/* turbopackIgnore: true */ candidate)) return candidate
+    const parent = path.dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
 const loadSkin = (skin: string): string => {
   // Registry values are code constants, but keep the specifier strict —
   // `skins/*` export patterns would let `../` traverse if this ever loosens.
   if (!/^[\w-]+\.css$/.test(skin)) return ''
   const cached = skinCache.get(skin)
   if (cached !== undefined) return cached
+  // Primary: a real (non-module-anchored) require so Turbopack leaves the
+  // resolve call alone — anchoring at import.meta.url makes the bundler
+  // remap resolve() to module ids / try to place the css as a chunk asset.
   const req = createRequire(path.join(process.cwd(), 'package.json'))
-  const css = fs.readFileSync(req.resolve(`@buildmyrig/ui/skins/${skin}`), 'utf8')
+  let css = ''
+  try {
+    css = fs.readFileSync(req.resolve(`@buildmyrig/ui/skins/${skin}`), 'utf8')
+  } catch {
+    const dir = findUiSkinsDir()
+    if (dir) css = fs.readFileSync(path.join(/* turbopackIgnore: true */ dir, skin), 'utf8')
+  }
   // A literal </style> inside the overlay would break out of the inline tag.
   const safe = css.toLowerCase().includes('</style') ? '' : css
   skinCache.set(skin, safe)
@@ -67,14 +94,26 @@ export async function getThemeSkinCss(): Promise<string> {
  * (entry-49 review: the split getters read the global twice).
  */
 export async function getThemeAssets(): Promise<{ css: string; skin: string }> {
+  let resolved
   try {
     const payload = await getPayloadClient()
     const doc = await payload.findGlobal({ slug: 'theme' })
-    const resolved = resolveTheme(doc)
-    const skin = (THEME_PRESETS[resolved.preset] as ThemePresetDef).skin
-    return { css: buildThemeCss(resolved), skin: skin ? loadSkin(skin) : '' }
+    resolved = resolveTheme(doc)
   } catch (err) {
     console.error('[theme] falling back to default theme:', err)
-    return { css: buildThemeCss(DEFAULT_THEME), skin: '' }
+    resolved = DEFAULT_THEME
   }
+  // A missing/corrupt skin file only skips the overlay — the resolved preset
+  // vars must still apply (entry-55 review: a loadSkin throw used to drop
+  // into the shared catch and silently revert the admin's pick to rig-dark).
+  const skinName = (THEME_PRESETS[resolved.preset] as ThemePresetDef).skin
+  let skin = ''
+  if (skinName) {
+    try {
+      skin = loadSkin(skinName)
+    } catch (err) {
+      console.error('[theme] skin load failed, skipping overlay:', err)
+    }
+  }
+  return { css: buildThemeCss(resolved), skin }
 }

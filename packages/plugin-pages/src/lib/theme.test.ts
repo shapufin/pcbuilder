@@ -178,4 +178,13 @@ describe('theme presets — design swap registry', () => {
     // Source literal uses spaced rgba(); compare whitespace-normalized.
     expect(css.replace(/\s/g, '')).toContain('--color-primary-glow:rgba(125,244,255,0.4);')
   })
+
+  it('#371 Theme global defaultValue stays pinned to DEFAULT_THEME.preset', () => {
+    // The global's defaultValue is a literal (Theme.ts) — a future default
+    // flip in lib/theme.ts must not leave the admin form behind (entry-55).
+    const presetField = Theme.fields?.find((f) => 'name' in f && f.name === 'preset') as
+      | { defaultValue?: string }
+      | undefined
+    expect(presetField?.defaultValue).toBe(DEFAULT_THEME.preset)
+  })
 })
