@@ -28,10 +28,10 @@ Where things live. Not a manual — a map. Domain rules:
 ## Tests
 
 - Vitest per package (`pnpm test`, turbo); numbered cumulatively
-  (#1–#415 + e2e). apps/web vitest scoped to `src/**` by
+  (#1–#428 + e2e). apps/web vitest scoped to `src/**` by
   `vitest.config.ts` (also provides the `@` alias — keep both).
 - Playwright: `apps/web/e2e/{smoke,auth,builder,search-wishlist,
-  cart-drawer,filter-drawer,theme-toggle,related-products}.spec.ts`,
+  cart-drawer,filter-drawer,theme-toggle,related-products,facets}.spec.ts`,
   `playwright.config.ts` — needs a prod build + running `next start` on
   :3000.
 
@@ -113,7 +113,14 @@ Where things live. Not a manual — a map. Domain rules:
   `components/EcommerceShell.tsx` (cart depth fix).
 - CI: `.github/workflows/ci.yml` (8 gates) + `turbo.json` env
   allowlists + `pnpm-workspace.yaml` overrides.
-- Load test: `scripts/load-test.mjs`.
+- Scripts: `scripts/load-test.mjs` (concurrency/latency),
+  `scripts/perf-probe.mjs` (CDP-throttled real LCP/FCP),
+  `scripts/backfill-attributes.mjs` (idempotent catalogue-attribute
+  repair), `scripts/check-workflow.mjs` (`pnpm workflow:check`).
+- Facets + PDP compatibility: `apps/web/src/lib/facets.ts`
+  (`buildFacets`/`facetSelection`) + `lib/specs.ts` (`specRows`,
+  `compatRows`) → `app/shop/[categorySlug]/page.tsx` sidebar groups and
+  the PDP Compatibility list (entry 64).
 - Workflow: `.devin/` (rules, context, hooks, config, tracking),
   `AGENTS.md`, `CLAUDE.md`, this file.
 

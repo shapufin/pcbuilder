@@ -117,8 +117,9 @@ Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
 59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
 `ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
 spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts** +
-**entry 63: review fixes** (useId panel ids, hydration guard, types
-sync); entries 55–63 pushed at `d5fc10b`, flake fix `596aa7a` — **CI
+**entry 63: review fixes** + **entry 64: spec facets, PDP compatibility,
+critical-path pass** — **audit S2/S3 fully closed, no unblocked backlog
+left**; entries 55–63 pushed at `d5fc10b`, flake fix `596aa7a` — **CI
 all-8 green (37208259966)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
@@ -128,8 +129,17 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#415 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#428 + e2e; per-package counts in 05).
 
+59. **Entry 64** — **last unblocked backlog, all closed**: **spec facets +
+   per-facet counts** (`lib/facets.ts`; `?socket=AM5`; counts from the
+   non-facet set; audit S2) + **PDP compatibility list** (`compatRows()`;
+   audit S3) + attribute display names + `scripts/backfill-attributes.mjs`
+   (21 products repaired — dev DB predated the field) + **critical-path
+   pass**: framer-motion ~57 KB chunk off `/shop`+PDP (CSS badge pop, lazy
+   drawer, click-time fly-to-cart) and `scripts/perf-probe.mjs` (real LCP
+   1.46 s vs Lighthouse lantern 3.7 s). 547 unit, typecheck 6/6, lint 4/4,
+   build 25/25, **19/19 e2e**. SHIP.
 58. **Entry 63** — **review-fix round on 59–62** (both review findings
    closed): `FilterDrawer` panel id → `useId` (trigger `aria-controls`
    matches the panel; #415 pins two drawers → distinct ids; e2e selects
@@ -147,15 +157,9 @@ Tests numbered cumulatively (#1–#415 + e2e; per-package counts in 05).
    `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
    dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
    531 unit; live REST probe rendered nested rows, restored. SHIP.
-55. **Entry 60** — **visitor theme toggle**: `getThemeAssets` ships a
-   complete alt preset in `#theme-alt` (`media="not all"`;
-   `altThemePreset()` pairs light↔dark); `ThemeToggle` (header,
-   `useSyncExternalStore`, no effect/mismatch) flips media attrs +
-   stores `bmr_theme`; `THEME_BOOT_SCRIPT` re-applies pre-paint. TDD
-   #402–#408 → 525 unit, build 25/25, **15/15 e2e**. Review SHIP.
-43–54. **Entries 47–59** — Precision Dark redesign, theme-swap registry,
+43–55. **Entries 47–60** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P4 + review-fix round (rig-dark default, design registry,
-   rig-studio UI, `NEXT_BUILD_CPUS`), Lighthouse re-run (a11y 100;
-   home-perf watch), €0 confirm-free + settlement-core + SEC-001, push +
-   CI build-flake fix, mobile FilterDrawer (Round D done). Full text in
+   rig-studio UI, `NEXT_BUILD_CPUS`), Lighthouse re-run, €0 confirm-free +
+   settlement-core + SEC-001, CI build-flake fix, mobile FilterDrawer
+   (Round D done), visitor theme toggle. Full text in
    `.devin/tracking/agents-archive-2026-10.md`.

@@ -47,9 +47,11 @@ build-time globbing only, no patched release).
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 63, #1–#415 + 16 e2e)**: web 194 · plugin-shop 145 ·
-plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **532 unit +
-16 e2e**. Numbers are cumulative and cited in test titles; keep the
+**Test counts (entry 64, #1–#428 + 19 e2e)**: web 209 · plugin-shop 145 ·
+plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **547 unit +
+19 e2e**. Extra probes: `node scripts/perf-probe.mjs` (throttled LCP),
+`node scripts/backfill-attributes.mjs` (idempotent attribute repair),
+`node scripts/load-test.mjs`. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
 
 ## turbo strict env mode

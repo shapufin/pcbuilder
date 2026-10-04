@@ -162,3 +162,10 @@ Session history (one line each, entries 1–24 in the progress log):
    input. TDD #396–#401 → 518 unit; typecheck+lint (web), build 25/25,
    **14/14 e2e** (new `filter-drawer.spec.ts` — live evidence: trigger
    ↔ inline swap, dialog contract, cross-copy filter sync). Review SHIP.
+
+55. **Entry 60** — **visitor theme toggle**: `getThemeAssets` ships a
+   complete alt preset in `#theme-alt` (`media="not all"`;
+   `altThemePreset()` pairs light↔dark); `ThemeToggle` (header,
+   `useSyncExternalStore`, no effect/mismatch) flips media attrs +
+   stores `bmr_theme`; `THEME_BOOT_SCRIPT` re-applies pre-paint. TDD
+   #402–#408 → 525 unit, build 25/25, **15/15 e2e**. Review SHIP.

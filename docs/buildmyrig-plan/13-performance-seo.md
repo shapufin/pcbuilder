@@ -46,3 +46,31 @@
 - Sitemap: `sitemap.xml` via Next.js `sitemap.ts` (products, categories, pages, live templates); robots.txt (disallow `/admin`, `/account`, `/checkout`).
 - Canonical rules: category filters canonical to base category (facets excluded); paginated pages rel-canonical self; share builds `noindex`.
 - 404/500 custom pages with search + popular links; soft-404 detection in Lighthouse CI.
+
+## Measured — entry 64 (2026-10-04)
+
+`node scripts/perf-probe.mjs` (CDP: mobile 4G, 150 ms RTT, 4× CPU — real paint
+entries, not Lighthouse's lantern simulation):
+
+| Page | TTFB | FCP | LCP | LCP element |
+| --- | --- | --- | --- | --- |
+| `/` | ~200 ms | 1.46 s | 1.46 s | `hero__sub` |
+| `/product/[slug]` | ~270 ms | 1.36 s | 1.36 s | `pdp__title` |
+
+- **The LCP paint is the font swap.** Both `next/font` files are already
+  latin-subset + preloaded (22 KB + 48 KB) and land at 0.9 s / 1.4 s under
+  throttling; the single LCP candidate is that re-paint. The 3.7 s in
+  `npx lighthouse@12` is lantern simulation (its "redirects 610 ms"
+  opportunity is an artifact — `/` is a 200 prerender).
+- **First-load JS**: a ~57 KB framer-motion chunk was in the initial HTML of
+  every route (the audit's 57 KiB "unused JavaScript") via the header badge,
+  cart drawer and add-to-cart chip flight. Entry 64 moved all three off the
+  critical path — `/shop` and `/product/*` now ship **no** motion chunk;
+  `/` still pulls it through the `TemplatesCarousel` block (next lever) and
+  `/builder` uses motion by design.
+- **`experimental.inlineCss` rejected**: Next's own docs advise against it for
+  non-atomic CSS with returning visitors (inlined CSS can't be cached
+  separately and inflates TTFB).
+- **Facet counts** are computed per request from a `select`-ed light query over
+  the category's non-facet filtered set (depth 0). The 5-minute per-category
+  cache in *Strategies* above is the scale plan, not the current behaviour.

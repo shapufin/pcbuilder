@@ -102,6 +102,30 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   settles via reservation conversion. Keep the patch in sync on plugin
   upgrades.
 
+## Catalogue attributes → facets + PDP compatibility (entry 64)
+
+- **Model**: `attribute-types` (`slug` = the URL filter param, `name` =
+  display, `valueType`, `unit`) → `attribute-values` (`value`,
+  `displayLabel`) → `products.attributeValues[{attributeType, value}]`
+  (array of relationships; depth 0 = ids, depth ≥1 = docs).
+- **`apps/web/src/lib/facets.ts`** is the only reader: `buildFacets()`
+  aggregates per-value counts and drops zero-count options/types;
+  `facetSelection()` maps `?socket=AM5` → `{ active, where }` and ignores
+  unregistered slugs/values. Category page spreads `where` into its
+  `and` list; counts come from a second light query over the **non-facet**
+  filtered set (a selected facet must not zero its own siblings).
+- **Payload query trap**: `attributeValues.elemMatch` is rejected — use
+  dotted subfield paths (`attributeValues.attributeType` /
+  `attributeValues.value`). Equivalent because a value id belongs to one
+  type (gotcha #41).
+- **PDP**: `compatRows()` (`lib/specs.ts`) renders the same
+  `attributeValues` as a Compatibility list + builder link; unresolved ids
+  are skipped, never printed.
+- **Seed/data**: `attributeTypeNames` in `seed-data.ts` supplies the
+  display names (the seed used to write the raw slug). Existing DBs whose
+  products predate the field need `node scripts/backfill-attributes.mjs`
+  (idempotent, REST + seed defs; patched 21 products on the dev DB).
+
 ## Cart totals / discounts / shipping / tax (entry 31)
 
 - One math source: `packages/plugin-shop/src/lib/pricing.ts`

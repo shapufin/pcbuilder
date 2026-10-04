@@ -2,6 +2,29 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (64) — Spec facets, PDP compatibility list, critical-path/LCP pass
+
+The last three unblocked backlog items (audit S2 facets + counts, audit S3 compat-hint stub, home-LCP watch item) in one round.
+
+**1. Spec facets + per-facet counts (audit S2 closed).** `attribute-types`/`attribute-values` existed since entry 26 but nothing read them. New `apps/web/src/lib/facets.ts`:
+- `buildFacets(products, types, values)` — one pass over the products' `attributeValues` → `typeId→valueId→count`, drops zero-count options and empty types (a filter that can only yield an empty grid is a dead end), keeps type meta (name/unit) and `displayLabel` over the raw value.
+- `facetSelection(types, values, searchParams)` — resolves `?socket=AM5` against the registry (only registered slugs are read; an unknown value is ignored rather than rendering an empty result set) → `{ active, where }`.
+- Category page: facets render as sidebar groups **with counts** between Brand and Price, share the existing `qs()` URL builder (so facets compose with brand/price/search and reset `page`), and the mobile FilterDrawer copy gets them for free. Counts come from a second, light query over the **non-facet** filtered set (`select: { attributeValues: true }`, depth 0) so selecting a facet never zeroes its own siblings.
+- **Payload constraint found live**: `attributeValues.elemMatch` is rejected ("The following path cannot be queried") — the supported shape is dotted subfield paths (`attributeValues.attributeType` + `attributeValues.value`). Equivalent here because a value id belongs to exactly one type. Gotcha #41.
+
+**2. PDP compatibility list (audit S3 "compat hint is a stub" closed).** `compatRows()` in `lib/specs.ts` turns the product's `attributeValues` (depth 2) into `{name, value}` rows — unresolved id refs are skipped rather than printed as numbers. The PDP renders them under the spec table with a builder link.
+
+**3. Attribute display names.** The seed wrote the raw slug as the attribute-type `name` ("ram-type"), which would have rendered as the facet title. `attributeTypeNames` map in `seed-data.ts` + `#420` guard; the six existing dev rows were patched via REST.
+
+**4. Data repair.** The dev DB predated `products.attributeValues` (empty arrays on every product, so facets/compat had nothing to show). New idempotent `scripts/backfill-attributes.mjs` (imports the seed defs, resolves type/value ids over REST, patches names + attributeValues) — **21 products patched, 6 type names fixed**; the 7 misses are products whose defs postdate that DB.
+
+**5. Home-LCP watch item → measured, explained, and partly fixed.**
+- **Measurement**: new `scripts/perf-probe.mjs` (CDP mobile-4G + 4× CPU, reads real paint entries). Home: TTFB ~200 ms, **FCP = LCP ≈ 1.46 s**, single LCP candidate (`hero__sub`), fonts arriving at 922/1435 ms — i.e. the LCP paint is the **font swap**, not a slow element. Lighthouse's 3.7 s is its lantern simulation (and its "redirects 610 ms" opportunity is an artifact — `/` returns 200 prerendered with no redirect). `inlineCss` was evaluated and rejected: Next's own docs advise against it for non-atomic CSS with returning visitors.
+- **Bundle fix (the real lever)**: a ~57 KB framer-motion chunk sat in the initial HTML of *every* page — exactly the 57 KiB "unused JavaScript" Lighthouse flagged — pulled in by the site-wide header badge and cart drawer. Now: `CartBadge` animates via CSS keyframes (remounts on count change; reduced-motion honoured by media query), the drawer mounts through `CartDrawerLazy` (`ssr: false` dynamic import; safe because it gates on the zustand store, so an `open()` that beats the chunk is picked up on mount), and the add-to-cart chip flight (`lib/fly-to-cart`) loads on click. **Result: `/shop` and `/product/*` ship no motion chunk at all**; `/` keeps it via the `TemplatesCarousel` block (next lever) and `/builder` legitimately uses motion. Guards `#426–#428`.
+- **Hero hardening**: the block image now uses the sized `hero` variant with intrinsic dims + `loading="eager"`/`fetchPriority="high"`/`decoding="async"` (`#424–#425`) — the seed hero has no image today, so this is a latent-risk fix for when an admin sets one.
+
+**Gates: 547 unit (web 209 · shop 145 · pc-builder 81 · lib 80 · pages 30 · ui 2), typecheck 6/6, lint 4/4, `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), 19/19 e2e (3 new facet/compat specs), `workflow:check` PASS.** Review: SHIP. Remaining unblocked: none — Round B (Stripe live e2e, Resend, Postgres migrate, Sentry, Plausible) stays owner-keyed; home `TemplatesCarousel` motion chunk is the one deferred perf lever.
+
 ## 2026-10-04 (63) — Review-fix round on entries 59–62 (both findings fixed)
 
 The review of entries 59–62 shipped SHIP with two low-severity observations; both are now closed rather than carried.
