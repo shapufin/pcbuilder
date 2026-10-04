@@ -126,3 +126,17 @@ Session history (one line each, entries 1–24 in the progress log):
    94, `/checkout` 90; a11y 100 everywhere, CLS 0. Checkout BP 79/SEO 63
    = Stripe 3p cookie + deliberate robots disallow — not regressions.
    **Entry-55 fix round committed `1a3ed2f..79cbf96` (5 commits).**
+
+52. **Entry 57 Round D** — **€0 checkout**: `POST
+   /api/carts/:id/confirm-free` (owner-or-secret 404; server
+   `total<=0` 422; `collectBuildIssues` preflight; `purchasedAt` CAS
+   idempotency) reuses the settlement core extracted to
+   `lib/settle-transaction.ts` — webhook now a thin wrapper (26/26
+   unchanged). Tx `paymentProvider:'free'`; replay returns existing
+   order, pending tx resumes. Checkout: "Place free order" + keyless-€0
+   path. Review FIX → 2 fixed (lost-claim premature 409 → bounded
+   re-find; tx-create failure → stamp-CAS claim rollback). Security
+   review → no high-confidence vulns; SEC-001 fixed (confirm-time
+   discount re-validation — apply-time-only maxUses let pre-loaded
+   carts over-redeem a 100%-off code). TDD #383–#395 → 510 unit;
+   trio + build + 12/12 e2e green.

@@ -47,8 +47,8 @@ build-time globbing only, no patched release).
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 60, #1–#408 + 15 e2e)**: web 187 · plugin-shop 145 ·
-plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **525 unit +
+**Test counts (entry 61, #1–#414 + 15 e2e)**: web 193 · plugin-shop 145 ·
+plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **531 unit +
 15 e2e**. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
 

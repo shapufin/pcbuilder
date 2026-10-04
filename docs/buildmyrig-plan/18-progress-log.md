@@ -2,6 +2,16 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-04 (61) — Spec table handles nested specsJson (audit S3 gap)
+
+The PDP spec table did `String(v)` per key — any nested `specsJson` object rendered `[object Object]` (latent on seed data: every product's `specsJson` is flat or null, but the field accepts arbitrary JSON).
+
+- **New `src/lib/specs.ts` `specRows()`** — pure flatten: nested objects → dot-path rows (`dimensions.widthMm`), primitive arrays → `, ` join, arrays containing objects → `; `-separated `k: v` pairs, `null`/empty → `—`. Page renders rows or the "No specs listed." fallback unchanged.
+- **TDD #409–#414** covering primitives, nesting, both array shapes, null/empty, missing specs.
+- **Live probe**: patched `asus-27-240hz-oled` with `{panel, dimensions:{…}, ports:[{type,count}…]}` via admin REST → rendered `dimensions.widthMm|604`, `ports|type: hdmi, count: 2; type: dp, count: 1`; restored `null` after.
+
+**Gates: TDD #409–#414 → 531 unit (web 193), typecheck+lint (web), `NEXT_BUILD_CPUS=4 pnpm build` green (25/25), `workflow:check` PASS.** Review (code-review-checklist): SHIP. Remaining S3 gaps: gallery (media unused), multi-variant picker (only `variants[0]` selectable), compat hint stub, RelatedProducts.
+
 ## 2026-10-04 (60) — Visitor-facing theme toggle
 
 Until now the theme was an admin-only choice (manager `theme` global → one preset site-wide). Entry 60 adds the user-facing half: a header toggle that swaps the whole palette client-side and persists per visitor.

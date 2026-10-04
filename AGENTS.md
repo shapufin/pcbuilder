@@ -115,8 +115,9 @@ degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
 **Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
 Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
 59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
-`ThemeToggle`, `bmr_theme` persisted); entries 55–59 pushed at
-`db00900`, flake fix `596aa7a` — **CI all-8 green (37194748589)**. Detail:
+`ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
+spec-table fix** (audit S3); entries 55–60 pushed at `277262b`, flake
+fix `596aa7a` — **CI all-8 green (37194748589)**. Detail:
 `docs/buildmyrig-plan/18-progress-log.md`;
 plan: `.devin/plans/plan-bmr-next-rounds.md`.
 
@@ -125,8 +126,12 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#408 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#414 + e2e; per-package counts in 05).
 
+56. **Entry 61** — **PDP spec-table nested `specsJson`** (audit S3):
+   `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
+   dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
+   531 unit; live REST probe rendered nested rows, restored. SHIP.
 55. **Entry 60** — **visitor theme toggle**: `getThemeAssets` ships a
    complete alt preset in `#theme-alt` (`media="not all"`;
    `altThemePreset()` pairs light↔dark); `ThemeToggle` (header,
@@ -154,22 +159,9 @@ Tests numbered cumulatively (#1–#408 + e2e; per-package counts in 05).
    (cut the line-242 import string → same TS1002; after the clear, build
    25/25). Gotcha #39 + 05 CI note. CI all 8 gates green (37194748589).
 
-52. **Entry 57 Round D** — **€0 checkout**: `POST
-   /api/carts/:id/confirm-free` (owner-or-secret 404; server
-   `total<=0` 422; `collectBuildIssues` preflight; `purchasedAt` CAS
-   idempotency) reuses the settlement core extracted to
-   `lib/settle-transaction.ts` — webhook now a thin wrapper (26/26
-   unchanged). Tx `paymentProvider:'free'`; replay returns existing
-   order, pending tx resumes. Checkout: "Place free order" + keyless-€0
-   path. Review FIX → 2 fixed (lost-claim premature 409 → bounded
-   re-find; tx-create failure → stamp-CAS claim rollback). Security
-   review → no high-confidence vulns; SEC-001 fixed (confirm-time
-   discount re-validation — apply-time-only maxUses let pre-loaded
-   carts over-redeem a 100%-off code). TDD #383–#395 → 510 unit;
-   trio + build + 12/12 e2e green.
-
-43–51. **Entries 47–56** — Precision Dark redesign, theme-swap registry,
+43–52. **Entries 47–57** — Precision Dark redesign, theme-swap registry,
    megaplan P0–P4 + review-fix round (rig-dark default, design registry,
    rig-studio UI, DeployModal/SavedBuildsModal, `NEXT_BUILD_CPUS`),
-   Lighthouse re-run (a11y 100 everywhere; home-perf 82–91 watch item).
-   Full text in `.devin/tracking/agents-archive-2026-10.md`.
+   Lighthouse re-run (a11y 100; home-perf watch), €0 confirm-free path +
+   settlement-core extraction + SEC-001 discount re-check. Full text in
+   `.devin/tracking/agents-archive-2026-10.md`.
