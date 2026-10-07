@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { specTemplateFor, type SpecFieldType } from '@buildmyrig/plugin-pc-builder'
 import {
   attributeDefs,
   attributeTypeNames,
@@ -45,13 +46,32 @@ describe('seed data invariants', () => {
     }
   })
 
-  it('#267 rule fixtures reference real products/categories and stay ≥ 40', () => {
-    expect(rules.length).toBeGreaterThanOrEqual(40)
+  it('#267 rule fixtures reference real products/categories and stay specials-only', () => {
+    // Entry 68: standard relations are synthesized from typed spec fields
+    // (derived-rules.ts). Authored fixtures must be genuine specials — warns
+    // advisories, component-targeted rules, or category subjects — never a
+    // plain requires row on a field the synthesizer already covers.
+    const SYNTHESIZED_FIELDS = new Set([
+      'socket',
+      'ramType',
+      'moboFormFactor',
+      'caseSupportedFormFactors',
+      'gpuLengthMm',
+      'caseGpuMaxLengthMm',
+      'coolerSocketSupport',
+      'storageInterface',
+    ])
     for (const r of rules) {
       if (r.st === 'component') expect(productTitles, `rule subject ${r.s}`).toContain(r.s)
       else expect(slotSlugs, `rule subject category ${r.s}`).toContain(r.s)
       expect(slotSlugs, `rule target category ${r.tCat}`).toContain(r.tCat)
       if (r.t) expect(productTitles, `rule target ${r.t}`).toContain(r.t)
+      if (r.type === 'requires' && !r.t && r.st === 'component') {
+        expect(
+          SYNTHESIZED_FIELDS.has(r.field),
+          `authored requires on '${r.field}' duplicates synthesis — drop it`,
+        ).toBe(false)
+      }
     }
   })
 
@@ -123,6 +143,28 @@ describe('seed data invariants', () => {
       }
       if (spec.hasRgb !== undefined) {
         expect(typeof spec.hasRgb, `${p.title} hasRgb`).toBe('boolean')
+      }
+    }
+  })
+
+  it('#436 specsJson keys stay inside the category spec template (entry 68 drift guard)', () => {
+    const typeOf = (v: unknown): SpecFieldType => {
+      if (typeof v === 'number') return 'number'
+      if (typeof v === 'boolean') return 'boolean'
+      if (Array.isArray(v)) return 'multiselect'
+      return 'text'
+    }
+    for (const p of productDefs) {
+      const cat = p.builder?.cat
+      const specsJson = p.builder?.spec.specsJson
+      if (!cat || !specsJson) continue
+      const template = specTemplateFor(cat)
+      for (const [key, value] of Object.entries(specsJson)) {
+        const def = template.find((f) => f.key === key)
+        expect(def, `${p.title} (${cat}): specsJson key '${key}' not in SPEC_TEMPLATES`).toBeTruthy()
+        if (def && (def.type === 'select' || def.type === 'multiselect' || def.type === 'number' || def.type === 'boolean')) {
+          expect(typeOf(value), `${p.title}.${key} type`).toBe(def.type === 'select' ? 'text' : def.type)
+        }
       }
     }
   })

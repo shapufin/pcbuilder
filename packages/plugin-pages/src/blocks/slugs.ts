@@ -11,7 +11,7 @@ import type { BlockSlug } from 'payload'
  * `pageBlocks` is caught by definitions.test.ts (#116/#147).
  */
 
-/** Every block defined once in config.blocks (pages layout allows all 14). */
+/** Every block defined once in config.blocks (pages layout allows all). */
 export const pageBlockSlugs: BlockSlug[] = [
   'hero',
   'richText',
@@ -27,10 +27,27 @@ export const pageBlockSlugs: BlockSlug[] = [
   'videoEmbed',
   'section',
   'contactForm',
+  // Entry 71 (Nexus pack) — page-level only; they render under any preset
+  // (vars adapt) but are styled for the Nexus design language.
+  'nexusHero',
+  'nexusCategoryMatrix',
+  'nexusProductRail',
+  'nexusSlotExplorer',
+  // Entry 74 — columns container (2–4 side-by-side block stacks).
+  'columns',
 ]
 
 /** What a Section may nest: everything except another section (no recursion). */
 export const sectionChildSlugs: BlockSlug[] = pageBlockSlugs.filter((slug) => slug !== 'section')
+
+/**
+ * What a Columns column may nest: everything except a section or another
+ * columns block — no recursive columns (stack another columns row instead of
+ * nesting grids inside grids).
+ */
+export const columnChildSlugs: BlockSlug[] = pageBlockSlugs.filter(
+  (slug) => slug !== 'section' && slug !== 'columns',
+)
 
 /**
  * Blocks embeddable inside Lexical rich text (the RichTextBlock field).

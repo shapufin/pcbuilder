@@ -3,6 +3,7 @@ import {
   DEFAULT_THEME,
   LIGHT_COLORS,
   THEME_PRESETS,
+  altThemePreset,
   buildThemeCss,
   resolveTheme,
   themePresetOptions,
@@ -136,7 +137,7 @@ describe('theme field validators (admin form gate)', () => {
 describe('theme presets — design swap registry', () => {
   it('#288 registry drives the Theme global select; presets ship in code', () => {
     const keys = Object.keys(THEME_PRESETS)
-    expect(keys).toEqual(['dark', 'light', 'midnight', 'rig-dark'])
+    expect(keys).toEqual(['dark', 'light', 'midnight', 'rig-dark', 'nexus'])
     expect(themePresetOptions().map((o) => o.value)).toEqual(keys)
     const presetField = Theme.fields?.find((f) => 'name' in f && f.name === 'preset') as
       | { options?: Array<{ value: string }> }
@@ -177,6 +178,26 @@ describe('theme presets — design swap registry', () => {
     expect(css).toContain('--color-bg: #0f131c;')
     // Source literal uses spaced rgba(); compare whitespace-normalized.
     expect(css.replace(/\s/g, '')).toContain('--color-primary-glow:rgba(125,244,255,0.4);')
+  })
+
+  it('#437 nexus preset: dark-flavored pack theme — label, skin, pack flag, light alt pair', () => {
+    const nexus = THEME_PRESETS.nexus
+    expect(nexus.label).toBe('Nexus')
+    expect(nexus.skin).toBe('nexus.css')
+    expect(nexus.pack).toBe('nexus')
+    // The component pack is only declared on presets that ship one.
+    // ('in' check: satisfies keeps each entry's literal type, so a bare
+    // `.pack` access on a pack-less preset is a TS error.)
+    expect('pack' in THEME_PRESETS['rig-dark']).toBe(false)
+    // Nexus resolves like any other preset; alt pairing = light (dark-flavored).
+    const resolved = resolveTheme({ preset: 'nexus' })
+    expect(resolved.preset).toBe('nexus')
+    expect(resolved.colors.bg).toBe('#080b11')
+    expect(resolved.extras.accent).toBe('#00eefc')
+    expect(altThemePreset('nexus')).toBe('light')
+    const css = buildThemeCss(resolved)
+    expect(css).toContain('--color-bg: #080b11;')
+    expect(css).toContain('--color-accent: #00eefc;')
   })
 
   it('#371 Theme global defaultValue stays pinned to DEFAULT_THEME.preset', () => {

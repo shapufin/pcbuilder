@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { withClassicChrome } from './helpers'
 
+// Classic-chrome contract — the seed defaults to the nexus pack, which swaps
+// header/footer for the Nexus chrome (cart button, ⌘K modal).
 test.describe('storefront smoke', () => {
+  withClassicChrome()
+
   test('homepage renders nav, hero and legal footer', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/BuildMyRig/)
@@ -9,7 +14,11 @@ test.describe('storefront smoke', () => {
     await expect(banner.getByRole('link', { name: 'Cart' })).toBeVisible()
     // Site-wide Shop link must target the landing page, not a seeded slug (regression: /shop/components 404)
     await expect(banner.getByRole('link', { name: 'Shop' })).toHaveAttribute('href', '/shop')
-    await expect(page.getByRole('link', { name: 'Browse components' })).toHaveAttribute('href', '/shop')
+    // Hero CTA → /shop — the seeded homepage is Nexus-composed (entry 71:
+    // "Browse the catalog"; the classic hero labeled it "Browse components").
+    await expect(
+      page.locator('main').getByRole('link', { name: /browse (components|the catalog)/i }),
+    ).toHaveAttribute('href', '/shop')
     await expect(page.getByRole('link', { name: 'Privacy' })).toBeVisible()
   })
 

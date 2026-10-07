@@ -174,3 +174,66 @@ Session history (one line each, entries 1–24 in the progress log):
    `String(v)` → `[object Object]`; new pure `lib/specs.ts` `specRows()`
    dot-flattens objects, joins arrays, `—` for null. TDD #409–#414 →
    531 unit; live REST probe rendered nested rows, restored. SHIP.
+
+57. **Entry 62** — **PDP RelatedProducts rail** (audit S3 nearly done):
+   ≤4 same-category published products via `ProductCardGrid`, self
+   excluded, hidden when none. Two stale S3 "gaps" (gallery, variant
+   picker) re-marked done — both landed entry 47. e2e-only round:
+   `related-products.spec.ts` → **16/16 e2e**, build 25/25. SHIP.
+58. **Entry 63** — **review-fix round on 59–62** (both review findings
+   closed): `FilterDrawer` panel id → `useId` (trigger `aria-controls`
+   matches the panel; #415 pins two drawers → distinct ids; e2e selects
+   by role) + `suppressHydrationWarning` on the three theme style tags
+   (boot script rewrites `media` pre-hydration; **dev-mode verified: 0
+   console messages** — gotcha #40) + stale generated types synced
+   (`paymentProvider`, entry-57 drift). 532 unit, typecheck 6/6, lint
+   4/4, build 25/25, 16/16 e2e. SHIP.
+59. **Entry 64** — **last unblocked backlog, all closed**: **spec facets +
+   per-facet counts** (`lib/facets.ts`; `?socket=AM5`; counts from the
+   non-facet set; audit S2) + **PDP compatibility list** (`compatRows()`;
+   audit S3) + attribute display names + `scripts/backfill-attributes.mjs`
+   (21 products repaired — dev DB predated the field) + **critical-path
+   pass**: framer-motion ~57 KB chunk off `/shop`+PDP (CSS badge pop, lazy
+   drawer, click-time fly-to-cart) and `scripts/perf-probe.mjs` (real LCP
+   1.46 s vs Lighthouse lantern 3.7 s). 547 unit, typecheck 6/6, lint 4/4,
+   build 25/25, **19/19 e2e**. SHIP.
+
+61. **Entry 66** — **megaplan audit**: plan-vs-code verification of
+   `plan-ec05526c8dbc0fdc` (RIG Studio P0–P4, entries 45–54) — every
+   contract confirmed in-tree, no gaps. Gates trio + `workflow:check`
+   green; stray `nul` artifact deleted (gotcha #42).
+60. **Entry 65** — **AI entry points**: thin pointers to AGENTS.md for
+   Copilot (`.github/copilot-instructions.md`), Gemini CLI (`GEMINI.md`),
+   Aider (`CONVENTIONS.md`), Cursor (`.cursor/rules/buildmyrig.mdc`) and
+   Windsurf (`.windsurf/rules/buildmyrig.md`); OpenCode/Codex read
+   AGENTS.md natively (no `opencode.json` — V2 `instructions` unresolved).
+   `workflow:check` requires all five + pins their references, frontmatter
+   and 4 000-char cap (guard proven by breakage). PASS.
+62. **Entry 67** — **live browser QA + cart-orphan fix**: full
+   9-slot build → deploy → share → hydration → 4 viewports all verified
+   live; **found + fixed** deploy→cart orphaning composite lines for
+   fresh guests (`cart-ensure` kit #429–#435; `localStorage('cart')`
+   persisted; `adoptCart` + `cartID` added to the ecommerce patch —
+   5 hunks now; live-verified drawer shows the line). Regenerated patch
+   regressed two hunks via stale `.pnpm_patches` — caught by pin tests,
+   restored (gotcha #44). Gates trio green.
+
+63. **Entry 71** — **Nexus theme pack ported**: `shop layout/` mock →
+   swappable preset pack (`pack:'nexus'` + `data-theme-pack`, layout chrome
+   swap, theme `afterChange` layout revalidation). Two CSS layers (skin =
+   toggleable shared surfaces; `nx-*` component layer always bundled).
+   Mega-menu/announcements/packaging-tiers globals, 4 nexus blocks + registry,
+   `/explorer` force-dynamic, server-priced `PackagingPicker` (qty-1
+   `lineType:'packaging'`), product-level `specsJson` Nexus PDP extras,
+   three.js `RigVisualizer` via `next/dynamic` (555 KB lazy chunk, not in
+   entry bundle). Seed: preset nexus + globals + prebuilt SKUs + jpgs.
+   `.gitignore` covers `shop layout/`. Gates: 599 unit, e2e 21/21 (new
+   `nexus.spec.ts` preset-swap), build 25/25. Design doc 21.
+63. **Entry 68** — **spec templates + derived compat + platform path**
+   (design `20-spec-templates-auto-compat-design.md`): `spec-templates.ts`
+   registry over `specsJson` + `SpecFieldsField` admin form;
+   `derived-rules.ts` synthesizes socket/ramType/ff/gpu-len/cooler/NVMe
+   rules at `buildBuilderIndex` (authored → specials only; not SATA/PSU/
+   PCIe); `platforms.ts` path — `?path=amd|intel` + `kit/PathSwitcher`
+   (switch clears cpu/mobo/ram/cooling). Tests #436–#437 + plugin
+   suites; gates trio, build 25/25, **e2e 20/20** green.

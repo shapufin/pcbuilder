@@ -27,6 +27,7 @@ import {
 type OrderItemLike = {
   quantity?: number | null
   buildName?: string | null
+  lineLabel?: string | null
   product?: number | string | { title?: string | null } | null
   variant?: number | string | { title?: string | null; product?: unknown } | null
 }
@@ -82,6 +83,7 @@ const resolveRecipient = async (
 
 const lineName = (item: OrderItemLike, index: number): string => {
   if (item.buildName) return item.buildName
+  if (item.lineLabel) return item.lineLabel
   const variant = typeof item.variant === 'object' && item.variant ? item.variant : null
   const product =
     typeof item.product === 'object' && item.product

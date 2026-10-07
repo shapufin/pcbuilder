@@ -47,6 +47,9 @@ const fontField = (name: string, label: string): Field => ({
 export const Theme: GlobalConfig = {
   slug: 'theme',
   label: 'Theme',
+  admin: {
+    group: 'Settings & Design',
+  },
   access: {
     read: () => true,
     update: isManager,

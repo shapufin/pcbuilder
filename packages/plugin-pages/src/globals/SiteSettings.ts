@@ -29,11 +29,29 @@ const linkFields: Field[] = [
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site settings',
+  admin: {
+    group: 'Settings & Design',
+  },
   access: {
     read: () => true,
     update: isManager,
   },
   fields: [
+    {
+      name: 'adminTheme',
+      type: 'select',
+      label: 'Admin CMS GUI Theme',
+      defaultValue: 'precision-dark',
+      options: [
+        { label: '⚡ Precision Dark (RIG Studio)', value: 'precision-dark' },
+        { label: '🌌 Cyber Neon (High Contrast)', value: 'cyber-neon' },
+        { label: '☀️ Light Clean (High Visibility)', value: 'light-clean' },
+        { label: '📦 Classic Payload (Neutral)', value: 'classic-payload' },
+      ],
+      admin: {
+        description: 'Default visual skin used across the Payload Admin Back-Office.',
+      },
+    },
     {
       name: 'navLinks',
       type: 'array',
@@ -50,6 +68,25 @@ export const SiteSettings: GlobalConfig = {
       label: 'Footer links',
       defaultValue: DEFAULT_SITE_SETTINGS.footerLinks,
       fields: linkFields,
+    },
+    {
+      name: 'announcements',
+      type: 'array',
+      label: 'Announcement strip',
+      defaultValue: DEFAULT_SITE_SETTINGS.announcements.map((text) => ({ text })),
+      admin: {
+        description:
+          'Telemetry-strip lines shown by the Nexus header (entry 71). Empty list = strip hidden.',
+      },
+      fields: [
+        {
+          name: 'text',
+          type: 'text',
+          label: 'Text',
+          required: true,
+          maxLength: 160,
+        },
+      ],
     },
   ],
 }

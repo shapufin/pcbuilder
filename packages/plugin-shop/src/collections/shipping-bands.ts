@@ -15,12 +15,27 @@ export const ShippingBands: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'label', defaultColumns: ['label', 'minSubtotal', 'maxSubtotal', 'price', 'enabled'] },
+  admin: {
+    useAsTitle: 'label',
+    defaultColumns: ['label', 'minSubtotal', 'maxSubtotal', 'price', 'enabled'],
+    listSearchableFields: ['label'],
+    group: 'Store',
+  },
   fields: [
     { name: 'label', type: 'text', required: true },
-    { name: 'minSubtotal', type: 'number', required: true, defaultValue: 0, min: 0, admin: { description: 'Cents; applies when post-discount subtotal >= this' } },
-    { name: 'maxSubtotal', type: 'number', min: 0, admin: { description: 'Cents; exclusive upper bound. Empty = no cap.' } },
-    { name: 'price', type: 'number', required: true, defaultValue: 0, min: 0, admin: { description: 'Cents' } },
-    { name: 'enabled', type: 'checkbox', defaultValue: true },
+    {
+      type: 'row',
+      fields: [
+        { name: 'minSubtotal', type: 'number', required: true, defaultValue: 0, min: 0, admin: { width: '50%', description: 'Cents; applies when post-discount subtotal >= this' } },
+        { name: 'maxSubtotal', type: 'number', min: 0, admin: { width: '50%', description: 'Cents; exclusive upper bound. Empty = no cap.' } },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'price', type: 'number', required: true, defaultValue: 0, min: 0, admin: { width: '50%', description: 'Cents' } },
+        { name: 'enabled', type: 'checkbox', defaultValue: true, admin: { width: '50%' } },
+      ],
+    },
   ],
 }

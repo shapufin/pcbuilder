@@ -47,12 +47,20 @@ build-time globbing only, no patched release).
   suite against `pnpm start` (dev-mode first-compile can also eat the
   5 s assertion timeouts).
 
-**Test counts (entry 64, #1–#428 + 19 e2e)**: web 209 · plugin-shop 145 ·
-plugin-pc-builder 81 · lib 80 · plugin-pages 30 · ui 2 → **547 unit +
-19 e2e**. Extra probes: `node scripts/perf-probe.mjs` (throttled LCP),
+**Test counts (entry 71)**: web 218 · plugin-shop 150 ·
+plugin-pc-builder 111 · lib 80 · plugin-pages 38 · ui 2 → **599 unit +
+21 e2e**. Extra probes: `node scripts/perf-probe.mjs` (throttled LCP),
 `node scripts/backfill-attributes.mjs` (idempotent attribute repair),
 `node scripts/load-test.mjs`. Numbers are cumulative and cited in test titles; keep the
 sequence when adding tests.
+
+## Performance & speed policies
+
+- **Server-side query deduplication (`React.cache()`)**: all server-side global and page readers (`getSiteSettings`, `getThemeAssets`, `getMegaMenu`, `getHomepagePage`, `getPageBySlug`) must be wrapped in `React.cache()` to deduplicate concurrent queries across layout, metadata, and page trees.
+- **Package import optimization**: `experimental.optimizePackageImports` in `next.config.mjs` turns barrel imports into leaf imports for heavy packages (`lucide-react`, `framer-motion`, `three`, `@stripe/react-stripe-js`, `@payloadcms/ui`).
+- **Heavy client component isolation**: modules containing large client-only runtimes (e.g. `three.js` for 3D visualizers, Monaco, CartDrawer) must be lazy-loaded via `next/dynamic({ ssr: false })` so they are excluded from the critical-path initial HTML and JS bundle.
+- **Query depth & field constraints**: avoid unconstrained `depth: 10` queries. Constrain `depth` (0–2), `limit`, and specify `select` fields wherever possible to minimize JSON serialization and database overhead.
+- **Builder index caching**: `packages/plugin-pc-builder/src/lib/builder-index.ts` maintains an in-memory 30s TTL cache with composite `rulesVersion` invalidation on writes.
 
 ## turbo strict env mode
 

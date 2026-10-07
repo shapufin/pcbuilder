@@ -31,7 +31,11 @@ export const DerivedPowerRules: CollectionConfig = {
     afterChange: [() => invalidateBuilderIndex()],
     afterDelete: [() => invalidateBuilderIndex()],
   },
-  admin: { useAsTitle: 'id', defaultColumns: ['targetCategory', 'overheadMultiplier', 'baseWatts', 'severity'] },
+  admin: {
+    useAsTitle: 'id',
+    defaultColumns: ['targetCategory', 'overheadMultiplier', 'baseWatts', 'severity'],
+    group: 'PC Builder',
+  },
   fields: [
     { name: 'targetCategory', type: 'relationship', relationTo: 'component-categories', required: true },
     {

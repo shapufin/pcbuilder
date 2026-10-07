@@ -102,7 +102,12 @@ export const ConfiguredBuilds: CollectionConfig = {
   hooks: {
     beforeChange: [validateConfiguredBuild],
   },
-  admin: { useAsTitle: 'name', defaultColumns: ['name', 'user', 'status', 'priceSnapshot'] },
+  admin: {
+    useAsTitle: 'name',
+    defaultColumns: ['name', 'user', 'status', 'priceSnapshot', 'updatedAt'],
+    listSearchableFields: ['name', 'shareId'],
+    group: 'PC Builder',
+  },
   fields: [
     { name: 'name', type: 'text', required: true },
     {

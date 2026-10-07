@@ -1,0 +1,138 @@
+/* Nexus skin — shared-surface overrides only (entry 71, gap fix #2).
+   `nx-*` component styles live in apps/web/src/themes/nexus/nexus.css so a
+   visitor alt-toggle (which disables #theme-skin) never unstyles the nexus
+   chrome; this file only re-skins surfaces that exist under EVERY preset:
+   PDP, shop grid/sidebar, cart drawer, checkout, product-card, buttons,
+   inputs. Injected into <style id="theme-skin"> by the root layout after
+   every app stylesheet. Token references keep it drift-free. */
+
+/* Dark scrollbars + cyan selection, matching the skin contract. */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-hover);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+* {
+  scrollbar-color: var(--color-surface-hover) var(--color-bg);
+}
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* Cards: sharper corners, hairline borders, cyan hover glow. */
+.product-card,
+.category-card,
+.order-summary,
+.buy-box {
+  border-radius: var(--radius-sm);
+  border-color: var(--color-border);
+}
+
+.product-card {
+  transition: transform var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.product-card:hover,
+.category-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-glow);
+}
+.product-card__brand,
+.buy-box__stock,
+.order-summary__line-qty {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+}
+
+/* Buttons: nexus reads as squared, uppercase, display-font. */
+.btn {
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--text-xs);
+}
+.btn--primary:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Inputs: hairline focus ring in cyan. */
+.input:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* PDP: buy-box becomes a bordered console panel. */
+.pdp .buy-box {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: inset 0 1px 0 var(--color-surface-hover);
+}
+.pdp .buy-box__price {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+.pdp .spec-row__key,
+.compat-list__key {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+}
+
+/* Shop sidebar filters: mono labels, cyan active state. */
+.filter-group__title,
+.filter-list__count,
+.result-count {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+.filter-list a[aria-current='true'] {
+  color: var(--color-accent);
+}
+.pagination a[aria-current='page'] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* Cart drawer + checkout: panel borders sharpen, totals read mono. */
+.cart-drawer {
+  border-left: 1px solid var(--color-border-strong);
+}
+.order-summary {
+  border: 1px solid var(--color-border);
+}
+.order-summary__row--total,
+.checkout-form__legend {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+.checkout-form__section {
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Wishlist stale / misc badges keep readable contrast under the palette. */
+.badge {
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+}

@@ -15,11 +15,26 @@ export const TaxRates: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'country', defaultColumns: ['country', 'rate', 'isDefault', 'enabled'] },
+  admin: {
+    useAsTitle: 'country',
+    defaultColumns: ['country', 'rate', 'isDefault', 'enabled'],
+    listSearchableFields: ['country'],
+    group: 'Store',
+  },
   fields: [
-    { name: 'country', type: 'text', admin: { description: "Country code, or 'default'" } },
-    { name: 'rate', type: 'number', required: true, admin: { description: 'VAT percent, e.g. 20' } },
-    { name: 'isDefault', type: 'checkbox', defaultValue: false, admin: { description: 'Used when the shipping country is unknown' } },
-    { name: 'enabled', type: 'checkbox', defaultValue: true },
+    {
+      type: 'row',
+      fields: [
+        { name: 'country', type: 'text', admin: { width: '50%', description: "Country code, or 'default'" } },
+        { name: 'rate', type: 'number', required: true, admin: { width: '50%', description: 'VAT percent, e.g. 20' } },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'isDefault', type: 'checkbox', defaultValue: false, admin: { width: '50%', description: 'Used when the shipping country is unknown' } },
+        { name: 'enabled', type: 'checkbox', defaultValue: true, admin: { width: '50%' } },
+      ],
+    },
   ],
 }

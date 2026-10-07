@@ -91,6 +91,49 @@
   }
 }
 
+/* ---------- Columns container (entry 74) ---------- */
+
+.blk-columns {
+  display: grid;
+  /* Implicit column tracks at 1fr — count-agnostic equal split. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-6); /* md default */
+  max-width: var(--container);
+  margin-inline: auto;
+}
+
+.blk-columns[data-gap='sm'] {
+  gap: var(--space-4);
+}
+
+.blk-columns[data-gap='lg'] {
+  gap: var(--space-8);
+}
+
+/* wide-left/right: the edge column spans two tracks (2:1 for 2 columns,
+   50/25/25 for 3) — works for any column count without JS. */
+.blk-columns[data-layout='wide-left'] > .blk-columns__col:first-child,
+.blk-columns[data-layout='wide-right'] > .blk-columns__col:last-child {
+  grid-column: span 2;
+}
+
+.blk-columns__col {
+  min-width: 0; /* let narrow columns shrink below content min-width */
+}
+
+@media (max-width: 768px) {
+  .blk-columns {
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+  }
+
+  .blk-columns[data-layout='wide-left'] > .blk-columns__col:first-child,
+  .blk-columns[data-layout='wide-right'] > .blk-columns__col:last-child {
+    grid-column: auto;
+  }
+}
+
 /* ---------- Hero ---------- */
 
 .hero {

@@ -14,7 +14,12 @@ export const DiscountCodes: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'code', defaultColumns: ['code', 'type', 'value', 'usedCount', 'enabled'] },
+  admin: {
+    useAsTitle: 'code',
+    defaultColumns: ['code', 'type', 'value', 'usedCount', 'enabled', 'updatedAt'],
+    listSearchableFields: ['code'],
+    group: 'Store',
+  },
   fields: [
     { name: 'code', type: 'text', unique: true, index: true, required: true },
     { name: 'type', type: 'select', required: true, options: ['percentage', 'fixed', 'freeShipping'], defaultValue: 'percentage' },

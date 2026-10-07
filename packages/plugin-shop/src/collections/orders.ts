@@ -122,6 +122,12 @@ export const ordersCollectionOverride = ({
         } as Field,
       ]),
     ),
+    admin: {
+      ...defaultCollection.admin,
+      defaultColumns: ['id', 'customer', 'status', 'total', 'createdAt'],
+      listSearchableFields: ['id', 'customerEmail'],
+      group: 'Store',
+    },
     access: {
       ...defaultCollection.access,
       read: (({ req }: { req: PayloadRequest }) => {

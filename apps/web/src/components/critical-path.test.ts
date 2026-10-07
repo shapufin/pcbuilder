@@ -24,17 +24,17 @@ describe('critical path', () => {
   })
 
   it('#427 the layout defers the cart drawer behind an ssr:false import', () => {
-    expect(src('../app/layout.tsx')).not.toContain("from '../components/CartDrawer'")
+    expect(src('../app/(frontend)/layout.tsx')).not.toContain("from '../components/CartDrawer'")
     const lazy = src('CartDrawerLazy.tsx')
     expect(lazy).toContain('ssr: false')
     expect(lazy).toContain("import('./CartDrawer')")
   })
 
   it('#428 the add-to-cart chip flight loads its motion chunk on demand', () => {
-    const button = src('../app/product/[slug]/AddToCartButton.tsx')
+    const button = src('../app/(frontend)/product/[slug]/AddToCartButton.tsx')
     expect(button).not.toContain("from '@/lib/fly-to-cart'")
     expect(button).toContain("import('@/lib/fly-to-cart')")
-    const builder = src('../app/builder/kit/useBuildActions.ts')
+    const builder = src('../app/(frontend)/builder/kit/useBuildActions.ts')
     expect(builder).not.toContain("from '@/lib/fly-to-cart'")
     expect(builder).toContain("import('@/lib/fly-to-cart')")
   })

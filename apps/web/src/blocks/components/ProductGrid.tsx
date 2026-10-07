@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getPayloadClient } from '@/lib/shop'
 import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
-import '@/app/shop/shop.css'
+import '@/app/(frontend)/shop/shop.css'
 
 export async function ProductGrid({
   block,
@@ -26,6 +26,14 @@ export async function ProductGrid({
     limit: block.limit && block.limit > 0 ? Math.floor(block.limit) : 4,
     sort: '-createdAt',
     depth: 1,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      brand: true,
+      gallery: true,
+      priceInEUR: true,
+    },
   })
 
   const cols = Number(block.columns ?? 3) || 3

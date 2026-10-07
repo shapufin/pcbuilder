@@ -10,6 +10,7 @@ import { Pages } from './collections/Pages.ts'
 import { shopPlugin } from '@buildmyrig/plugin-shop'
 import { pcBuilderPlugin } from '@buildmyrig/plugin-pc-builder'
 import { pagesPlugin } from '@buildmyrig/plugin-pages'
+import { themeRevalidatePlugin } from './lib/theme-revalidate-plugin.ts'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -32,6 +33,14 @@ export default buildConfig({
     user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    components: {
+      graphics: {
+        Logo: './app/(payload)/admin/components/AdminLogo#AdminLogo',
+        Icon: './app/(payload)/admin/components/AdminIcon#AdminIcon',
+      },
+      actions: ['./app/(payload)/admin/components/AdminHeaderActions#AdminHeaderActions'],
+      beforeDashboard: ['./app/(payload)/admin/components/AdminDashboardMetrics#AdminDashboardMetrics'],
     },
   },
   collections: [Users, Pages],
@@ -60,6 +69,11 @@ export default buildConfig({
         client: {
           url: databaseUri,
         },
+        busyTimeout: 5000,
+        wal: {
+          synchronous: 'NORMAL',
+          journalSizeLimit: 67108864,
+        },
         // Dev convenience: auto-apply schema changes (new collection fields)
         // to the local SQLite file. Postgres uses migrations instead.
         push: true,
@@ -71,5 +85,8 @@ export default buildConfig({
     // Phase 3 → entry 19 (Step B): SEO fields, category top-block zone and the
     // site-settings global now live in @buildmyrig/plugin-pages.
     pagesPlugin({ enabled: true }),
+    // Entry 71: chrome globals (theme/site-settings/mega-menu) revalidate the
+    // layout on save — must run after pagesPlugin to see those globals.
+    themeRevalidatePlugin(),
   ],
 })

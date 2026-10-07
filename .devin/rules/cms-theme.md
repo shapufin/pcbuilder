@@ -1,7 +1,7 @@
 ---
 description: "CMS pages/blocks/theme pointer"
 trigger: glob
-globs: "packages/{plugin-pages,ui}/**, apps/web/src/{blocks,components,app/{shop,wishlist}}/**"
+globs: "packages/{plugin-pages,ui}/**, apps/web/src/{blocks,components,app/(frontend)/{shop,wishlist}}/**"
 ---
 
 Touching pages, blocks, theme, or site settings — read

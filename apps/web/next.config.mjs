@@ -2,6 +2,9 @@ import { withPayload } from '@payloadcms/next/withPayload'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Next 16 blocks cross-origin dev resources by default; allow the IP-based
+  // URLs we browse with (127.0.0.1, LAN) so /_next HMR + chunks load.
+  allowedDevOrigins: ['127.0.0.1', '192.168.0.63'],
   experimental: {
     // Opt-in worker cap for page-data collection — 15 workers OOM on
     // memory-constrained machines (entry-55 build gotcha). Guarded: NaN,
@@ -10,6 +13,13 @@ const nextConfig = {
       const n = Number(process.env.NEXT_BUILD_CPUS)
       return Number.isInteger(n) && n > 0 ? n : undefined
     })(),
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      'three',
+      '@stripe/react-stripe-js',
+      '@payloadcms/ui',
+    ],
   },
   transpilePackages: [
     '@buildmyrig/lib',

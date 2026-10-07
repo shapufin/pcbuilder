@@ -176,6 +176,46 @@ const RIG_DARK_EXTRAS: Record<string, string> = {
 }
 
 /**
+ * Nexus design tokens — ported from the AI Studio "shop layout" app
+ * (entry 71). Same 9-key extras contract as every preset; the `--nx-*`
+ * component layer in apps/web themes/nexus references these vars (and the
+ * shared colors) via var() so the visitor alt-toggle yields a coherent
+ * light Nexus rather than an unstyled page.
+ */
+const NEXUS_COLORS: ThemeColors = {
+  bg: '#080b11',
+  surface: '#0c101a',
+  surfaceRaised: '#101622',
+  surfaceHover: '#1a2233',
+  border: '#222b3d',
+  borderStrong: '#3a4763',
+  text: '#dbe2ee',
+  textMuted: '#8a93a6',
+  primary: '#0070f3',
+  primaryStrong: '#0056bd',
+  primaryHover: '#0080ff',
+  primaryHoverStrong: '#004fae',
+  onPrimary: '#ffffff',
+  success: '#34d399',
+  successStrong: '#10b981',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#00eefc',
+}
+
+const NEXUS_EXTRAS: Record<string, string> = {
+  accent: '#00eefc',
+  scrim: 'rgba(4, 6, 10, 0.78)',
+  'primary-glow': 'rgba(0, 238, 252, 0.4)',
+  'primary-soft': 'rgba(0, 112, 243, 0.14)',
+  'warning-soft': 'rgba(251, 191, 36, 0.08)',
+  'danger-soft': 'rgba(248, 113, 113, 0.1)',
+  'info-soft': 'rgba(0, 238, 252, 0.08)',
+  'success-soft': 'rgba(52, 211, 153, 0.12)',
+  focus: '#00eefc',
+}
+
+/**
  * Design presets — the admin GUI "theme swap". Each entry is a shipped
  * design: a token set the admin selects in the Theme global. `skin` names an
  * optional CSS overlay in @buildmyrig/ui/skins/ that the root layout injects
@@ -191,6 +231,13 @@ export type ThemePresetDef = {
   extras: Record<string, string>
   /** Skin overlay filename in @buildmyrig/ui/skins/ (optional). */
   skin?: string
+  /**
+   * Component pack id (entry 71). Presets without a pack render the shared
+   * storefront chrome; a pack swaps header/footer and unlocks pack-specific
+   * surfaces. Ids are code-defined — apps/web maps them onto a closed
+   * component registry, never a DB-supplied module path.
+   */
+  pack?: string
 }
 
 export const THEME_PRESETS = {
@@ -207,6 +254,19 @@ export const THEME_PRESETS = {
     colors: RIG_DARK_COLORS,
     extras: RIG_DARK_EXTRAS,
     skin: 'rig-dark.css',
+  },
+  /**
+   * Nexus — full component pack ported from the AI Studio "shop layout"
+   * storefront (entry 71). Selecting it swaps SiteHeader/SiteFooter for the
+   * Nexus chrome (mega menu, telemetry strip, ⌘K search, sound toggle, cart
+   * popover) and enables nexus-* blocks; `nexus.css` reskins shared surfaces.
+   */
+  nexus: {
+    label: 'Nexus',
+    colors: NEXUS_COLORS,
+    extras: NEXUS_EXTRAS,
+    skin: 'nexus.css',
+    pack: 'nexus',
   },
 } satisfies Record<string, ThemePresetDef>
 

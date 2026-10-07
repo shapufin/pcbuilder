@@ -2,6 +2,553 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-06 (78) — Payload Admin CMS UI/UX Redesign & Multi-Skin System ("Precision Dark")
+
+Comprehensive back-office redesign and modernization of Payload CMS 3.90.2 Admin interface:
+
+1. **"Precision Dark" Design System (`apps/web/src/app/(payload)/admin.css`)**:
+   - High-contrast matte glass surfaces, tokenized elevation depths (`--theme-elevation-*`), and cyberpunk/industrial accents.
+   - Refined typography, custom scrollbars, pill badges, and elevated form inputs.
+   - 100% tokenized CSS variables; zero raw hex in TSX files (`eslint` verified).
+
+2. **Swappable Multi-Theme GUI Engine**:
+   - 4 built-in back-office skins: `precision-dark` (default), `cyber-neon`, `light-clean`, and `classic-payload`.
+   - Real-time skin dropdown in admin header actions (`AdminHeaderActions.tsx`) with instant cookie & `localStorage` synchronization.
+   - Configurable default admin theme in `SiteSettings` global (`SiteSettings.ts`, `site-settings.ts`, `site-settings.test.ts` test #450).
+
+3. **Custom Branding & Header Quick-Actions**:
+   - Custom vector isometric RIG Studio logo (`AdminLogo.tsx`) and favicon icon (`AdminIcon.tsx`).
+   - Storefront quick launcher (`🚀 Storefront ↗`) directly from admin header.
+
+4. **Executive Dashboard & Quick Actions (`AdminDashboardMetrics.tsx`)**:
+   - Live telemetry KPI widgets: Total Revenue, Configured Builds count/status, Rule Matrix status, and deep Analytics presets.
+   - 1-click action launchers for creating components, products, templates, CMS pages, and launching the live builder.
+
+5. **Clean Domain-Based Navigation Hierarchy**:
+   - Categorized all 22 collections and 3 globals into logical sidebar groups: `PC Builder`, `Store`, `Content`, `Settings & Design`, and `System`.
+   - Restyled custom telemetry views (`/admin/build-stats`).
+
+**Verification & Quality Gates**:
+- `pnpm test`: 221/221 web tests + all workspace package tests green (incl. #450).
+- `pnpm -r typecheck`: 0 errors across all 6 packages.
+- `pnpm lint`: 0 errors (strict design token purity maintained).
+- `pnpm workflow:check`: PASSED.
+- `pnpm build`: Next.js production build succeeded.
+- `playwright test e2e/admin-crawl.spec.ts`: All 49 admin routes crawled cleanly with 0 errors.
+
+## 2026-10-06 (77) — Comprehensive UI/UX audit, CMS flexibility scorecard & remediations
+
+End-to-end audit across Storefront (`/`, `/shop`, PDP, `/cart`, `/checkout`, `/builder/configure`, `/explorer`),
+Theme toggle (`rig-dark` vs light alt-toggle vs `nexus` pack), and Payload CMS Admin (`/admin`, `RuleManagerView`,
+`BuildStatsView`, `MegaMenuPreview`, `SpecFieldsField`, `Theme` global, `Pages` block editor). 26+ screenshot
+artifacts captured; flexibility scorecards documented (`audit_visual_report.md`, `audit_flexibility_report.md`).
+
+Fixes and remediations landed:
+- **Packaging Tier cart line fallback [P0]** (`packages/plugin-shop/src/lib/packaging.ts`): Gracefully
+  resolves missing/disabled packaging tiers to `price: 0` (default tier) rather than throwing a 422 `APIError`
+  that crashes checkout cart lines.
+- **Extended Socket Platforms [P1]** (`packages/plugin-pc-builder/src/lib/platforms.ts`, `packages/lib/src/rule-engine.ts`):
+  Expanded `SOCKET_PLATFORM` and `Socket` type to support AM4, AM5, sTR5, sTRX4, LGA1200, LGA1700, LGA1851,
+  LGA2066, and extensible custom socket maps.
+- **Nexus Mega-Menu Tablet Stacking [P2]** (`apps/web/src/themes/nexus/nexus.css`): Added `@media (max-width: 900px)`
+  single-column layout with scrolling to prevent grid clipping on tablets.
+- **Builder Modal Scroll-Lock** (`rig-studio.css`): Added `overscroll-behavior: contain` and `touch-action: none`
+  to `.studio-modal` and backdrop to prevent mobile touch drift.
+- **Cart Drawer Sticky CTA** (`apps/web/src/components/shell.css`): Added `min-height: 0` to `.cart-drawer__list`
+  grid row ensuring the checkout button remains sticky and accessible.
+
+Verified: `pnpm test` (221/221 passed), `pnpm -r typecheck` (6/6 packages clean), `pnpm lint` (0 errors),
+`pnpm workflow:check` PASSED.
+
+## 2026-10-05 (76) — Route-group root-layout split: `/admin` nested-`<html>` fix
+
+Dev-console hydration storm on `/admin` — root cause was structural, not an
+attribute mismatch: a top-level `app/layout.tsx` wraps EVERY route under
+`app/` including route groups, so `(payload)/admin` rendered the storefront
+`<html>` + chrome with Payload's own `<html data-theme dir>` mounted inside
+`<div id="main-content">` (invalid HTML; duplicate html/body mounts;
+Payload's theme boot script mutating the storefront `<html>` pre-hydration).
+
+Fix = official Payload template shape:
+
+- All storefront routes/metadata moved to `src/app/(frontend)/` (page.tsx,
+  `[slug]`, shop, builder, auth, account, cart, checkout, explorer, product,
+  wishlist, build, api/, globals.css, icon.svg, robots.ts, sitemap.ts,
+  error/loading/not-found, `_HomeFallback`). URLs unchanged — route groups
+  don't contribute to the path.
+- `src/app/(payload)/layout.tsx` is now the group root layout (Payload
+  `RootLayout` + serverFunction + importMap, moved up from
+  `admin/[[...segments]]/layout.tsx` which was deleted). No top-level
+  `app/layout.tsx` exists anymore.
+- `(frontend)/layout.tsx`: `../`→`../../` on the 9 imports escaping to
+  `src/`; `suppressHydrationWarning` on `<html>` (Payload theme script +
+  browser extensions mutate it pre-hydration — same guard as the theme
+  style tags, entry 63).
+- Repointed imports: `@/app/(frontend)/shop/shop.css` (ProductGrid),
+  `@/app/(frontend)/builder/builder-store` (TemplatesCarouselClient),
+  `CartDrawer.test.tsx` fs paths.
+- `next.config.mjs`: `allowedDevOrigins: ['127.0.0.1', '192.168.0.63']` —
+  Next 16 blocks cross-origin dev resources; browsing via 127.0.0.1 left
+  /admin non-functional (blocked `/_next` HMR + chunks).
+- Sweep+workflow updates: `.devin/rules/{builder,commerce,security,
+  cms-theme}.md` globs → `(frontend)`; context 01/02/04 + PROJECT_INDEX +
+  `.gitignore` comment + two package doc-comments repointed; two new
+  06-gotchas bullets (root-layout-applies-to-groups + blast-radius
+  checklist; PowerShell `[[...]]` wildcard silent-no-op + `-LiteralPath`).
+
+Verified: `/admin` serves a single Payload document (was: 2 `<html>` tags)
+with **0 console errors** in a real browser; `/` single storefront document
+console-clean; `/shop` `/builder` `/auth/login` `/api/users/me`
+`/sitemap.xml` `/robots.txt` all 200; `tsc --noEmit` clean (stale
+`.next/types/validator.ts` deleted + regenerated); eslint clean on touched
+files; CartDrawer 5/5.
+
+## 2026-10-05 (75) — Full test-user browser walkthrough → 3 real fixes
+
+Live guest→registered-user journey on the seeded Nexus storefront (uisight
+desktop 1440px + Pixel 7, cloakbrowser): browse → PDP → cart → builder
+template → deploy → checkout (packaging + discount) → explorer → wishlist →
+register → account → mobile menu. Three bugs found and fixed:
+
+- **`refreshCart()` 403 on guest carts (upstream defect)** — the ecommerce
+  provider's `refreshCart` called `getCart(cartID)` *without* `{ secret:
+  cartSecret }` while every other call site passes it. Symptom: "Could not
+  apply the discount code — try again." on a **200** apply-discount (the
+  secret-less refetch 403'd and threw into the catch). Same latent failure on
+  shipping-country apply, `/cart` mount refresh, and post-deploy builder
+  refresh. Fixed at the source — new hunk in
+  `patches/@payloadcms__plugin-ecommerce@3.90.2.patch` passes
+  `{ secret: cartSecret }`; all four call sites healed at once.
+- **`cartsFetchQuery` never selected cart totals** — the plugin's base select
+  is `{items, subtotal}`; checkout reads `discountTotal/shippingTotal/
+  taxTotal/total/discountCode` off the provider cart and silently fell back
+  (`?? 0`, `?? subtotal`). Discounts applied server-side but were invisible
+  in the summary; shipping always showed "Free". `EcommerceShell` now selects
+  the totals fields (verified: WELCOME10 → −€53.80 discount, €5.95 shipping,
+  €81.69 VAT, €490.15 total — matching the DB row exactly).
+- **Mobile header horizontal overflow** — `.nx-actions` (theme + sound +
+  account + wishlist + cart label + burger) exceeded 412px viewports (measured
+  450px). Fix: `<1024px` hides `.nx-actions > a` text links and
+  `.nx-cart-btn__text`; `AccountNav`/`WishlistNav` gained optional `className`
+  and now render inside the burger menu (Account + Wishlist entries) so mobile
+  keeps the paths. Cart icon retains count badge + aria-label.
+
+**Verified live**: packaging picker (Pelican +€129 → summary line + badge),
+deploy pipeline 4/4 stages (compat matrix, power envelope 542W/750W,
+manifest share-token, composite cart line — `lineType:'configured-build'`
+persisted in `carts_items`), explorer auto-mount (4/8 → 8/8 slots resolving
+real products), guest wishlist, register → auto-login → `/account` with cart
+carried over (guest→user transfer path), ⌘K search (debounced
+`/api/products`, results → PDP), mobile burger menu post-fix.
+
+**Environmental notes**: dev node wedged twice under sustained browser+compile
+load (accepts TCP, never responds — kill orphaned node + restart); dummy
+Stripe keys mount the checkout form but payment initiation can't be exercised
+without real test keys (unchanged DoD blocker); guest cart localStorage is
+cleared on fetch failure by design (provider error path).
+
+Gates after fixes: unit **607** green (web 221 incl. earlier rounds), `apps/web`
+typecheck + lint clean. Files: `patches/@payloadcms__plugin-ecommerce@3.90.2.patch`,
+`EcommerceShell.tsx`, `AccountNav.tsx`, `WishlistNav.tsx`,
+`NexusHeaderClient.tsx`, `nexus.css`.
+
+## 2026-10-05 (74) — `columns` container block (horizontal layout primitive)
+
+Closes the "blocks stack vertically, period" gap found in the
+admin→frontend wiring review. **`columns`** is a second container block
+mirroring the `section` contract:
+
+- `blocks/columns.ts` — Columns tab: `columns` array (minRows 2, maxRows 4),
+  each row nesting a `blocks` field over **`columnChildSlugs`**
+  (page-level blocks minus `section` and `columns` — no recursion,
+  `blockReferences` + `filterOptions` server-enforced); Layout tab: closed
+  `layout` (equal / wide-left / wide-right — edge column spans 2 tracks) and
+  `gap` (sm/md/lg → token spacing) selects.
+- `slugs.ts` — `columns` appended to `pageBlockSlugs`; `sectionChildSlugs`
+  auto-includes it (columns **inside** sections = the key composition:
+  alt-background band with a 2-col split inside).
+- `apps/web`: `components/Columns.tsx` (data-layout/data-gap attributes,
+  closed-allowlist `pick()` like Section; `renderBlocks(col.blocks,
+  'Columns')`), registry entry, `blocks.css` `.blk-columns` —
+  `grid-auto-flow: column` + `grid-auto-columns: 1fr` gives a count-agnostic
+  equal split; `wide-*` spans the edge column 2 tracks; stacks vertically
+  ≤768px.
+- `payload-types` regenerated (`ColumnsBlock` in page-layout + section
+  children unions). New blocks need one `pnpm dev` boot for the SQLite
+  schema push (`pages_blocks_columns` table) before the drawer accepts them.
+
+**Verification**: RED → GREEN — #454 (block shape + closed selects + no
+section/columns nesting), #455/#455b/#455c (component: data attrs, junk
+fallback, `[Columns]` warn label), #116/#154 list pins updated, #156 count
+pin bumped 18→19 (drift guard caught it — working as intended). Unit web
+221, pages 41 = **607 total**; typecheck 6/6; lint 4/4.
+
+## 2026-10-05 (73) — Mega-menu admin UX (live preview + row labels)
+
+The `mega-menu` global was already editable under **Globals → Theme →
+Mega menu** (`/admin/globals/mega-menu`); this round makes it *visual*:
+
+- **`MegaMenuPreview`** (`plugin-pages/src/admin/MegaMenuPreview.tsx`) — a
+  `type:'ui'` field at the top of the global renders a live flyout mock: it
+  reads the **unsaved** form state via `useForm().getDataByPath('sections')`
+  and pipes it through the real `resolveMegaMenu`, so the preview applies the
+  exact storefront contract (unsafe URLs dropped, unknown icons stripped,
+  empty sections = hidden trigger, no-doc = defaults). Promo image ids are
+  resolved to thumbnails via `/api/media/:id?depth=0` (stored value is an id,
+  so `imageUrl` is empty in form state — the fetch fills the gap). Styled
+  with `--theme-*` admin vars per the `ConflictsField` precedent.
+- **`MegaMenuRowLabel`** (`src/admin/MegaMenuRowLabel.tsx`) — `useRowLabel()`
+  labels collapsed `sections`/`items` rows with `title`/`label` + item count
+  instead of "Section 03".
+- **plugin-pages toolchain** — first client admin components in the package:
+  `tsconfig` gained `"jsx": "react-jsx"`; devDeps gained `react` +
+  `@types/react` (mirroring plugin-pc-builder; `@payloadcms/ui` resolves
+  transitively like it does there).
+- Regenerated `importMap.js` (per the admin-components rule — dev server
+  must be stopped) + `payload-types` (no churn: ui fields aren't data).
+
+**Verification**: #453 pins the ui-field + RowLabel specifiers (RED → GREEN);
+plugin-pages 12/12 in `plugin.test.ts` (40 total), gates trio green —
+603 unit, typecheck 6/6, lint 4/4. Not yet exercised against a live admin
+session — worth a one-time visual check on the next `pnpm dev` boot.
+
+**Self-review fixes** (same entry): promo-thumb pairing filtered raw rows by
+the resolver's title-skip predicate — an untitled row would have shifted
+indexes and paired a thumbnail with the wrong section column; `useRowLabel`'s
+`rowNumber` is the 0-based `rowIndex` (verified in `@payloadcms/ui` dist —
+the stock label does `rowIndex+1`), fallback now renders `Row 01`-style;
+duplicate media ids across sections deduped before fetch.
+
+## 2026-10-05 (72) — Review-fix round on entries 68+71
+
+Review of the uncommitted Nexus/auto-compat work produced one MEDIUM and a
+set of LOWs; all fixed:
+
+- **Mega-menu click dead-zone (was MED)**: the flyout panel is a DOM sibling
+  of the trigger wrap, so the outside-`mousedown` handler counted every
+  in-panel press as "outside" — the menu unmounted before `click` dispatched
+  and panel links never navigated. `menuPanelRef` + shared `isInMenu()`
+  containment covers both; trigger `onMouseLeave`/`onBlur` now close only
+  when pointer/focus lands outside the whole menu (also fixes the
+  open-forever hover/focus leak).
+- **Stale persisted path (M1)**: a draft/`?path=` value the live index no
+  longer offers (last AMD part deleted, fresh DB) filtered every bound option
+  out while `PathSwitcher` self-hides below two platforms — dead-end funnel.
+  New `pathIsOffered()` guard clears stale stored paths on index resolve and
+  ignores unoffered `?path=` params before clearing picks; runs before path
+  inference so a cleared draft still derives from remaining picks.
+- **RigVisualizer**: a second extract-click inside the 420ms nav window now
+  clears the pending timer (a stale push to the first part's slug could fire
+  mid-flight); dropped `renderer.forceContextLoss()` — StrictMode re-runs the
+  `[]` effect on the same canvas and a lost context never recovers (blank
+  canvas in dev); `dispose()` is sufficient.
+- **applyTemplate re-inference (L4)**: the provider's `applyTemplate` action
+  re-infers the path from restored picks — the mount-time once-guard doesn't
+  cover mid-session applies; store comment corrected to match.
+- **pathVisible perf (L5)**: new `makePathVisible(index, path)` curry builds
+  the in-path ramTypes set once instead of per option row; `pathVisible`
+  delegates to it.
+- **Lint**: `setWebglFailed` in the renderer-constructor catch deferred via
+  `queueMicrotask` (`react-hooks/set-state-in-effect`).
+- **e2e hardening** (full-suite run surfaced three latent issues): new
+  `e2e/helpers.ts` `withClassicChrome()` pins `rig-dark` in `beforeAll` and
+  restores the prior preset in `afterAll` — the entry-71 seed now defaults to
+  `nexus`, so `smoke`/`search-wishlist`/`cart-drawer` were asserting classic
+  chrome (banner `Cart` link, inline `searchbox`) under the Nexus header;
+  smoke's hero-CTA assertion accepts the Nexus-seeded "Browse the catalog"
+  label (the 404-regression contract is the `/shop` href, not the label);
+  cart-drawer gained a `toHaveURL(/\/shop\/cpu/)` wait between the two nav
+  clicks — `.first()` could grab a product link mid-transition and the click
+  silently went nowhere (the flake reproduced twice).
+- **`PackagingPicker` typecheck**: `adoptCart(cartId as number)` matching the
+  `useBuildActions` convention (the regenerated ecommerce patch exposes
+  `adoptCart(cartID: DefaultDocumentIDType)`; `cart.id` is `string | number`).
+
+**Verification**: unit web 218, pc-builder 113 (+#451/#452), pages 39 (+#450
+pinning the mega-menu `featuredPromo.url` optional-empty contract — the seed
+was hitting a 400 on the untouched group subfield, now validated as omitted),
+shop 150, lib 80, ui 2 = **602 total**; typecheck 6/6; lint 4/4; build 25/25;
+**e2e 21/21** (two `ERR_INSUFFICIENT_RESOURCES` `page.goto` failures were
+host memory pressure — an orphaned 720 MB prod server + dev server + ~140
+node/MCP processes; both passed in isolation after cleanup; `pnpm build`
+needs `.env` sourced in the shell — turbo strict env only forwards
+shell-inherited allowlisted vars).
+
+**Live-QA round on a fresh scratch DB** (seeded Nexus storefront, mobile +
+desktop sessions):
+
+- **Fresh-DB seed verified end-to-end** — `pnpm seed` on an empty scratch
+  SQLite (after dev-boot schema push, server stopped to avoid concurrent
+  pushes): all Nexus globals, prebuilt SKUs + `prebuilt-tier` facet, real
+  jpgs, and the nexus-composed homepage landed. Seed now writes stable slug
+  `id`s on packaging tiers (`standard-crate`/`armor-transit`/`pelican-vault`)
+  — the field is required+unique and cart lines key off it.
+- **Packaging endpoint verified live**: guest cart → tier select → single
+  repriced `lineType:'packaging'` line, qty clamped 1, totals server-recomputed
+  (€599 → €728 with Pelican Vault), clear via `tier:null`; owner-or-secret
+  404s and empty-cart 422 confirmed. **Found + fixed**: `PackagingPicker`
+  called `refreshCart()`, which refetches *without* the guest secret → 403 →
+  stale totals + an error below the fold. Switched to the entry-67
+  `adoptCart(cartId, { secret })` patch API — refetch now carries the secret.
+- **WebGL-less environments no longer crash the hero**: `new
+  THREE.WebGLRenderer()` throws when context creation fails (headless/GPU-
+  blocked browsers) — it was escaping the mount effect into the route error
+  boundary, taking the whole homepage body down. Caught → `nx-rig__fallback`
+  panel ("3D preview unavailable — use the part labels"); labels still work
+  (they navigate to categories). Verified live in a context-blocked session.
+- **Slot explorer FX gated on reduced motion**: particle burst + board shake
+  now skip under `prefers-reduced-motion` (mount still works); RigVisualizer
+  ambient spin already gated. CSS layer already covered the keyframe FX.
+- **Skip-link/sticky offsets fixed under Nexus**: `--header-h` redeclared on
+  `body[data-theme-pack='nexus']` (65px mobile / 93px desktop — telemetry
+  strip adds ~28px) so the WCAG 2.4.1 skip link and every sticky sidebar
+  (builder/cart/checkout/PDP) clear the taller shell instead of landing 45%
+  behind it.
+- **PDP polish**: when every `specsJson` key is Nexus meta the generic spec
+  table rendered "Specifications / No specs listed." under a populated
+  extras panel — the section now hides in that case (non-Nexus PDPs
+  unchanged).
+- **Admin smoke**: Theme preset select shows Nexus; mega-menu +
+  packaging-tiers globals edit in the GUI (tier rows show the stable ids);
+  Home page layout lists all four Nexus blocks + Templates Carousel.
+- Known-minor, by design: compact header icon targets (~30px) and 9–11px
+  mono micro-labels flag sub-44px/<12px in uisight but pass WCAG 2.5.8 AA
+  (24px) and match the source mock's density. Admin-in-storefront-chrome +
+  nested-`<html>` hydration noise is pre-existing, not Nexus-introduced.
+
+## 2026-10-05 (71) — Nexus theme pack — component port complete
+
+Design: `docs/buildmyrig-plan/21-nexus-theme-design.md`. Plan:
+`~/.devin/plans/plan-9980f28913a63396.md`. The `shop layout/` AI Studio mock
+is ported as swappable preset **pack** `nexus` — admin picks it in the Theme
+global and the whole storefront switches chrome + gains nexus surfaces.
+
+- **Pack plumbing (earlier in the round)**: `ThemePresetDef.pack`,
+  `THEME_PRESETS.nexus` (skin `nexus.css` + pack `nexus`),
+  `getThemeAssets()` React-cached, layout `data-theme-pack` + Jakarta/JetBrains
+  font vars + Nexus header/footer swap, Theme `afterChange` → layout
+  revalidation.
+- **Two CSS layers**: `packages/ui/skins/nexus.css` = shared-surface skin
+  (PDP/shop/cart/checkout/packaging cards/buttons — dies with the visitor
+  alt-toggle by design); `themes/nexus/nexus.css` = always-bundled `nx-*`
+  component layer, token-only colors + `--nx-*` aliases on
+  `body[data-theme-pack='nexus']`, `prefers-reduced-motion` gates.
+- **Chrome**: NexusHeader (telemetry strip from `site-settings.announcements`,
+  mega-menu from the `mega-menu` global, ⌘K search modal on the real products
+  REST endpoint, `bmr_sound` toggle, cart popover, mobile drawer) +
+  NexusFooter.
+- **Blocks**: `nexusHero` / `nexusCategoryMatrix` / `nexusProductRail` /
+  `nexusSlotExplorer` defs + renderers + registry wiring (page-level only).
+- **Slot explorer**: `slot-explorer.server.ts` resolves per-slot overrides →
+  first published product per mapped category; client board does
+  mount-click → canvas spark burst + shake + sounds, mounted click →
+  product/category nav (navigation-only, no add-to-cart). Standalone
+  `/explorer` is `force-dynamic` for preset-swap e2e.
+- **Commerce**: `packaging-tiers` global + `POST /api/carts/:id/packaging`
+  (owner-or-secret, rate-limited, server-priced `lineType:'packaging'` +
+  `lineLabel`, qty clamped to 1); `PackagingPicker` sits before payment so
+  the tier lands inside the PaymentIntent; cart/checkout/drawer/email label
+  fallbacks updated.
+- **PDP**: `NexusPdpExtras` chips read product-level `specsJson` meta keys
+  (`specMeta`, css-color whitelist on `colorHex`); those keys drop from the
+  generic spec table via `specRowsExcept`.
+- **RigVisualizer**: ~960-line three.js port — drag-orbit, raycast
+  hover-detach, click-extract → `/shop/[slug]` nav, snap-mount banner, 5
+  lighting themes; `next/dynamic ssr:false` via `NexusRigLazy` keeps the
+  ~555 KB three chunk out of the entry bundle (verified vs build-manifest);
+  canvas fillStyles rewritten to `rgb()/rgba()` + `0x` materials to satisfy
+  the raw-hex lint; reduced-motion pauses fan spin + RGB breathing.
+- **Seed/hygiene**: fresh-DB seed → `theme.preset='nexus'`, announcements,
+  mega-menu, packaging tiers, `Pre-Built Rigs` category + 3 prebuilt SKUs
+  w/ `prebuilt-tier` facet, product `specsJson` meta, Nexus homepage blocks,
+  4 real jpgs (`src/seed-assets/`) on mapped products; `shop layout/`
+  gitignored.
+
+**Verification**: unit web 218/218, pc-builder 111/111, pages 38/38, shop
+150/150; typecheck 6/6; lint 4/4; build 25/25 (`/explorer` ƒ); **e2e 21/21**
+incl. new `nexus.spec.ts` (login → `POST /api/globals/theme` preset→nexus →
+`/explorer` asserts nx DOM → restore). `pnpm audit --prod --audit-level high`
+clean (1 low, 1 ignored-high pre-existing); `workflow:check` PASS.
+
+**Notes**: globals updates are `POST /api/globals/:slug` — the e2e initially
+used PATCH (404); the running prod server needed no restart because the theme
+`afterChange` revalidates the layout. Stale dev DB shows the SQLite
+`site_settings_announcements` fallback warning at build — schema push only
+happens on a `pnpm dev` boot (pre-existing drift, falls back cleanly).
+
+## 2026-10-04 (68) — Spec templates + auto-derived compat + platform path
+
+Design: `20-spec-templates-auto-compat-design.md` (approved; reviewer round
+folded in 10 findings). Plan: `~/.devin/plans/plan-spec-templates-auto-compat.md`.
+Three features, all TDD RED→GREEN:
+
+- **A. Per-category spec templates** — `lib/spec-templates.ts` registry
+  (category slug → ordered field defs with label/unit/type/options) over the
+  unchanged `specsJson` storage. Admin: `SpecFieldsField` ui-field on
+  `components` renders the template as a real form (`useField('specsJson')` +
+  `useFormFields('category')` id→slug hop via REST), writes on user edits only,
+  preserves unknown keys; raw JSON moved into a collapsed "Advanced" row.
+  `ComponentDisplay.specLabels` carries label+unit to option chips
+  (`OptionCard` cosmetics now render "VRAM · 12 GB" instead of `vram: 12`).
+- **B. Derived rules** — `lib/derived-rules.ts` synthesizes standard relations
+  at `buildBuilderIndex` time (cpu↔mobo socket, ram↔mobo ramType, mobo-ff↔case
+  FFs, gpu-length↔case-max, cpu-socket→cooler support, NVMe→mobo — **not SATA**,
+  not PSU, not PCIe), explicit per-direction rows, deduped against authored
+  rules. Engine untouched. Seed table shrank from ~40 authored rows to genuine
+  specials only (2000D×4080, PSU headroom warns); `#437`-proof: standard rules
+  can be deleted entirely and compat still works.
+- **C. Platform path** — `lib/platforms.ts` (`SOCKET_PLATFORM` map AM5→amd,
+  LGA1700/1851→intel; `platformsForComponent`/`builderPaths`/`pathVisible`/
+  `pathBoundCategoryIds`/`inferPath`). Store `path` persisted + sanitized +
+  reset on fresh/template; provider `actions.setPath` clears the 4 bound slots
+  (cpu/mobo/ram/cooling) on engage/switch, keeps picks when widening to "no
+  preference"; `?path=` hydration + post-index inference from restored picks;
+  `optionsFor`/`optionRows` hard-filter at provider level (both designs get it
+  free). UI: landing `path-row` pills (AMD/Intel/No preference → `?path=`),
+  shared `kit/PathSwitcher` mounted in `StudioHeader` + classic `.cfg-path`,
+  `window.confirm` guard before a destructive switch.
+
+**Verification**: new unit tests `#436–#437` + plugin suites (derived-rules
+11, platforms 13, spec-templates 4); plugin 96/96, web 218/218, typecheck 6/6,
+lint 4/4, build 25/25, **e2e 20/20** incl.
+new spec: `?path=amd` shows only Ryzen CPUs (Intel absent, not disabled), pick
+→ switch to Intel → confirm → bound picks cleared + Intel cards render.
+
+**Notes**: stale dev DB still lacks `specsJson`/`case-fan` (gotcha #22) but
+derived rules + platforms read typed fields — compat and path filter work on
+the stale DB anyway. `importMap.js` regenerated for the new admin field.
+E2E gotcha hit again: `pnpm start` needs env exported (`.env` sourced before
+`pnpm build`/`playwright`) — already documented in 05-devops-gates.
+
+## 2026-10-04 (67) — Live browser QA of `/builder/configure` + orphan-cart bug found
+
+Full end-to-end browser run against `pnpm dev` (cloakbrowser, real Chromium):
+landing → configure → complete 9-slot build → deploy → share → hydration →
+saved-builds → viewports 375/768/1280/1920. **One real bug found** (HIGH,
+guest conversion path); everything else verified live.
+
+**Verified live** (dev DB, 9 categories / 31 components):
+- Option rows: socket chips + Δprice/Δwatts; socket+RAM-type exclusions render
+  the engine reason ("AMD Ryzen 5 7600X uses socket AM5…", "supports DDR5 only").
+- Slot caps bind live: ITX board (`ramSlots:2`, `m2Slots:2`) → RAM 2/2 and
+  storage 2/2 with "Installed" marks + `cappedBy` copy.
+- Blueprint + telemetry real: GPU clearance 267/280 mm pill, M.2 bus pill,
+  PSU headroom +127W (20%) / Load 80% / 523W est. draw; PSU tile shows
+  "CORSAIR RM650X 650W LOAD 523W".
+- Toolbar: X-Ray + Heatmap toggles (`aria-pressed`), Heatmap weights CPU
+  (105W) + GPU zones; Aura Sync on/off flips to "Stealth (RGB off)" and
+  hides swatches; accent swatch click applies `--rgb-accent` on the design
+  root (`#d0bcff` Tokyo Violet observed).
+- Deploy: manifest review → "Run deploy" → 4 stages all real — compat
+  (PCIe 4.0 advisory), power (523W of 650W), manifest (draft registered,
+  shareId `_IFqn98tcZ7Oj-iG`), dispatch → cart attempt.
+- Persistence: `GET /api/builder/builds/:shareId` returns slots +
+  `priceSnapshot` + **`rgbColor` `#d0bcff`**; `bmr_studio_builds` guest ref
+  written; `/build/:shareId` share page renders manifest; "Duplicate" →
+  `?build=` hydrates 9/9 **and** restores `rgbColor`.
+- Saved-builds modal: My builds (1, guest ref), Architect presets (2 seeded
+  templates), Export/Import JSON. Matrix view: compact table, TDP 325W.
+- Console: **0 errors, 0 warnings** across the whole session.
+- Responsive: 1920 two-column clean; 768 single-column clean; 375 stacks
+  blueprint-first, no studio overflow.
+
+**BUG — HIGH: deploy → cart orphaned the composite line for fresh guests
+— FIXED + live-verified.**
+`useBuildActions.addToCart` minted a cart when the provider had none
+(`cartID` undefined — the plugin's context **type** declares `cartID` but
+the runtime value object omits it, the entry-23 F2 gap), saved only
+`cart_secret`, never `localStorage('cart')`, then called `refreshCart()` —
+a **no-op without `cartID`**. Confirmed live: "Done — cart updated" while
+the drawer showed empty and the composite line sat in an invisible cart
+(cart 183, `lineType: configured-build` → build 24); each fresh deploy
+minted another orphan (carts 179–183).
+
+**Fix (app + patch):**
+- New pure `kit/cart-ensure.ts` — `resolveCartHandle` (context cartID →
+  loaded cart → synced storage key, same precedence as before) +
+  `persistCartHandle` (writes BOTH `cart` and `cart_secret` — the keys the
+  provider's syncLocalStorage restores from). TDD #429–#435.
+- `useBuildActions`: minted carts are persisted via `persistCartHandle`
+  (reload-restore + no more repeat-orphans) and adopted live via
+  `adoptCart(cartId, {secret})` when the provider had no cart — falls back
+  to `refreshCart()` otherwise.
+- Patch extended (`patches/@payloadcms__plugin-ecommerce@3.90.2.patch`,
+  now 5 hunks): `dist/react/provider/index.js` gains an `adoptCart`
+  useCallback (getCart → setCartID/setCartSecret/setCart) exposed in the
+  context value **alongside `cartID`** (the F2 gap is closed at runtime);
+  `dist/types/index.d.ts` gets the `adoptCart` signature.
+- **Patch regeneration regressed two hunks** — `pnpm patch` reused a stale
+  `.pnpm_patches` edit-dir predating the entry-55 fixes, silently dropping
+  the composite-line `decrementInventory` skip and reverting
+  `initiatePayment` to the `> 0` guard (€0-cart overcharge). Caught by
+  `patches.test.ts` #233 — restored both hunks verbatim (gotcha #44).
+- **Live re-verify**: fresh guest → deploy → 4 stages pass → drawer shows
+  "Custom build × 1, €1,959.00" immediately, `localStorage.cart="184"`,
+  server-side cart 184 holds the composite line (subtotal 195900).
+
+**Minor (non-blocking)**: site-header actions overflow ~7 px at 375 px
+(hamburger half-clipped; "Sign in" wraps); RIG INVESTMENT total tight at
+768 px; dev DB is pre-entry-50 seed (`maxSelectable:2`, no `radSizeMm`) —
+expected per gotcha #22.
+
+**Gates: `pnpm test` 6/6 (incl. #429–#435 cart-bridge + patch pins),
+`pnpm -r typecheck` 6/6, `pnpm lint` 4/4.** Changed:
+`kit/cart-ensure.ts` (new) + `.test.ts`, `useBuildActions.ts`,
+`patches/@payloadcms__plugin-ecommerce@3.90.2.patch`.
+
+## 2026-10-04 (66) — RIG Studio megaplan audit (plan-vs-code verification, zero code changes)
+
+Fresh-eyes audit of `~/.devin/plans/plan-ec05526c8dbc0fdc.md` (the RIG Studio
+megaplan, landed entries 45–54) against the current tree — every plan
+contract checked in the code itself, not just the docs. **No gaps found**;
+a few spots exceed the plan.
+
+- **P0 schema/registry**: `lib/slot-limits.ts` (`SlotLimit` + `SLOT_LIMIT_RULES`
+  + `resolveSlotLimits` + `resolvedMax`), `lib/rgb-presets.ts`, `RuleCriticalSpec`
+  += `ramSlots`/`m2Slots`, `ComponentDisplay` += `hasRgb`, components collection
+  fields, configured-builds `rgbColor` (serverManaged + field-level hex
+  validation — beyond the plan), `buildsSchema` rgbColor, `createBuildFromSlots`
+  threading at both call sites (template-instantiated builds get none — per
+  plan), share endpoint echoes `rgbColor`, `findOverCapWarnings` →
+  `validationSnapshot` (non-blocking, per §4.3/§10), builder-index passthrough,
+  `builder-designs` registry + own-prop `resolveBuilderDesign`, the
+  `builder-settings` global (manager write / public read) + nav link +
+  never-throw `getBuilderDesign()`.
+- **P1 theme**: `rig-dark` preset with the exact plan palette + `rig-dark.css`
+  skin; `DEFAULT_THEME`/`Theme.defaultValue` flipped to `rig-dark`; `tokens.css`
+  **retokenized** (not repointed — drift guards hold) with the additive extras
+  block and `--font-sans`/`--font-display` var chains; `next/font` Inter +
+  Space Grotesk on `<html>`.
+- **P2 provider contract**: `BuilderContextValue` — a superset of the spec
+  (`actionStatus`, `saveDraft`, `clearSavedBuild`, `meta.templates`,
+  `meta.validateCurrent`); React-19 `use()`; provider owns index fetch,
+  hydration, `?template=`/`?build=` (+`rgbColor` restore), `trackBeginBuilder`,
+  engine `evaluate`, `resolveSlotLimits`, loading/error renders. `designs.ts`
+  registry (classic + `next/dynamic` rig-studio, parity test #331), BuilderShell
+  fallback, Configurator + SummaryClient refactors, `builder-store.rgbColor`
+  (hex-sanitized persist merge). Kit: `useBuildActions`, `BuilderToasts`
+  (2.5 s, `role="status"`), `option-rows`, `build-io` — plus plan-exceeding
+  `saved-refs`, `deploy-checks`, `save-guard`, `clipboard`.
+- **P3 rig-studio design**: every planned component + `studio-lib`
+  (`slotCode`, `ZONE_BY_SLUG`, `zoneForCategory`, `psuMargin`, `gpuFit`,
+  `rgbLinkedCount`, `heatmapWeight`); `rig-studio.css` — 2 323 lines, every
+  selector `.bdesign-rig-studio`-scoped, zero raw hex, reduced-motion gated;
+  swap modal honours `resolvedMax` + `cappedBy` chip; blueprint zones are
+  `role="button"` + Enter/Space.
+- **P4 modals/data/docs**: `DeployModal` 4 real stages (validate → power →
+  `saveDraft` → `addToCart`, `minDelay` animation); `SavedBuildsModal` 3 tabs +
+  `bmr_studio_builds` guest refs written by `useBuildActions`; seed enrichment
+  (`BuilderSpec` widened, real `specsJson`, `hasRgb`, mobo `ramSlots`/`m2Slots`
+  ITX 2/2 so caps visibly bind, `ram`/`storage` `maxSelectable: 4`); e2e
+  `rig-studio.spec.ts`; `02-builder.md` documents the registry.
+
+**Gates: `pnpm test` 6/6 (web 42 files / 209 tests), `pnpm -r typecheck` 6/6,
+`pnpm lint` 4/4, `workflow:check` PASS** — turbo cache hits on a clean tree
+(hash-valid for the audited code). Housekeeping: deleted a stray zero-byte
+`nul` file at the repo root — under Git Bash `2>nul` creates a *real* file
+(the POSIX layer doesn't map the name) and Win32 reserves it, so removal
+needs `rm ./nul`, not `os.remove`/Explorer (gotcha #42).
+
 ## 2026-10-04 (65) — AI entry points for every tool (workflow layer)
 
 The workflow layer was reachable from Claude (CLAUDE.md overlay) and any

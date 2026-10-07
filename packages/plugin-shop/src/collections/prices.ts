@@ -13,7 +13,7 @@ export const Prices: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'amount', defaultColumns: ['amount', 'currency', 'variant', 'product'] },
+  admin: { useAsTitle: 'amount', defaultColumns: ['amount', 'currency', 'variant', 'product'], group: 'Store' },
   fields: [
     { name: 'amount', type: 'number', required: true, min: 0, admin: { description: 'Minor units (cents)' } },
     { name: 'currency', type: 'text', defaultValue: 'EUR', required: true },

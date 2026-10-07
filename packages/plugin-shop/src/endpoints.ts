@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { addItem } from '@payloadcms/plugin-ecommerce'
 import { rateLimit } from '@buildmyrig/lib'
 import { cartItemMatcher, collectBuildIssues } from './lib/line-item-hooks.ts'
+import { findEnabledPackagingTier } from './lib/packaging.ts'
 import { validateDiscount, type DiscountCodeDoc } from './lib/pricing.ts'
 import { claimSettlement, settleClaimedTransaction } from './lib/settle-transaction.ts'
 
@@ -31,6 +32,7 @@ const validateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const discountValidateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const discountApplyLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const shippingLimiter = rateLimit({ windowMs: 60_000, max: 20 })
+const packagingLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const confirmFreeLimiter = rateLimit({ windowMs: 60_000, max: 10 })
 
 const schema = z.object({
@@ -355,6 +357,100 @@ export const cartShippingCountryEndpoint: Endpoint = {
     return ok({
       ok: true,
       country,
+      totals: {
+        discountTotal: updated.discountTotal ?? 0,
+        shippingTotal: updated.shippingTotal ?? 0,
+        taxTotal: updated.taxTotal ?? 0,
+        total: updated.total ?? (typeof cart.subtotal === 'number' ? cart.subtotal : 0),
+      },
+    })
+  },
+}
+
+const packagingSchema = z.object({
+  // tier id (packaging-tiers global row id) or null to clear.
+  tier: z.string().min(1).max(40).nullable(),
+  secret: z.string().optional(),
+})
+
+/**
+ * POST /api/carts/:id/packaging — set/clear the packaging-upgrade line
+ * (entry 71, Nexus checkout). Owner-or-secret gated like the other cart
+ * mutations; the cart beforeChange hook resolves the tier price server-side
+ * and recomputes totals — the endpoint never writes a price.
+ */
+export const cartPackagingEndpoint: Endpoint = {
+  path: '/:id/packaging',
+  method: 'post',
+  handler: async (req: PayloadRequest) => {
+    const limited = limitByIp(packagingLimiter, req)
+    if (limited) return limited
+    const cartID = req.routeParams?.id
+    if (!cartID) return bad(400, 'cart ID required')
+    let body: unknown
+    try {
+      body = await req.json?.()
+    } catch {
+      return bad(400, 'invalid JSON body')
+    }
+    const parsed = packagingSchema.safeParse(body)
+    if (!parsed.success) return bad(400, 'invalid body', parsed.error.flatten())
+
+    let cart:
+      | {
+          id: string | number
+          customer?: unknown
+          secret?: string | null
+          subtotal?: number
+          items?: Array<Record<string, unknown>>
+        }
+      | null
+    try {
+      cart = (await req.payload.findByID({
+        collection: 'carts',
+        id: coerceDocId(cartID),
+        depth: 0,
+        overrideAccess: true,
+      })) as typeof cart
+    } catch {
+      cart = null
+    }
+    if (!cart) return bad(404, 'cart not found')
+    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
+    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
+    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
+    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+
+    const items = Array.isArray(cart.items) ? cart.items : []
+    const nonPackaging = items.filter(
+      (i) => (i as { lineType?: string }).lineType !== 'packaging',
+    )
+    const tierId = parsed.data.tier
+    let nextItems: Array<Record<string, unknown>> = nonPackaging
+    if (tierId !== null) {
+      if (nonPackaging.length === 0) return bad(422, 'cart is empty')
+      const tier = await findEnabledPackagingTier(req.payload, tierId)
+      if (!tier) return bad(422, 'packaging tier is not available')
+      nextItems = [
+        ...nonPackaging,
+        {
+          lineType: 'packaging',
+          packagingTier: tier.id,
+          lineLabel: tier.name,
+          quantity: 1,
+        },
+      ]
+    }
+    const updated = (await req.payload.update({
+      collection: 'carts',
+      id: cart.id,
+      data: { items: nextItems } as never,
+      req,
+    })) as { discountTotal?: number; shippingTotal?: number; taxTotal?: number; total?: number } | null
+    if (!updated) return bad(500, 'could not update packaging')
+    return ok({
+      ok: true,
+      tier: tierId,
       totals: {
         discountTotal: updated.discountTotal ?? 0,
         shippingTotal: updated.shippingTotal ?? 0,

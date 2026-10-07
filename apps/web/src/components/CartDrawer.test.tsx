@@ -91,21 +91,21 @@ const SRC = path.resolve(__dirname, '../..')
 
 describe('CartDrawer wiring', () => {
   it('#178c root layout renders the drawer; add-to-cart entry points open it', () => {
-    const layout = fs.readFileSync(path.join(SRC, 'src/app/layout.tsx'), 'utf8')
+    const layout = fs.readFileSync(path.join(SRC, 'src/app/(frontend)/layout.tsx'), 'utf8')
     expect(layout).toContain('<CartDrawer')
 
-    const addBtn = fs.readFileSync(path.join(SRC, 'src/app/product/[slug]/AddToCartButton.tsx'), 'utf8')
+    const addBtn = fs.readFileSync(path.join(SRC, 'src/app/(frontend)/product/[slug]/AddToCartButton.tsx'), 'utf8')
     expect(addBtn).toContain('useCartDrawerStore')
 
     // The builder's add-to-cart → drawer wiring lives in the shared action
     // hook (extracted from SummaryClient in entry 50 P2) — that's the source
     // of truth now.
-    const summary = fs.readFileSync(path.join(SRC, 'src/app/builder/kit/useBuildActions.ts'), 'utf8')
+    const summary = fs.readFileSync(path.join(SRC, 'src/app/(frontend)/builder/kit/useBuildActions.ts'), 'utf8')
     expect(summary).toContain('useCartDrawerStore')
   })
 
   it('#178d the guided dialog animates through the shared spec module', () => {
-    const landing = fs.readFileSync(path.join(SRC, 'src/app/builder/LandingClient.tsx'), 'utf8')
+    const landing = fs.readFileSync(path.join(SRC, 'src/app/(frontend)/builder/LandingClient.tsx'), 'utf8')
     expect(landing).toContain('dialogMotion')
     expect(landing).not.toMatch(/initial=\{\{\s*opacity:\s*0,\s*scale:\s*0\.96/)
   })

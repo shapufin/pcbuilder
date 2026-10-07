@@ -62,10 +62,17 @@ export const Pages: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'isHomepage', '_status', 'updatedAt'],
+    listSearchableFields: ['title', 'slug'],
+    group: 'Content',
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'slug', type: 'text', required: true, unique: true, index: true },
+    {
+      type: 'row',
+      fields: [
+        { name: 'title', type: 'text', required: true, admin: { width: '60%' } },
+        { name: 'slug', type: 'text', required: true, unique: true, index: true, admin: { width: '40%' } },
+      ],
+    },
     {
       name: 'isHomepage',
       type: 'checkbox',

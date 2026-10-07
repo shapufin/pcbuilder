@@ -1,6 +1,6 @@
 /**
  * Minimal transactional sender over the Resend HTTP API — same contract as
- * apps/web/src/app/api/newsletter/route.ts (direct fetch, no SDK dep):
+ * apps/web/src/app/(frontend)/api/newsletter/route.ts (direct fetch, no SDK dep):
  * without RESEND_API_KEY + EMAIL_FROM every send is a logged dry-run so local
  * dev and CI stay side-effect free (12-integrations-ops.md).
  */

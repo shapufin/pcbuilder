@@ -10,6 +10,7 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
     "noEmit": true,
     "declaration": true
   }

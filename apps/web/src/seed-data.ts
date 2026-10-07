@@ -18,12 +18,20 @@ export interface ProductDef {
   builder?: { cat: string; spec: BuilderSpec }
   /** Catalog attributes: attributeType slug → attributeValue value (see attributeDefs). */
   attrs?: Record<string, string>
+  /**
+   * Product-level specsJson (free-form PDP table + Nexus meta keys:
+   * spScore/goldenBin/delidded/colorHex/formFactor/tdpWatts/features…).
+   * Distinct from builder.spec.specsJson which lands on components.
+   */
+  specs?: Record<string, unknown>
 }
 
 export const productDefs: ProductDef[] = [
   // CPUs
-  { title: 'Intel Core i7-14700K', category: 'CPU', brand: 'Intel', price: 40900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 253, specsJson: { cores: 20, threads: 28, clockBoostGhz: 5.6, cacheL3Mb: 33 } } } },
-  { title: 'AMD Ryzen 7 7800X3D', category: 'CPU', brand: 'AMD', price: 37900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 120, specsJson: { cores: 8, threads: 16, clockBoostGhz: 5.0, cacheL3Mb: 96 } } } },
+  { title: 'Intel Core i7-14700K', category: 'CPU', brand: 'Intel', price: 40900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 253, specsJson: { cores: 20, threads: 28, clockBoostGhz: 5.6, cacheL3Mb: 33 } } },
+    specs: { spScore: 108, delidded: true, tdpWatts: 253, features: ['Raptor Lake Refresh silicon', 'Binned for 6.0GHz sustained boost', 'Laser-checked V/F curve'] } },
+  { title: 'AMD Ryzen 7 7800X3D', category: 'CPU', brand: 'AMD', price: 37900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 120, specsJson: { cores: 8, threads: 16, clockBoostGhz: 5.0, cacheL3Mb: 96 } } },
+    specs: { spScore: 112, goldenBin: true, tdpWatts: 120, features: ['3D V-Cache 96MB', 'Top 5% gaming bin', 'Cleanroom verified 72h'] } },
   { title: 'AMD Ryzen 5 7600X', category: 'CPU', brand: 'AMD', price: 20900, attrs: { socket: 'AM5' }, builder: { cat: 'cpu', spec: { socket: 'AM5', tdpWatts: 105, specsJson: { cores: 6, threads: 12, clockBoostGhz: 5.3, cacheL3Mb: 32 } } } },
   { title: 'Intel Core i5-14600K', category: 'CPU', brand: 'Intel', price: 27900, attrs: { socket: 'LGA1700' }, builder: { cat: 'cpu', spec: { socket: 'LGA1700', tdpWatts: 181, specsJson: { cores: 14, threads: 20, clockBoostGhz: 5.3, cacheL3Mb: 24 } } } },
   // Motherboards (ramSlots/m2Slots drive resolveSlotLimits — ITX 2/2 binds visibly)
@@ -37,9 +45,11 @@ export const productDefs: ProductDef[] = [
   { title: 'Corsair Vengeance 32GB DDR4-3600', category: 'RAM', brand: 'Corsair', price: 8900, attrs: { 'ram-type': 'DDR4' }, builder: { cat: 'ram', spec: { ramType: 'DDR4', ramSpeedMhz: 3600, specsJson: { kitGb: 32, casLatency: 18 } } } },
   { title: 'Corsair Dominator Platinum RGB 32GB DDR5-6400', category: 'RAM', brand: 'Corsair', price: 16500, attrs: { 'ram-type': 'DDR5' }, builder: { cat: 'ram', spec: { ramType: 'DDR5', ramSpeedMhz: 6400, hasRgb: true, specsJson: { kitGb: 32, casLatency: 32 } } } },
   // GPUs
-  { title: 'NVIDIA RTX 4070 Super', category: 'GPUs', brand: 'NVIDIA', price: 59900, builder: { cat: 'gpu', spec: { tdpWatts: 220, gpuLengthMm: 267, pcieVersion: '4.0', hasRgb: true, specsJson: { vram: 12, boostMhz: 2475, peakDrawW: 245 } } } },
+  { title: 'NVIDIA RTX 4070 Super', category: 'GPUs', brand: 'NVIDIA', price: 59900, builder: { cat: 'gpu', spec: { tdpWatts: 220, gpuLengthMm: 267, pcieVersion: '4.0', hasRgb: true, specsJson: { vram: 12, boostMhz: 2475, peakDrawW: 245 } } },
+    specs: { tdpWatts: 220, acousticFloor: '22 dBA', thermalDelta: '14°C', features: ['12GB GDDR6X', 'Ada Lovelace', 'Dual BIOS'] } },
   { title: 'NVIDIA RTX 4060', category: 'GPUs', brand: 'NVIDIA', price: 29900, builder: { cat: 'gpu', spec: { tdpWatts: 115, gpuLengthMm: 240, pcieVersion: '4.0', specsJson: { vram: 8, boostMhz: 2460, peakDrawW: 135 } } } },
-  { title: 'NVIDIA RTX 4080 Super', category: 'GPUs', brand: 'NVIDIA', price: 109900, builder: { cat: 'gpu', spec: { tdpWatts: 320, gpuLengthMm: 310, pcieVersion: '5.0', hasRgb: true, specsJson: { vram: 16, boostMhz: 2550, peakDrawW: 355 } } } },
+  { title: 'NVIDIA RTX 4080 Super', category: 'GPUs', brand: 'NVIDIA', price: 109900, builder: { cat: 'gpu', spec: { tdpWatts: 320, gpuLengthMm: 310, pcieVersion: '5.0', hasRgb: true, specsJson: { vram: 16, boostMhz: 2550, peakDrawW: 355 } } },
+    specs: { tdpWatts: 320, acousticFloor: '24 dBA', thermalDelta: '16°C', features: ['16GB GDDR6X', 'PCIe 5.0', 'Vapor chamber cooler'] } },
   { title: 'NVIDIA RTX 4060 Ti', category: 'GPUs', brand: 'NVIDIA', price: 44900, builder: { cat: 'gpu', spec: { tdpWatts: 160, gpuLengthMm: 240, pcieVersion: '4.0', specsJson: { vram: 8, boostMhz: 2535, peakDrawW: 175 } } } },
   // Storage
   { title: 'Samsung 990 Pro 1TB', category: 'Storage', brand: 'Samsung', price: 11900, attrs: { capacity: '1024' }, builder: { cat: 'storage', spec: { storageInterface: 'NVMe', specsJson: { capacityTb: 1, readMbps: 7450 } } } },
@@ -86,6 +96,17 @@ export const productDefs: ProductDef[] = [
   { title: 'Corsair TC100 Relaxed Chair', category: 'Peripherals', brand: 'Corsair', price: 24900 },
   { title: 'Corsair MM700 XL Mousepad', category: 'Peripherals', brand: 'Corsair', price: 5900 },
   { title: 'ASUS ROG Strix Arion SSD Enclosure', category: 'Storage', brand: 'ASUS', price: 6900 },
+  // Pre-Built Rigs (entry 71): turnkey systems in their own category, faceted
+  // by the prebuilt-tier attribute the Nexus rail/mega-menu link to.
+  { title: 'Nexus One — Compact SFF', category: 'Pre-Built Rigs', brand: 'BuildMyRig', price: 189900,
+    attrs: { 'prebuilt-tier': 'entry' },
+    specs: { formFactor: 'ITX 32L', acousticFloor: '24 dBA', features: ['Ryzen 7 7800X3D', 'RTX 4070 Super', '32GB DDR5-6000', '1TB NVMe'] } },
+  { title: 'Nexus Two — Flagship', category: 'Pre-Built Rigs', brand: 'BuildMyRig', price: 329900,
+    attrs: { 'prebuilt-tier': 'high' },
+    specs: { formFactor: 'ATX mid-tower', acousticFloor: '26 dBA', spScore: 114, features: ['Core i7-14700K delidded', 'RTX 4080 Super', '64GB DDR5-6400', '2TB NVMe', '360mm AIO'] } },
+  { title: 'Nexus Three — Lab Node', category: 'Pre-Built Rigs', brand: 'BuildMyRig', price: 549900,
+    attrs: { 'prebuilt-tier': 'extreme' },
+    specs: { formFactor: 'Full tower', acousticFloor: '28 dBA', goldenBin: true, features: ['Dual-GPU workstation', '128GB DDR5 ECC', '4TB+2TB NVMe', 'Custom loop'] } },
 ]
 
 export const slotCategoryDefs = [
@@ -116,58 +137,18 @@ export interface RuleDef {
 }
 
 export const rules: RuleDef[] = [
-  // CPU → motherboard socket (bidirectional)
-  { s: 'Intel Core i7-14700K', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'socket', value: 'LGA1700', bi: true, msg: '{componentA} uses socket LGA1700 but the selected motherboard does not.' },
-  { s: 'AMD Ryzen 7 7800X3D', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'socket', value: 'AM5', bi: true, msg: '{componentA} uses socket AM5 but the selected motherboard does not.' },
-  { s: 'AMD Ryzen 5 7600X', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'socket', value: 'AM5', bi: true, msg: '{componentA} uses socket AM5 but the selected motherboard does not.' },
-  { s: 'Intel Core i5-14600K', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'socket', value: 'LGA1700', bi: true, msg: '{componentA} uses socket LGA1700 but the selected motherboard does not.' },
-  // Motherboard → CPU socket (explicit opposite direction)
-  { s: 'ASUS ROG Strix B650E-F', st: 'component', tCat: 'cpu', type: 'requires', op: 'equals', field: 'socket', value: 'AM5', msg: '{componentA} has an AM5 socket but the selected CPU does not.' },
-  { s: 'ASUS Prime Z790-P', st: 'component', tCat: 'cpu', type: 'requires', op: 'equals', field: 'socket', value: 'LGA1700', msg: '{componentA} has an LGA1700 socket but the selected CPU does not.' },
-  { s: 'ASUS ROG Strix B760-F', st: 'component', tCat: 'cpu', type: 'requires', op: 'equals', field: 'socket', value: 'LGA1700', msg: '{componentA} has an LGA1700 socket but the selected CPU does not.' },
-  { s: 'ASUS ROG Strix B650E-I', st: 'component', tCat: 'cpu', type: 'requires', op: 'equals', field: 'socket', value: 'AM5', msg: '{componentA} has an AM5 socket but the selected CPU does not.' },
-  // RAM → motherboard memory type
-  { s: 'Corsair Vengeance 32GB DDR5-6000', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
-  { s: 'Corsair Vengeance 16GB DDR5-5600', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
-  { s: 'Corsair Vengeance 32GB DDR4-3600', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR4', bi: true, msg: '{componentA} is DDR4 but the motherboard only supports {ramType}.' },
-  { s: 'Corsair Dominator Platinum RGB 32GB DDR5-6400', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', bi: true, msg: '{componentA} is DDR5 but the motherboard only supports {ramType}.' },
-  // Motherboard → RAM type
-  { s: 'ASUS ROG Strix B650E-F', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
-  { s: 'ASUS Prime Z790-P', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
-  { s: 'ASUS ROG Strix B760-F', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
-  { s: 'ASUS ROG Strix B650E-I', st: 'component', tCat: 'ram', type: 'requires', op: 'equals', field: 'ramType', value: 'DDR5', msg: '{componentA} supports DDR5 only.' },
-  // Motherboard → case form factor
-  { s: 'ASUS ROG Strix B650E-F', st: 'component', tCat: 'case', type: 'requires', op: 'contains', field: 'caseSupportedFormFactors', value: 'ATX', msg: '{componentA} is ATX but the case does not fit ATX boards.' },
-  { s: 'ASUS Prime Z790-P', st: 'component', tCat: 'case', type: 'requires', op: 'contains', field: 'caseSupportedFormFactors', value: 'ATX', msg: '{componentA} is ATX but the case does not fit ATX boards.' },
-  { s: 'ASUS ROG Strix B760-F', st: 'component', tCat: 'case', type: 'requires', op: 'contains', field: 'caseSupportedFormFactors', value: 'ATX', msg: '{componentA} is ATX but the case does not fit ATX boards.' },
-  { s: 'ASUS ROG Strix B650E-I', st: 'component', tCat: 'case', type: 'requires', op: 'contains', field: 'caseSupportedFormFactors', value: 'ITX', msg: '{componentA} is ITX but the case does not fit ITX boards.' },
-  // GPU → case max GPU length
-  { s: 'NVIDIA RTX 4070 Super', st: 'component', tCat: 'case', type: 'requires', op: 'gte', field: 'caseGpuMaxLengthMm', value: 267, msg: '{componentA} is 267mm long; the case supports {caseGpuMaxLengthMm}mm.' },
-  { s: 'NVIDIA RTX 4060', st: 'component', tCat: 'case', type: 'requires', op: 'gte', field: 'caseGpuMaxLengthMm', value: 240, msg: '{componentA} is 240mm long; the case supports {caseGpuMaxLengthMm}mm.' },
-  { s: 'NVIDIA RTX 4080 Super', st: 'component', tCat: 'case', type: 'requires', op: 'gte', field: 'caseGpuMaxLengthMm', value: 310, msg: '{componentA} is 310mm long; the case supports {caseGpuMaxLengthMm}mm.' },
-  { s: 'NVIDIA RTX 4060 Ti', st: 'component', tCat: 'case', type: 'requires', op: 'gte', field: 'caseGpuMaxLengthMm', value: 240, msg: '{componentA} is 240mm long; the case supports {caseGpuMaxLengthMm}mm.' },
-  // PSU → GPU draw (advisory)
+  // Entry 68: standard relations (socket, ramType, form factor, GPU length,
+  // cooler socket, NVMe) are now SYNTHESIZED from typed spec fields at index
+  // build — see packages/plugin-pc-builder/src/lib/derived-rules.ts. Only
+  // genuine per-product specials stay authored here.
+
+  // PSU → GPU draw (advisory, per-PSU tuned thresholds — not synthesizable)
   { s: 'Corsair RM650x', st: 'component', tCat: 'gpu', type: 'warns', op: 'lte', field: 'tdpWatts', value: 250, severity: 'warning', msg: 'A 650W PSU is tight with a {tdpWatts}W GPU — consider more headroom.' },
   { s: 'Corsair RM750x', st: 'component', tCat: 'gpu', type: 'warns', op: 'lte', field: 'tdpWatts', value: 350, severity: 'warning', msg: 'A 750W PSU is tight with a {tdpWatts}W GPU — consider more headroom.' },
   { s: 'Corsair RM850x', st: 'component', tCat: 'gpu', type: 'warns', op: 'lte', field: 'tdpWatts', value: 450, severity: 'warning', msg: 'An 850W PSU is tight with a {tdpWatts}W GPU — consider more headroom.' },
   { s: 'Corsair RM1000x', st: 'component', tCat: 'gpu', type: 'warns', op: 'lte', field: 'tdpWatts', value: 600, severity: 'warning', msg: 'A 1000W PSU is tight with a {tdpWatts}W GPU — consider more headroom.' },
-  // CPU → cooler socket support (bidirectional)
-  { s: 'Intel Core i7-14700K', st: 'component', tCat: 'cooling', type: 'requires', op: 'contains', field: 'coolerSocketSupport', value: 'LGA1700', bi: true, msg: '{componentA} needs a cooler that supports LGA1700.' },
-  { s: 'AMD Ryzen 7 7800X3D', st: 'component', tCat: 'cooling', type: 'requires', op: 'contains', field: 'coolerSocketSupport', value: 'AM5', bi: true, msg: '{componentA} needs a cooler that supports AM5.' },
-  { s: 'AMD Ryzen 5 7600X', st: 'component', tCat: 'cooling', type: 'requires', op: 'contains', field: 'coolerSocketSupport', value: 'AM5', bi: true, msg: '{componentA} needs a cooler that supports AM5.' },
-  { s: 'Intel Core i5-14600K', st: 'component', tCat: 'cooling', type: 'requires', op: 'contains', field: 'coolerSocketSupport', value: 'LGA1700', bi: true, msg: '{componentA} needs a cooler that supports LGA1700.' },
-  // ITX case constraints
-  { s: 'Corsair 2000D Airflow', st: 'component', tCat: 'gpu', type: 'excludes', op: 'gte', field: 'gpuLengthMm', value: 281, msg: '{componentA} fits GPUs up to 280mm — this GPU is {gpuLengthMm}mm.' },
-  { s: 'Corsair 2000D Airflow', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'moboFormFactor', value: 'ITX', msg: '{componentA} fits ITX motherboards only.' },
-  // Storage interface
-  { s: 'Samsung 990 Pro 1TB', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'storageInterface', value: 'NVMe', msg: '{componentA} is an NVMe drive; the motherboard lacks an NVMe slot.' },
-  { s: 'Samsung 990 Pro 2TB', st: 'component', tCat: 'motherboard', type: 'requires', op: 'equals', field: 'storageInterface', value: 'NVMe', msg: '{componentA} is an NVMe drive; the motherboard lacks an NVMe slot.' },
+  // Storage interface advisory (SATA is never a hard block — no requires row)
   { s: 'Samsung 870 EVO 1TB', st: 'component', tCat: 'motherboard', type: 'warns', op: 'equals', field: 'storageInterface', value: 'SATA', severity: 'warning', msg: '{componentA} is SATA — an NVMe drive would be much faster.' },
-  // PCIe version advisories
-  { s: 'NVIDIA RTX 4080 Super', st: 'component', tCat: 'motherboard', type: 'warns', op: 'gte', field: 'pcieVersion', value: '5.0', severity: 'warning', msg: '{componentA} is PCIe 5.0; this board runs PCIe {pcieVersion} — slight bandwidth loss.' },
-  { s: 'NVIDIA RTX 4070 Super', st: 'component', tCat: 'motherboard', type: 'warns', op: 'gte', field: 'pcieVersion', value: '4.0', severity: 'info', msg: '{componentA} is PCIe 4.0; this board runs PCIe {pcieVersion}.' },
-  { s: 'NVIDIA RTX 4060', st: 'component', tCat: 'motherboard', type: 'warns', op: 'gte', field: 'pcieVersion', value: '4.0', severity: 'info', msg: '{componentA} is PCIe 4.0; this board runs PCIe {pcieVersion}.' },
-  { s: 'NVIDIA RTX 4060 Ti', st: 'component', tCat: 'motherboard', type: 'warns', op: 'gte', field: 'pcieVersion', value: '4.0', severity: 'info', msg: '{componentA} is PCIe 4.0; this board runs PCIe {pcieVersion}.' },
   // Component-specific target rule (2000D cannot fit the 4080 Super specifically)
   { s: 'Corsair 2000D Airflow', st: 'component', tCat: 'gpu', t: 'NVIDIA RTX 4080 Super', type: 'excludes', op: 'gte', field: 'gpuLengthMm', value: 281, msg: '{componentA} physically cannot fit the NVIDIA RTX 4080 Super.' },
   // Category-level pair rule (mothers → PSU wattage minimum, advisory)
@@ -236,6 +217,9 @@ export const attributeDefs: AttributeDef[] = [
   ['capacity', 'number', 'GB', ['512', '1024', '2048', '4096']],
   ['wattage', 'number', 'W', ['550', '650', '750', '850', '1000']],
   ['refresh-rate', 'number', 'Hz', ['144', '240']],
+  // Entry 71: Nexus "prebuilt workstation tier" facet (mega-menu links to
+  // /shop?prebuilt-tier=…). Enum values match the source app's tier ids.
+  ['prebuilt-tier', 'enum', null, ['entry', 'mid', 'high', 'extreme']],
 ]
 
 /**
@@ -250,4 +234,5 @@ export const attributeTypeNames: Record<string, string> = {
   capacity: 'Capacity',
   wattage: 'Wattage',
   'refresh-rate': 'Refresh Rate',
+  'prebuilt-tier': 'Prebuilt Tier',
 }

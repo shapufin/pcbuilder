@@ -1,6 +1,18 @@
 export type NavLink = { label: string; url: string }
 
-export type SiteSettings = { navLinks: NavLink[]; footerLinks: NavLink[] }
+export type AdminThemeOption = 'precision-dark' | 'cyber-neon' | 'classic-payload' | 'light-clean'
+
+export type SiteSettings = {
+  navLinks: NavLink[]
+  footerLinks: NavLink[]
+  /**
+   * Announcement-strip lines (entry 71 — Nexus telemetry bar; other packs
+   * may surface it later). Empty = strip hidden.
+   */
+  announcements: string[]
+  /** Admin CMS Back-Office GUI Theme skin */
+  adminTheme?: AdminThemeOption
+}
 
 /**
  * Entry 18 (Step A): header/footer links moved out of the hardcoded
@@ -20,6 +32,11 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     { label: 'Terms', url: '/terms' },
     { label: 'Privacy', url: '/privacy' },
   ],
+  announcements: [
+    'FREE FLIGHT-CRATE SHIPPING ON ALL PRE-BUILT WORKSTATIONS',
+    'NEW: GOLDEN SAMPLE SP114+ SILICON IN STOCK',
+  ],
+  adminTheme: 'precision-dark',
 }
 
 const MAX_LABEL = 60
@@ -48,10 +65,40 @@ function cleanLinks(raw: unknown): NavLink[] | null {
   return out // [] is a deliberate "show nothing" choice
 }
 
+const MAX_ANNOUNCEMENT = 160
+
+function cleanAnnouncements(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null // missing key → fall back to defaults
+  return raw
+    .map((entry) =>
+      typeof entry === 'string'
+        ? entry.trim()
+        : typeof (entry as { text?: unknown })?.text === 'string'
+          ? ((entry as { text: string }).text ?? '').trim()
+          : '',
+    )
+    .filter((text) => text.length > 0)
+    .map((text) => text.slice(0, MAX_ANNOUNCEMENT))
+}
+
+const VALID_ADMIN_THEMES = new Set<AdminThemeOption>([
+  'precision-dark',
+  'cyber-neon',
+  'classic-payload',
+  'light-clean',
+])
+
 export function resolveSiteSettings(doc: unknown): SiteSettings {
   const d = (doc ?? {}) as Record<string, unknown>
+  const adminTheme =
+    typeof d.adminTheme === 'string' && VALID_ADMIN_THEMES.has(d.adminTheme as AdminThemeOption)
+      ? (d.adminTheme as AdminThemeOption)
+      : DEFAULT_SITE_SETTINGS.adminTheme
+
   return {
     navLinks: cleanLinks(d.navLinks) ?? DEFAULT_SITE_SETTINGS.navLinks,
     footerLinks: cleanLinks(d.footerLinks) ?? DEFAULT_SITE_SETTINGS.footerLinks,
+    announcements: cleanAnnouncements(d.announcements) ?? DEFAULT_SITE_SETTINGS.announcements,
+    adminTheme,
   }
 }

@@ -24,6 +24,80 @@ diff --git a/dist/payments/adapters/stripe/initiatePayment.js b/dist/payments/ad
 +        const amount = typeof cart.total === 'number' ? cart.total : cart.subtotal;
          const billingAddressFromData = data.billingAddress;
          const shippingAddressFromData = data.shippingAddress;
+         if (!secretKey) {
+diff --git a/dist/react/provider/index.js b/dist/react/provider/index.js
+index 401822f4d0ae3fed7c2c018c6bb8abcc3413b6f1..d4ac6a7333bac10cc4bc8bcefbd77425c9a4678d 100644
+--- a/dist/react/provider/index.js
++++ b/dist/react/provider/index.js
+@@ -5,6 +5,7 @@ import * as qs from 'qs-esm';
+ import React, { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+ const defaultContext = {
+     addItem: async ()=>{},
++    adoptCart: async ()=>{},
+     clearCart: async ()=>{},
+     clearSession: ()=>{},
+     config: {
+@@ -191,7 +192,11 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug
+     const refreshCart = useCallback(async ()=>{
+         if (!cartID) {
+             return;
+         }
+-        const updatedCart = await getCart(cartID);
++        // BuildMyRig: include the guest cart secret — every other getCart
++        // call site in this provider passes it; omitting it makes refetches
++        // 403 on secret-gated guest carts (discount, shipping country,
++        // cart-page mount refresh).
++        const updatedCart = await getCart(cartID, { secret: cartSecret });
+         setCart(updatedCart);
+     }, [
+@@ -198,6 +203,17 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug
+         cartID,
+         getCart
+     ]);
++    const adoptCart = useCallback(async (cartID, options)=>{
++        const adoptedCart = await getCart(cartID, options);
++        setCartID(cartID);
++        if (options?.secret) {
++            setCartSecret(options.secret);
++        }
++        setCart(adoptedCart);
++        return adoptedCart;
++    }, [
++        getCart
++    ]);
+     // Persist cart ID and secret to localStorage
+     useEffect(()=>{
+         if (hasRendered.current) {
+@@ -1020,8 +1032,10 @@ export const EcommerceProvider = ({ addressesSlug = 'addresses', api, cartsSlug
+     return /*#__PURE__*/ _jsx(EcommerceContext, {
+         value: {
+             addItem,
++            adoptCart,
+             addresses,
+             cart,
++            cartID,
+             clearCart,
+             clearSession,
+             config,
+diff --git a/dist/types/index.d.ts b/dist/types/index.d.ts
+index 9b143345722ee8a33d84d4d9740181c0d1a1dffe..5218b22a3ab44012820a22caa10ba9fafe1220ae 100644
+--- a/dist/types/index.d.ts
++++ b/dist/types/index.d.ts
+@@ -890,6 +890,14 @@ export type EcommerceContextType<T extends EcommerceCollections = EcommerceColle
+      * Add an item to the cart.
+      */
+     addItem: (item: CartItemArgument, quantity?: number) => Promise<void>;
++    /**
++     * Adopt an existing cart (e.g. created outside the provider via a custom
++     * endpoint) as the current cart. Fetches the cart, then updates provider
++     * state — including the localStorage sync when enabled.
++     */
++    adoptCart: (cartID: DefaultDocumentIDType, options?: {
++        secret?: string;
++    }) => Promise<T['carts'] | void>;
+     /**
+      * All current addresses for the current user.
+      * This is used to manage shipping and billing addresses.
 diff --git a/dist/endpoints/confirmOrder.js b/dist/endpoints/confirmOrder.js
 --- a/dist/endpoints/confirmOrder.js
 +++ b/dist/endpoints/confirmOrder.js

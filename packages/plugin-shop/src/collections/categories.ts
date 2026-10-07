@@ -14,11 +14,21 @@ export const Categories: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'title', defaultColumns: ['title', 'parent'] },
+  admin: {
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'slug', 'parent', '_status', 'updatedAt'],
+    listSearchableFields: ['title', 'slug', 'description'],
+    group: 'Store',
+  },
   versions: { drafts: true },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { position: 'sidebar' } },
+    {
+      type: 'row',
+      fields: [
+        { name: 'title', type: 'text', required: true, admin: { width: '60%' } },
+        { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { width: '40%', position: 'sidebar' } },
+      ],
+    },
     { name: 'parent', type: 'relationship', relationTo: 'categories', index: true },
     { name: 'image', type: 'upload', relationTo: 'media' },
     { name: 'description', type: 'textarea' },

@@ -11,6 +11,9 @@ import { builderDesignOptions, DEFAULT_BUILDER_DESIGN } from '../lib/builder-des
 export const BuilderSettings: GlobalConfig = {
   slug: 'builder-settings',
   label: 'Builder settings',
+  admin: {
+    group: 'PC Builder',
+  },
   access: {
     read: () => true,
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),

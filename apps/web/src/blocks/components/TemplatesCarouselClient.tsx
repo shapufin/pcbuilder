@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useBuilderStore } from '@/app/builder/builder-store'
+import { useBuilderStore } from '@/app/(frontend)/builder/builder-store'
 import { formatEUR } from '@/components/ui/Price'
 
 type CarouselTemplate = {

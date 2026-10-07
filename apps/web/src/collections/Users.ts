@@ -9,6 +9,9 @@ export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
     useAsTitle: 'email',
+    defaultColumns: ['email', 'roles', 'createdAt'],
+    listSearchableFields: ['email'],
+    group: 'System',
   },
   // Entry 15: lockout after 5 failed logins (11-access-security.md); payload
   // adds loginAttempts/lockUntil columns — dev push self-heals, prod must

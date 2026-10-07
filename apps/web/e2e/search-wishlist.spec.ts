@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
+import { withClassicChrome } from './helpers'
 
+// Classic chrome: the inline header searchbox is the classic header's; the
+// nexus pack replaces it with a ⌘K modal trigger.
 test.describe('shop search & wishlist (entry 18)', () => {
+  withClassicChrome()
+
+
   test('header search finds products; wishlist save/round-trip/remove (#111)', async ({ page }) => {
     await page.goto('/')
     const search = page.getByRole('searchbox', { name: 'Search products' })

@@ -157,6 +157,25 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
 - Stripe charges `cart.total` (patched `initiatePayment`); the checkout
   page renders the server fields, never client math.
 
+## Packaging tiers (entry 71)
+
+- `packaging-tiers` global (`packages/plugin-shop/src/globals/
+  packaging-tiers.ts`): `tiers[] {name, badge, description, features[],
+  priceCents, enabled}` — read public / update manager; resolver clamps
+  and filters to enabled tiers.
+- `POST /api/carts/:id/packaging {tier: number|null, secret?}`
+  (owner-or-secret → 404, rate-limited like apply-discount) — server
+  resolves the tier and price; `null` clears. Rejects on empty cart.
+  Never trusts a client-supplied price.
+- Packaging is a composite cart line `lineType: 'packaging'`
+  (`lib/packaging.ts` `registerLineItemType` — `fulfillmentUnits: 0`,
+  `resolveStockUnits: []`, consumes no inventory); qty clamped to 1 and
+  deduped to one line per cart in `wrapCartBeforeChange`. `lineLabel`
+  carries the display name — cart page/checkout/CartDrawer/order emails
+  all fall back `lineLabel ?? …`.
+- `PackagingPicker` sits on `/checkout` before payment so the tier lands
+  inside the PaymentIntent total.
+
 ## Orders
 
 - Real status enum is plugin-ecommerce's `OrderStatus`:
@@ -197,7 +216,7 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   populate.products.title}` or every title renders "Product".
 - `useEcommerce().cartID` is **not provided** by the plugin's context —
   derive ids from `cart.id` / `localStorage('cart')`. Consumers:
-  `components/EcommerceShell.tsx`, `app/{cart,checkout}/page.tsx`,
+  `components/EcommerceShell.tsx`, `app/(frontend)/{cart,checkout}/page.tsx`,
   `builder/summary/SummaryClient.tsx`.
 - Guest checkout is intentional: `src/proxy.ts` guards `/account` only —
   **do not guard `/checkout`**.

@@ -46,6 +46,8 @@ const seed = async (): Promise<void> => {
   const categoryNames = [
     'CPU', 'Motherboards', 'RAM', 'GPUs', 'Storage', 'PSUs',
     'Cases', 'Cooling', 'Peripherals', 'Monitors', 'OS',
+    // Entry 71: turnkey systems (Nexus prebuilt tiers).
+    'Pre-Built Rigs',
   ]
   const categories: Record<string, { id: number | string }> = {}
   for (const name of categoryNames) {
@@ -56,7 +58,7 @@ const seed = async (): Promise<void> => {
   }
 
   // ---- Brands ----
-  const brandNames = ['Intel', 'AMD', 'NVIDIA', 'ASUS', 'Corsair', 'Samsung', 'Microsoft']
+  const brandNames = ['Intel', 'AMD', 'NVIDIA', 'ASUS', 'Corsair', 'Samsung', 'Microsoft', 'BuildMyRig']
   const brands: Record<string, { id: number | string }> = {}
   for (const name of brandNames) {
     brands[name] = await payload.create({
@@ -100,6 +102,37 @@ const seed = async (): Promise<void> => {
     placeholderMedia.push({ id: media.id })
   }
 
+  // Entry 71: bundled Nexus hero renders (copied out of the gitignored
+  // `shop layout/` source into src/seed-assets) upgrade the matching
+  // products' galleries to real imagery. Read via import.meta.url so the
+  // path is cwd-independent (payload run vs turbo task).
+  const NEXUS_MEDIA: Record<string, { file: string; alt: string }> = {
+    'NVIDIA RTX 4080 Super': { file: 'pc_component_gpu_rtx4090_1791190873608.jpg', alt: 'NVIDIA flagship GPU render' },
+    'Intel Core i7-14700K': { file: 'pc_component_intel_cpu_delidded_1791190893683.jpg', alt: 'Delidded Intel CPU render' },
+    'Corsair H150i Elite': { file: 'pc_component_liquid_aio_cooler_1791190882891.jpg', alt: 'Liquid AIO cooler render' },
+    'Nexus Three — Lab Node': { file: 'pc_workstation_chassis_render_1791190862598.jpg', alt: 'Workstation chassis render' },
+  }
+  const nexusMedia: Record<string, number | string> = {}
+  {
+    const { readFileSync } = await import('node:fs')
+    const { fileURLToPath } = await import('node:url')
+    const { join } = await import('node:path')
+    const assetsDir = fileURLToPath(new URL('./seed-assets/', import.meta.url))
+    for (const [title, meta] of Object.entries(NEXUS_MEDIA)) {
+      try {
+        const data = readFileSync(join(assetsDir, meta.file))
+        const media = await payload.create({
+          collection: 'media',
+          data: { alt: meta.alt },
+          file: { data, mimetype: 'image/jpeg', name: meta.file, size: data.length },
+        } as never)
+        nexusMedia[title] = media.id
+      } catch {
+        // Asset missing — the product keeps its placeholder image.
+      }
+    }
+  }
+
   // ---- Component categories (builder slots) ----
   const slotCategories: Record<string, { id: number | string }> = {}
   for (const def of slotCategoryDefs) {
@@ -134,9 +167,19 @@ const seed = async (): Promise<void> => {
         description: `${def.title} — seeded demo product.`,
         priceInEUREnabled: true,
         priceInEUR: def.price,
-        // C6: every product gets a placeholder gallery image + its typed attrs.
-        gallery: [placeholderMedia[index % placeholderMedia.length].id],
+        // C6: every product gets a gallery image + its typed attrs; entry 71
+        // swaps in the real Nexus render for the four mapped titles.
+        gallery: [
+          nexusMedia[def.title] ??
+            // If BOTH placeholder creates failed, skip the gallery rather
+            // than crash on index % 0.
+            placeholderMedia[index % placeholderMedia.length]?.id,
+        ].filter((id): id is number | string => id != null),
         ...(attrs.length > 0 ? { attributeValues: attrs } : {}),
+        // Entry 71: product-level specsJson feeds the PDP spec table AND the
+        // Nexus meta chips (specMeta helper). Previously never seeded →
+        // fresh-DB PDPs showed "No specs listed." (gap register #8).
+        ...(def.specs ? { specsJson: def.specs } : {}),
         _status: 'published',
       } as never,
     })
@@ -263,6 +306,115 @@ const seed = async (): Promise<void> => {
   // ---- Pages (Phase 3: block-composed pages, 10-blocks-pages.md; idempotent by slug) ----
   const { seedPages } = await import('./pages-seed.ts')
   const pageCount = await seedPages(payload)
+
+  // ---- Nexus storefront globals (entry 71; fresh DBs only — the early
+  // return above keeps existing installs on their current preset) ----
+  await payload.updateGlobal({
+    slug: 'theme',
+    data: { preset: 'nexus' } as never,
+    overrideAccess: true,
+  })
+  await payload.updateGlobal({
+    slug: 'site-settings',
+    data: {
+      announcements: [
+        { text: 'LIVE // CLEANROOM BUILD BAY — 3 rigs in assembly' },
+        { text: 'Ships in 48h · VAT included · 24-month build warranty' },
+        { text: 'Golden-bin CPU drops every Thursday' },
+      ],
+    } as never,
+    overrideAccess: true,
+  })
+  await payload.updateGlobal({
+    slug: 'mega-menu',
+    data: {
+      sections: [
+        {
+          title: 'Component Ecosystem',
+          description: 'Direct foundry silicon drops, architectural cooling, and high-frequency memory modules.',
+          url: '/shop',
+          items: [
+            { label: 'GPU', subtitle: 'PCIe 5.0 GPUs, Ada Lovelace, RDNA3', url: '/shop/gpus', icon: 'speed', badge: 'Category' },
+            { label: 'CPU', subtitle: 'LGA1700, AM5, Threadripper Pro', url: '/shop/cpu', icon: 'cpu', badge: 'Category' },
+            { label: 'COOLING', subtitle: '360mm AIOs, Custom Distro Plates', url: '/shop/cooling', icon: 'fan', badge: 'Category' },
+            { label: 'MEMORY', subtitle: 'DDR5 6000-8000 MT/s, Low CL30', url: '/shop/ram', icon: 'memory', badge: 'Category' },
+            { label: 'STORAGE', subtitle: 'Up to 12,400 MB/s DirectStorage', url: '/shop/storage', icon: 'hard-drive', badge: 'Category' },
+            { label: 'POWER', subtitle: 'ATX 3.1 1000W-1600W Native 12V', url: '/shop/psus', icon: 'zap', badge: 'Category' },
+          ],
+          featuredPromo: {
+            title: 'Golden Sample SP114+ Silicon',
+            description: 'Hand-selected processors capable of stable 6.2GHz single core.',
+            buttonText: 'View Binned Drops',
+            url: '/shop',
+          },
+        },
+        {
+          title: 'Pre-Built Workstations',
+          description: 'ISO Class 6 laminar cleanroom assembled turnkey workstation tiers.',
+          url: '/shop/pre-built-rigs',
+          items: [
+            { label: 'Tier I — Compact SFF', subtitle: '32L compact audio & 3D footprint', url: '/shop?prebuilt-tier=entry', badge: 'Tier I' },
+            { label: 'Tier II — Flagship', subtitle: 'ML & Unreal Engine loop', url: '/shop?prebuilt-tier=high', badge: 'Tier II · Featured' },
+            { label: 'Tier III — Lab Node', subtitle: 'Dual-GPU + Threadripper node', url: '/shop?prebuilt-tier=extreme', badge: 'Tier III' },
+          ],
+          featuredPromo: {
+            title: 'Cleanroom-Assembled Tiers',
+            description: 'Factory-delidded CPU, custom acrylic distro loop, cleanroom tested for 72 hours.',
+            buttonText: 'Browse Pre-Builts',
+            url: '/shop/pre-built-rigs',
+          },
+        },
+        {
+          title: 'Interactive Architecture',
+          description: 'Visual motherboard component mapping & 3D studio.',
+          url: '/explorer',
+          items: [
+            { label: 'Motherboard Slot Explorer', subtitle: 'Animated mounting experience', url: '/explorer', icon: 'chip', badge: 'Interactive' },
+            { label: 'Custom Rig Configurator', subtitle: 'Compatibility-checked part picking', url: '/builder', icon: 'box', badge: 'Builder' },
+            { label: 'Full Catalog', subtitle: 'Every component, searchable and filterable', url: '/shop', icon: 'speed' },
+          ],
+        },
+      ],
+    } as never,
+    overrideAccess: true,
+  })
+  await payload.updateGlobal({
+    slug: 'packaging-tiers',
+    data: {
+      tiers: [
+        {
+          // Stable slug ids — cart lines reference tier.id (the field is
+          // required+unique; omitting it left rows to payload's auto ids).
+          id: 'standard-crate',
+          name: 'Standard Crate',
+          badge: 'Included',
+          description: 'Foam-lined double-wall box, tracked courier.',
+          features: [{ text: 'Double-wall corrugated' }, { text: 'Foam corner inserts' }],
+          priceCents: 0,
+          enabled: true,
+        },
+        {
+          id: 'armor-transit',
+          name: 'Armor Transit',
+          badge: 'Recommended',
+          description: 'Hard-shell transit crate with shock-mounted interior for full builds.',
+          features: [{ text: 'Hard-shell crate' }, { text: 'Shock mount' }, { text: 'Insurance up to €2,500' }],
+          priceCents: 4900,
+          enabled: true,
+        },
+        {
+          id: 'pelican-vault',
+          name: 'Pelican Vault',
+          badge: 'Maximum',
+          description: 'Pelican-class vault case, humidity-controlled, white-glove delivery.',
+          features: [{ text: 'Vault-grade case' }, { text: 'White-glove delivery' }, { text: 'Insurance up to €10,000' }],
+          priceCents: 12900,
+          enabled: true,
+        },
+      ],
+    } as never,
+    overrideAccess: true,
+  })
 
   payload.logger.info(
     `Seed complete: users, ${categoryNames.length} categories, ${brandNames.length} brands, ` +

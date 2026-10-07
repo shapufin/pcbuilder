@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { withClassicChrome } from './helpers'
 
 /**
  * Entry 23 (#179) - cart drawer: a successful product add-to-cart opens the
@@ -6,9 +7,15 @@ import { expect, test } from '@playwright/test'
  * Escape closes it, and the site-wide drawer renders on non-shop routes.
  */
 test.describe('cart drawer', () => {
+  withClassicChrome()
+
   test('#179 add to cart opens the drawer; Escape closes it', async ({ page }) => {
     await page.goto('/shop')
     await page.locator('a[href="/shop/cpu"]').click()
+    // Wait for the client nav to commit before resolving product links —
+    // otherwise .first() can grab a link mid-transition and the click lands
+    // nowhere (observed flake: URL stayed /shop/cpu).
+    await expect(page).toHaveURL(/\/shop\/cpu/)
     await page.locator('a[href^="/product/"]').first().click()
     await expect(page).toHaveURL(/\/product\//)
 
@@ -26,6 +33,10 @@ test.describe('cart drawer', () => {
   test('#179b backdrop click closes the drawer', async ({ page }) => {
     await page.goto('/shop')
     await page.locator('a[href="/shop/cpu"]').click()
+    // Wait for the client nav to commit before resolving product links —
+    // otherwise .first() can grab a link mid-transition and the click lands
+    // nowhere (observed flake: URL stayed /shop/cpu).
+    await expect(page).toHaveURL(/\/shop\/cpu/)
     await page.locator('a[href^="/product/"]').first().click()
     await page.getByRole('button', { name: 'Add to cart' }).click()
 
@@ -39,6 +50,10 @@ test.describe('cart drawer', () => {
   test('#181 drawer shows the real product title (depth-1 cart query, review F1)', async ({ page }) => {
     await page.goto('/shop')
     await page.locator('a[href="/shop/cpu"]').click()
+    // Wait for the client nav to commit before resolving product links —
+    // otherwise .first() can grab a link mid-transition and the click lands
+    // nowhere (observed flake: URL stayed /shop/cpu).
+    await expect(page).toHaveURL(/\/shop\/cpu/)
     await page.locator('a[href^="/product/"]').first().click()
     // URL can commit before the product page swaps in — wait for a
     // product-exclusive signal before reading the h1 (the category page
@@ -57,6 +72,10 @@ test.describe('cart drawer', () => {
   test('#182 View cart renders the cart contents (context cartID gap, review F2)', async ({ page }) => {
     await page.goto('/shop')
     await page.locator('a[href="/shop/cpu"]').click()
+    // Wait for the client nav to commit before resolving product links —
+    // otherwise .first() can grab a link mid-transition and the click lands
+    // nowhere (observed flake: URL stayed /shop/cpu).
+    await expect(page).toHaveURL(/\/shop\/cpu/)
     await page.locator('a[href^="/product/"]').first().click()
     await expect(page).toHaveURL(/\/product\//)
     await expect(page.getByRole('button', { name: 'Add to cart' })).toBeVisible()

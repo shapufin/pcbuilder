@@ -2,7 +2,7 @@
  * Builder designs — the admin-selectable storefront renderer for
  * /builder/configure (entry 50). Registry mirrors THEME_PRESETS in
  * plugin-pages: slugs are the contract, apps/web maps slug → component in
- * src/app/builder/designs.ts. Business logic (builder index, rule engine,
+ * src/app/(frontend)/builder/designs.ts. Business logic (builder index, rule engine,
  * endpoints) is shared across all designs — only presentation swaps.
  * Adding a design = entry here + a designs/<slug>/ dir + registry entry.
  */

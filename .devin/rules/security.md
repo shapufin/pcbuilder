@@ -1,7 +1,7 @@
 ---
 description: "Security/access pointer — roles, CSRF, rate limits, auth"
 trigger: glob
-globs: "**/collections/**, apps/web/src/{lib/{auth,password-reset}.ts,proxy.ts,payload.config.ts,app/{auth,account,api/auth}/**}"
+globs: "**/collections/**, apps/web/src/{lib/{auth,password-reset}.ts,proxy.ts,payload.config.ts,app/(frontend)/{auth,account,api/auth}/**}"
 ---
 
 Touching access control, auth, or collections — read

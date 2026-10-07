@@ -9,6 +9,11 @@ const isStaff = (user: { roles?: string[] | null } | null | undefined): boolean 
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  admin: {
+    defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
+    listSearchableFields: ['filename', 'alt'],
+    group: 'Content',
+  },
   access: {
     read: () => true,
     create: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
@@ -28,4 +33,3 @@ export const Media: CollectionConfig = {
     { name: 'alt', type: 'text', required: true },
   ],
 }
-

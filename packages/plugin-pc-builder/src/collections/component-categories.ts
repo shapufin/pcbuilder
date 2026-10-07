@@ -14,11 +14,21 @@ export const ComponentCategories: CollectionConfig = {
     afterChange: [() => invalidateBuilderIndex()],
     afterDelete: [() => invalidateBuilderIndex()],
   },
-  admin: { useAsTitle: 'name' },
+  admin: {
+    useAsTitle: 'name',
+    defaultColumns: ['name', 'slug', 'sortOrder', 'required', 'maxSelectable', 'updatedAt'],
+    listSearchableFields: ['name', 'slug'],
+    group: 'PC Builder',
+  },
   defaultSort: 'sortOrder',
   fields: [
-    { name: 'name', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { position: 'sidebar' } },
+    {
+      type: 'row',
+      fields: [
+        { name: 'name', type: 'text', required: true, admin: { width: '60%' } },
+        { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { width: '40%', position: 'sidebar' } },
+      ],
+    },
     { name: 'icon', type: 'text', admin: { description: 'Token name from packages/ui icon set' } },
     { name: 'sortOrder', type: 'number', defaultValue: 0, index: true },
     { name: 'required', type: 'checkbox', defaultValue: true },

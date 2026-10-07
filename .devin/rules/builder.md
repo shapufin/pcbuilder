@@ -1,7 +1,7 @@
 ---
 description: "PC-builder domain pointer — rule engine, components, templates"
 trigger: glob
-globs: "packages/lib/**, packages/plugin-pc-builder/**, apps/web/src/app/builder/**"
+globs: "packages/lib/**, packages/plugin-pc-builder/**, apps/web/src/app/(frontend)/builder/**"
 ---
 
 Working in builder code — read `.devin/context/02-builder.md` first

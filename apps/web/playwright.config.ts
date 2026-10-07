@@ -23,5 +23,8 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 90_000,
+    env: {
+      PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'dev_secret_key_for_testing_purposes_only_123456',
+    },
   },
 })

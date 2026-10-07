@@ -35,6 +35,12 @@ describe('block registry coverage', () => {
       'videoEmbed:VideoEmbed',
       'section:Section',
       'contactForm:ContactForm',
+      // Entry 71 Nexus pack blocks.
+      'nexusHero:NexusHero',
+      'nexusCategoryMatrix:NexusCategoryMatrix',
+      'nexusProductRail:NexusProductRail',
+      'nexusSlotExplorer:NexusSlotExplorer',
+      'columns:Columns',
     ])
     expect(pairs.map((p) => p.split(':')[0])).toEqual([...pageBlockSlugs])
   })

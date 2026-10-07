@@ -74,7 +74,7 @@ describe('getThemeCss - server theme injection', () => {
     // The --font-sans/--font-display chains resolve through the variables
     // next/font puts on <html> — renaming `variable:` there silently falls
     // back to system fonts (entry-55 review).
-    const layout = fs.readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8')
+    const layout = fs.readFileSync(new URL('../app/(frontend)/layout.tsx', import.meta.url), 'utf8')
     expect(layout).toContain("variable: '--font-inter'")
     expect(layout).toContain("variable: '--font-space-grotesk'")
   })

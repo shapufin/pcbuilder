@@ -21,6 +21,7 @@ export const CompatibilityRules: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['subjectType', 'type', 'operator', 'field', 'value', 'severity', 'enabled'],
+    group: 'PC Builder',
   },
   fields: [
     {

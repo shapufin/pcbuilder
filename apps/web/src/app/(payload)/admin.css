@@ -1,0 +1,741 @@
+/* ==========================================================================
+   BuildMyRig Payload Admin CMS — Precision Dark & Dynamic GUI Theme System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Default Skin: Precision Dark (RIG Studio)
+   -------------------------------------------------------------------------- */
+:root,
+[data-admin-theme="precision-dark"] {
+  --theme-bg: #0f131c;
+  --theme-elevation-0: #0f131c;
+  --theme-elevation-50: #131722;
+  --theme-elevation-100: #181c24;
+  --theme-elevation-150: #1c2028;
+  --theme-elevation-200: #222732;
+  --theme-elevation-250: #262a33;
+  --theme-elevation-300: #2e333d;
+  --theme-elevation-350: #363c48;
+  --theme-elevation-400: #414754;
+  --theme-elevation-450: #4b5262;
+  --theme-elevation-500: #575e70;
+
+  --theme-text: #dfe2ee;
+  --theme-text-secondary: #8b90a0;
+  --theme-text-muted: #5e6475;
+
+  --theme-accent: #0070f3;
+  --theme-accent-hover: #4ea1ff;
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-glow: rgba(125, 244, 255, 0.35);
+  --theme-accent-soft: rgba(0, 112, 243, 0.15);
+
+  --theme-success: #34d399;
+  --theme-success-soft: rgba(52, 211, 153, 0.12);
+  --theme-warning: #facc15;
+  --theme-warning-soft: rgba(250, 204, 21, 0.12);
+  --theme-error: #f87171;
+  --theme-error-soft: rgba(248, 113, 113, 0.12);
+  --theme-info: #38bdf8;
+  --theme-info-soft: rgba(56, 189, 248, 0.12);
+
+  --theme-border: #2e333d;
+  --theme-border-strong: #414754;
+  --theme-radius-sm: 6px;
+  --theme-radius-md: 10px;
+  --theme-radius-lg: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Cyber Neon Theme Variation
+   -------------------------------------------------------------------------- */
+[data-admin-theme="cyber-neon"] {
+  --theme-bg: #07090e;
+  --theme-elevation-0: #07090e;
+  --theme-elevation-50: #0c1017;
+  --theme-elevation-100: #111622;
+  --theme-elevation-150: #171e2e;
+  --theme-elevation-200: #1d2538;
+  --theme-elevation-250: #242e44;
+  --theme-elevation-300: #2c3852;
+  --theme-elevation-350: #354462;
+  --theme-elevation-400: #42557a;
+
+  --theme-text: #f0f6fc;
+  --theme-text-secondary: #9db2db;
+  --theme-text-muted: #64748b;
+
+  --theme-accent: #00f0ff;
+  --theme-accent-hover: #7df4ff;
+  --theme-accent-contrast: #07090e;
+  --theme-accent-glow: rgba(0, 240, 255, 0.6);
+  --theme-accent-soft: rgba(0, 240, 255, 0.18);
+
+  --theme-success: #00ffaa;
+  --theme-warning: #ffd600;
+  --theme-error: #ff3366;
+  --theme-info: #00f0ff;
+  --theme-border: #2c3852;
+}
+
+/* --------------------------------------------------------------------------
+   3. Light Clean Theme Variation
+   -------------------------------------------------------------------------- */
+[data-admin-theme="light-clean"] {
+  --theme-bg: #f8fafc;
+  --theme-elevation-0: #ffffff;
+  --theme-elevation-50: #f8fafc;
+  --theme-elevation-100: #f1f5f9;
+  --theme-elevation-150: #e2e8f0;
+  --theme-elevation-200: #cbd5e1;
+  --theme-elevation-250: #94a3b8;
+  --theme-elevation-300: #cbd5e1;
+  --theme-elevation-350: #94a3b8;
+  --theme-elevation-400: #64748b;
+
+  --theme-text: #0f172a;
+  --theme-text-secondary: #475569;
+  --theme-text-muted: #94a3b8;
+
+  --theme-accent: #0284c7;
+  --theme-accent-hover: #0369a1;
+  --theme-accent-contrast: #ffffff;
+  --theme-accent-glow: rgba(2, 132, 199, 0.25);
+  --theme-accent-soft: rgba(2, 132, 199, 0.1);
+
+  --theme-success: #16a34a;
+  --theme-warning: #d97706;
+  --theme-error: #dc2626;
+  --theme-info: #0284c7;
+  --theme-border: #e2e8f0;
+}
+
+/* --------------------------------------------------------------------------
+   4. Classic Payload Variation (Default Fallback)
+   -------------------------------------------------------------------------- */
+[data-admin-theme="classic-payload"] {
+  /* Inherits standard Payload default variables */
+}
+
+/* --------------------------------------------------------------------------
+   5. Back-Office Layout & Navigation Enhancements
+   -------------------------------------------------------------------------- */
+body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  letter-spacing: -0.01em;
+}
+
+/* Sidebar styling */
+.payload-default-nav {
+  background: var(--theme-elevation-50) !important;
+  border-right: 1px solid var(--theme-elevation-300) !important;
+}
+
+/* Group Headers */
+.payload-nav-group__header,
+.nav-group__toggle {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--theme-text-muted) !important;
+  padding: 10px 16px 6px !important;
+}
+
+.payload-nav-group__header:hover {
+  color: var(--theme-accent) !important;
+}
+
+/* Navigation Links */
+.nav__link {
+  border-radius: var(--theme-radius-sm);
+  transition: all 120ms ease;
+  margin: 1px 8px;
+}
+
+.nav__link:hover {
+  background: var(--theme-elevation-150) !important;
+  color: var(--theme-text) !important;
+}
+
+.nav__link--active,
+.nav__link.active {
+  background: var(--theme-accent-soft) !important;
+  color: var(--theme-accent) !important;
+  font-weight: 600;
+  border-left: 3px solid var(--theme-accent);
+}
+
+/* Header bar */
+.app-header {
+  background: var(--theme-elevation-50) !important;
+  border-bottom: 1px solid var(--theme-elevation-300) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Tables & Lists */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.table th {
+  background: var(--theme-elevation-100) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--theme-text-secondary) !important;
+  border-bottom: 1px solid var(--theme-elevation-300) !important;
+  padding: 10px 14px !important;
+}
+
+.table tr:hover td {
+  background: var(--theme-elevation-100) !important;
+}
+
+.table td {
+  border-bottom: 1px solid var(--theme-elevation-200) !important;
+  padding: 12px 14px !important;
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+}
+
+.table td a {
+  color: var(--theme-accent) !important;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table td a:hover {
+  text-decoration: underline;
+  color: var(--theme-accent-hover) !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. Form Inputs, Labels & Field Controls
+   -------------------------------------------------------------------------- */
+.field-type {
+  margin-bottom: 1.25rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+  color: var(--theme-text-secondary) !important;
+  margin-bottom: 6px !important;
+}
+
+.field-description {
+  font-size: 12px !important;
+  color: var(--theme-text-muted) !important;
+  margin-top: 5px !important;
+  line-height: 1.4 !important;
+}
+
+.field-type input:not([type="checkbox"]):not([type="radio"]),
+.field-type textarea,
+.field-type select,
+.input-container input {
+  background: var(--theme-elevation-100) !important;
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  transition: all 120ms ease;
+  width: 100%;
+}
+
+.field-type input:not([type="checkbox"]):not([type="radio"]):hover,
+.field-type textarea:hover,
+.field-type select:hover {
+  border-color: var(--theme-elevation-400) !important;
+}
+
+.field-type input:not([type="checkbox"]):not([type="radio"]):focus,
+.field-type textarea:focus,
+.field-type select:focus,
+.input-container input:focus {
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 0 2px var(--theme-accent-soft) !important;
+  outline: none !important;
+}
+
+/* Checkboxes and Radios */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--theme-accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.checkbox-input,
+.custom-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-text) !important;
+  padding: 4px 0;
+}
+
+.checkbox-input__label,
+.custom-checkbox label {
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+
+.checkbox-input__input {
+  background: var(--theme-elevation-150) !important;
+  border: 1.5px solid var(--theme-elevation-400) !important;
+  border-radius: 4px !important;
+}
+
+.checkbox-input:hover .checkbox-input__input {
+  border-color: var(--theme-accent) !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. Code / JSON Monaco Editor Dark Theme Fix
+   -------------------------------------------------------------------------- */
+.code-field,
+.code-field__input,
+.code-editor,
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin,
+.monaco-editor .inputarea {
+  background: var(--theme-elevation-100) !important;
+  color: var(--theme-text) !important;
+}
+
+.code-field {
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  overflow: hidden;
+}
+
+.code-field:focus-within {
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 0 2px var(--theme-accent-soft) !important;
+}
+
+.monaco-editor .line-numbers {
+  color: var(--theme-text-muted) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Select & Relationship Pickers
+   -------------------------------------------------------------------------- */
+.react-select__control,
+.rs__control {
+  background: var(--theme-elevation-100) !important;
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  min-height: 40px !important;
+  color: var(--theme-text) !important;
+}
+
+.react-select__control--is-focused,
+.rs__control--is-focused {
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 0 2px var(--theme-accent-soft) !important;
+}
+
+.react-select__single-value,
+.rs__single-value {
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.react-select__menu,
+.rs__menu {
+  background: var(--theme-elevation-50) !important;
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+  z-index: 100 !important;
+}
+
+.react-select__option,
+.rs__option {
+  background: transparent !important;
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+}
+
+.react-select__option:hover,
+.react-select__option--is-focused,
+.rs__option:hover,
+.rs__option--is-focused {
+  background: var(--theme-accent-soft) !important;
+  color: var(--theme-accent) !important;
+}
+
+.react-select__option--is-selected,
+.rs__option--is-selected {
+  background: var(--theme-accent) !important;
+  color: var(--theme-accent-contrast) !important;
+  font-weight: 600;
+}
+
+.react-select__multi-value,
+.rs__multi-value {
+  background: var(--theme-elevation-200) !important;
+  border: 1px solid var(--theme-elevation-350) !important;
+  border-radius: var(--theme-radius-sm) !important;
+}
+
+.react-select__multi-value__label,
+.rs__multi-value__label {
+  color: var(--theme-text) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. Media Upload Dropzones & Buttons
+   -------------------------------------------------------------------------- */
+.file-field,
+.dropzone {
+  background: var(--theme-elevation-50) !important;
+  border: 1.5px dashed var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-md) !important;
+  padding: 1.5rem !important;
+  text-align: center;
+  transition: all 150ms ease;
+}
+
+.dropzone:hover,
+.file-field:hover {
+  border-color: var(--theme-accent) !important;
+  background: var(--theme-accent-soft) !important;
+}
+
+.file-field button,
+.dropzone button,
+.file-field__upload-button,
+.file-field__select-button {
+  background: var(--theme-elevation-200) !important;
+  color: var(--theme-text) !important;
+  border: 1px solid var(--theme-elevation-350) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.file-field button:hover,
+.dropzone button:hover,
+.file-field__upload-button:hover,
+.file-field__select-button:hover {
+  background: var(--theme-accent) !important;
+  color: var(--theme-accent-contrast) !important;
+  border-color: var(--theme-accent) !important;
+  box-shadow: 0 0 10px var(--theme-accent-glow) !important;
+}
+
+/* --------------------------------------------------------------------------
+   10. Tabs & Collapsible Fieldsets
+   -------------------------------------------------------------------------- */
+.tabs-field__tabs {
+  border-bottom: 1px solid var(--theme-elevation-300) !important;
+  gap: 6px !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.tabs-field__tab-button {
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--theme-text-secondary) !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  background: transparent !important;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.tabs-field__tab-button:hover {
+  color: var(--theme-text) !important;
+  background: var(--theme-elevation-100) !important;
+  border-radius: var(--theme-radius-sm) var(--theme-radius-sm) 0 0;
+}
+
+.tabs-field__tab-button--active,
+.tabs-field__tab-button.active {
+  color: var(--theme-accent) !important;
+  border-bottom: 2px solid var(--theme-accent) !important;
+  background: var(--theme-accent-soft) !important;
+  border-radius: var(--theme-radius-sm) var(--theme-radius-sm) 0 0;
+}
+
+.collapsible {
+  background: var(--theme-elevation-50) !important;
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-md) !important;
+  margin-bottom: 1rem !important;
+  overflow: hidden;
+}
+
+.collapsible__toggle {
+  background: var(--theme-elevation-100) !important;
+  padding: 12px 18px !important;
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+.collapsible__toggle:hover {
+  background: var(--theme-elevation-150) !important;
+  color: var(--theme-accent) !important;
+}
+
+/* --------------------------------------------------------------------------
+   11. List Filtering, Search & Create Action Buttons
+   -------------------------------------------------------------------------- */
+.search-filter {
+  background: var(--theme-elevation-100) !important;
+  border: 1px solid var(--theme-elevation-300) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  padding: 4px 10px !important;
+}
+
+.search-filter input {
+  color: var(--theme-text) !important;
+  font-size: 13px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.list-header__create-btn,
+.collection-list__create-button,
+a.btn--style-primary,
+button.btn--style-primary,
+.btn--style-primary {
+  background: var(--theme-accent) !important;
+  color: var(--theme-accent-contrast) !important;
+  border: 1px solid var(--theme-accent) !important;
+  border-radius: var(--theme-radius-sm) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 6px 14px !important;
+  transition: all 120ms ease;
+  box-shadow: 0 2px 10px var(--theme-accent-glow);
+}
+
+.list-header__create-btn:hover,
+a.btn--style-primary:hover,
+button.btn--style-primary:hover {
+  background: var(--theme-accent-hover) !important;
+  border-color: var(--theme-accent-hover) !important;
+}
+
+/* Status Badges */
+.pill,
+.badge {
+  border-radius: 9999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 2px 10px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.pill--success,
+.pill--published {
+  background: var(--theme-success-soft) !important;
+  color: var(--theme-success) !important;
+  border: 1px solid var(--theme-success) !important;
+}
+
+.pill--warning,
+.pill--draft {
+  background: var(--theme-warning-soft) !important;
+  color: var(--theme-warning) !important;
+  border: 1px solid var(--theme-warning) !important;
+}
+
+/* Custom Telemetry / Metrics Dashboard */
+.bmr-admin-dashboard {
+  margin-bottom: 2rem;
+}
+
+.bmr-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bmr-metric-card {
+  background: var(--theme-elevation-100);
+  border: 1px solid var(--theme-elevation-300);
+  border-radius: var(--theme-radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.bmr-metric-card:hover {
+  border-color: var(--theme-accent);
+  box-shadow: 0 4px 20px var(--theme-accent-glow);
+  transform: translateY(-2px);
+}
+
+.bmr-metric-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bmr-metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--theme-text);
+  margin-top: 0.5rem;
+  font-family: var(--theme-font-mono, monospace);
+}
+
+.bmr-metric-subtitle {
+  font-size: 12px;
+  color: var(--theme-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Quick Actions Bar */
+.bmr-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.bmr-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--theme-elevation-150);
+  border: 1px solid var(--theme-elevation-300);
+  color: var(--theme-text);
+  padding: 8px 16px;
+  border-radius: var(--theme-radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms ease;
+}
+
+.bmr-action-btn:hover {
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 12px var(--theme-accent-glow);
+}
+
+.bmr-action-btn.primary {
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+  border-color: var(--theme-accent);
+}
+
+.bmr-action-btn.primary:hover {
+  background: var(--theme-accent-hover);
+}
+
+/* Custom Header Actions Widget */
+.bmr-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bmr-theme-select {
+  background: var(--theme-elevation-150);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-elevation-300);
+  border-radius: var(--theme-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.bmr-theme-select:hover,
+.bmr-theme-select:focus {
+  border-color: var(--theme-accent);
+}
+
+.bmr-store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--theme-accent);
+  text-decoration: none;
+  padding: 4px 10px;
+  background: var(--theme-accent-soft);
+  border: 1px solid var(--theme-accent);
+  border-radius: var(--theme-radius-sm);
+  transition: all 150ms ease;
+}
+
+.bmr-store-link:hover {
+  background: var(--theme-accent);
+  color: var(--theme-accent-contrast);
+}
+
+/* --------------------------------------------------------------------------
+   12. Responsive Grid & Mobile Viewport Rules
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .field-type.row > .field-type,
+  .render-fields > .row > .field-type {
+    width: 100% !important;
+  }
+
+  .bmr-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bmr-quick-actions {
+    flex-direction: column;
+  }
+
+  .bmr-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

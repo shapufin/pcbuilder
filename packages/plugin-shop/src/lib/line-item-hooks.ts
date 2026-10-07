@@ -23,7 +23,7 @@ const compositeItemFields: Field[] = [
   {
     name: 'lineType',
     type: 'select',
-    options: ['standard', 'configured-build'],
+    options: ['standard', 'configured-build', 'packaging'],
     defaultValue: 'standard',
   },
   {
@@ -33,6 +33,19 @@ const compositeItemFields: Field[] = [
     admin: { hidden: true },
   },
   { name: 'buildName', type: 'text', admin: { hidden: true } },
+  {
+    name: 'packagingTier',
+    type: 'text',
+    admin: { hidden: true },
+  },
+  {
+    // Entry 71: display label for product-less composite lines (packaging
+    // tier name, and any future line type). Renderers fall back
+    // lineLabel → buildName → product title.
+    name: 'lineLabel',
+    type: 'text',
+    admin: { hidden: true },
+  },
   {
     name: 'subItems',
     type: 'array',
@@ -274,9 +287,24 @@ export const wrapCartBeforeChange =
     const composite = items!.filter((i) => i.lineType && i.lineType !== 'standard')
     args.data.items = standard
     await defaultHook(args)
-    args.data.items = [...standard, ...composite]
+    // Packaging is a single-line service: quantity controls would multiply
+    // the tier price and a cart must never carry two tiers, so the write
+    // clamps qty to 1 and keeps only the last packaging line (the cart UI
+    // also hides the controls — defense in depth for direct API writes).
+    const kept: CartItem[] = []
+    let seenPackaging = false
+    for (let i = composite.length - 1; i >= 0; i--) {
+      const item = composite[i]
+      if (item.lineType === 'packaging') {
+        if (seenPackaging) continue
+        seenPackaging = true
+        item.quantity = 1
+      }
+      kept.unshift(item)
+    }
+    args.data.items = [...standard, ...kept]
     let extra = 0
-    for (const item of composite) {
+    for (const item of kept) {
       const type = getLineItemType(item.lineType!)
       if (!type) continue
       const resolved = await type.resolveLine(item, args.req.payload)
@@ -308,8 +336,8 @@ export const validateBuildsAtCheckout = async ({
   if (operation && operation !== 'create') return
   if (!Array.isArray(data.items)) return
   for (const item of data.items) {
-    if (item.lineType !== 'configured-build') continue
-    const type = getLineItemType('configured-build')
+    if (!item.lineType || item.lineType === 'standard') continue
+    const type = getLineItemType(item.lineType)
     if (!type) continue
     await type.resolveLine(item, req.payload)
   }
@@ -326,13 +354,13 @@ export const collectBuildIssues = async (
 ): Promise<string[]> => {
   const reasons: string[] = []
   for (const item of items) {
-    if (item.lineType !== 'configured-build') continue
-    const type = getLineItemType('configured-build')
+    if (!item.lineType || item.lineType === 'standard') continue
+    const type = getLineItemType(item.lineType)
     if (!type) continue
     try {
       await type.resolveLine(item, req.payload)
     } catch (e) {
-      reasons.push(e instanceof Error ? e.message : 'build validation failed')
+      reasons.push(e instanceof Error ? e.message : 'line validation failed')
     }
   }
   return reasons

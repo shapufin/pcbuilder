@@ -19,6 +19,7 @@ export const InventoryReservations: CollectionConfig = {
   admin: {
     useAsTitle: 'paymentIntentID',
     defaultColumns: ['paymentIntentID', 'cart', 'status', 'expiresAt'],
+    group: 'Store',
   },
   fields: [
     { name: 'paymentIntentID', type: 'text', required: true, index: true, admin: { description: 'Stripe PaymentIntent the hold is keyed to' } },

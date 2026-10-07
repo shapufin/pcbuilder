@@ -17,7 +17,7 @@ describe('pagesPlugin — entry 19 (Step B consolidation)', () => {
     } as unknown as Config
     const out = (await pagesPlugin()(input)) as Config
     const slugs = (out.globals ?? []).map((g) => (g as { slug: string }).slug)
-    expect(slugs).toEqual(['pre-existing', 'site-settings', 'theme'])
+    expect(slugs).toEqual(['pre-existing', 'site-settings', 'theme', 'mega-menu'])
   })
 
   it('#113 adds the bounded topBlocks zone (hero + ctaBanner only) to categories', async () => {
@@ -80,7 +80,63 @@ describe('pagesPlugin - theme global (entry 21)', () => {
   it('#136 appends the theme global next to site-settings', () => {
     const out = pagesPlugin()(cfg([])) as Config
     const slugs = (out.globals ?? []).map((g) => (g as { slug: string }).slug)
-    expect(slugs).toEqual(['site-settings', 'theme'])
+    expect(slugs).toEqual(['site-settings', 'theme', 'mega-menu'])
+  })
+
+  it('#450 mega-menu featuredPromo.url accepts empty — optional group fields validate as omitted', () => {
+    // Payload validates group subfields even when the group is untouched
+    // (optionalField contract, entry 21) — a plain safeUrl rejects '' so a
+    // section without a promo (or a promo without a link) could never save;
+    // the entry-71 seed has exactly such a section and updateGlobal 400'd.
+    const out = pagesPlugin()(cfg([])) as Config
+    const menu = (out.globals ?? []).find((g) => (g as { slug: string }).slug === 'mega-menu') as GlobalConfig
+    const sections = (menu.fields ?? []).find(
+      (f): f is Field & { name: string; fields: Field[] } =>
+        'name' in f && f.name === 'sections',
+    )
+    const promo = sections?.fields.find(
+      (f): f is Field & { name: string; fields: Field[] } =>
+        'name' in f && f.name === 'featuredPromo',
+    )
+    const url = promo?.fields.find(
+      (f): f is Field & { name: string; validate: (v: unknown) => unknown } =>
+        'name' in f && f.name === 'url',
+    )
+    expect(url?.validate(undefined)).toBe(true)
+    expect(url?.validate('')).toBe(true)
+    expect(url?.validate('/shop')).toBe(true)
+    expect(url?.validate('javascript:alert(1)')).not.toBe(true)
+  })
+
+  it('#453 mega-menu wires the admin preview ui-field + row labels', () => {
+    // The ui field renders MegaMenuPreview (live flyout mock from unsaved
+    // form state); RowLabel specifiers make collapsed array rows readable.
+    const out = pagesPlugin()(cfg([])) as Config
+    const menu = (out.globals ?? []).find((g) => (g as { slug: string }).slug === 'mega-menu') as GlobalConfig
+    const fields = (menu.fields ?? []) as Array<Field & { admin?: { components?: Record<string, unknown> } }>
+    const preview = fields.find((f) => f.type === 'ui')
+    expect(String(preview?.admin?.components?.Field)).toContain('MegaMenuPreview')
+    const sections = fields.find((f) => 'name' in f && f.name === 'sections') as
+      | (Field & { fields: Field[]; admin?: { components?: Record<string, unknown> } })
+      | undefined
+    expect(String(sections?.admin?.components?.RowLabel)).toContain('MegaMenuRowLabel')
+    const items = (sections?.fields ?? []).find((f) => 'name' in f && f.name === 'items') as
+      | (Field & { admin?: { components?: Record<string, unknown> } })
+      | undefined
+    expect(String(items?.admin?.components?.RowLabel)).toContain('MegaMenuRowLabel')
+  })
+
+  it('#443 mega-menu access matches the theme global (read public, update manager+)', () => {
+    const out = pagesPlugin()(cfg([])) as Config
+    const menu = (out.globals ?? []).find((g) => (g as { slug: string }).slug === 'mega-menu') as GlobalConfig
+    const access = menu.access as Record<string, unknown>
+    const call = (fn: unknown, user: unknown): unknown =>
+      (fn as (a: unknown) => unknown)({ req: { user } })
+    expect(call(access.read, null)).toBe(true)
+    expect(call(access.update, null)).toBe(false)
+    expect(call(access.update, { roles: ['customer'] })).toBe(false)
+    expect(call(access.update, { roles: ['manager'] })).toBe(true)
+    expect(call(access.update, { roles: ['admin'] })).toBe(true)
   })
 
   it('#137 theme access: read is public, update is manager/admin only', () => {

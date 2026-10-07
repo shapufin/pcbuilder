@@ -28,8 +28,11 @@ import {
   cartApplyDiscountEndpoint,
   cartShippingCountryEndpoint,
   cartConfirmFreeEndpoint,
+  cartPackagingEndpoint,
   discountValidateEndpoint,
 } from './endpoints.ts'
+import { PackagingTiers } from './globals/packaging-tiers.ts'
+import { registerPackagingLineType } from './lib/packaging.ts'
 import { ordersCollectionOverride } from './collections/orders.ts'
 import { stripeWebhooks } from './payments/stripe-webhooks.ts'
 
@@ -85,7 +88,9 @@ export const shopPlugin =
           admin: {
             ...defaultCollection.admin,
             useAsTitle: 'title',
-            defaultColumns: ['title', 'category', 'brand', 'prices'],
+            defaultColumns: ['title', 'category', 'brand', 'prices', '_status', 'updatedAt'],
+            listSearchableFields: ['title', 'slug', 'description'],
+            group: 'Store',
           },
           fields: [
             {
@@ -94,10 +99,20 @@ export const shopPlugin =
                 {
                   label: 'Catalog',
                   fields: [
-                    { name: 'title', type: 'text', required: true },
-                    { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { position: 'sidebar' } },
-                    { name: 'category', type: 'relationship', relationTo: 'categories', index: true },
-                    { name: 'brand', type: 'relationship', relationTo: 'brands', index: true },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'title', type: 'text', required: true, admin: { width: '60%' } },
+                        { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { width: '40%', position: 'sidebar' } },
+                      ],
+                    },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'category', type: 'relationship', relationTo: 'categories', index: true, admin: { width: '50%' } },
+                        { name: 'brand', type: 'relationship', relationTo: 'brands', index: true, admin: { width: '50%' } },
+                      ],
+                    },
                     { name: 'gallery', type: 'upload', relationTo: 'media', hasMany: true },
                     { name: 'description', type: 'textarea' },
                     {
@@ -146,6 +161,10 @@ export const shopPlugin =
           ...defaultCollection,
           // Matrix row 17: staff+ read; writes (refunds) admin-only.
           access: { ...defaultCollection.access, ...transactionsAccess },
+          admin: {
+            ...defaultCollection.admin,
+            group: 'Store',
+          },
           fields: [
             ...defaultCollection.fields,
             {
@@ -210,6 +229,10 @@ export const shopPlugin =
         addressesCollectionOverride: ({ defaultCollection }: { defaultCollection: CollectionConfig }) => ({
           ...defaultCollection,
           access: { ...defaultCollection.access, read: staffOrOwnAddressRead },
+          admin: {
+            ...defaultCollection.admin,
+            group: 'Store',
+          },
         }),
       },
       carts: {
@@ -223,6 +246,10 @@ export const shopPlugin =
             : []
           return {
             ...defaultCollection,
+            admin: {
+              ...defaultCollection.admin,
+              group: 'Store',
+            },
             fields: [...extendItemsFields(defaultCollection.fields), ...cartTotalsFields],
             // Wrap the default hook so product-less composite lines don't crash it.
             hooks: {
@@ -239,6 +266,7 @@ export const shopPlugin =
               cartApplyDiscountEndpoint,
               cartShippingCountryEndpoint,
               cartConfirmFreeEndpoint,
+              cartPackagingEndpoint,
             ],
           } as CollectionConfig
         },
@@ -265,10 +293,15 @@ export const shopPlugin =
       },
     } as never) as Plugin
 
+    // Entry 71 (Nexus): the 'packaging' composite line type must exist before
+    // any cart write resolves it — registration is idempotent (Map.set).
+    registerPackagingLineType()
+
     return withEcommerce({
       ...incomingConfig,
       // Config-level endpoints are matched from the API root: /api/discounts/validate.
       endpoints: [...(incomingConfig.endpoints ?? []), discountValidateEndpoint],
+      globals: [...(incomingConfig.globals ?? []), PackagingTiers],
       collections: [
         ...(incomingConfig.collections || []),
         Media,

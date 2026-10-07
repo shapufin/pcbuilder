@@ -373,6 +373,8 @@ describe('line-item hooks (plugin-shop)', () => {
       'lineType',
       'configuredBuild',
       'buildName',
+      'packagingTier',
+      'lineLabel',
       'subItems',
     ])
     const tabItems = out.find((f) => f.name === 'layout')!.tabs![0].fields.find((f) => f.name === 'items')!
@@ -381,6 +383,8 @@ describe('line-item hooks (plugin-shop)', () => {
       'lineType',
       'configuredBuild',
       'buildName',
+      'packagingTier',
+      'lineLabel',
       'subItems',
     ])
     // original fields are not mutated

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Block, Field } from 'payload'
 import {
+  columnChildSlugs,
   lexicalEmbedBlockSlugs,
   pageBlocks,
   pageBlockSlugs,
@@ -45,6 +46,11 @@ describe('pageBlocks (moved from apps/web, entry 19)', () => {
       'videoEmbed',
       'section',
       'contactForm',
+      'nexusHero',
+      'nexusCategoryMatrix',
+      'nexusProductRail',
+      'nexusSlotExplorer',
+      'columns',
     ])
     expect(pageBlockSlugs).toEqual(pageBlocks.map((b) => b.slug))
   })
@@ -63,8 +69,8 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
     expect(new Set(names).size).toBe(pageBlocks.length)
   })
 
-  it('#145 every block carries an admin.group (drawer grouping: Layout/Content/Commerce)', () => {
-    const allowed = ['Layout', 'Content', 'Commerce']
+  it('#145 every block carries an admin.group (drawer grouping: Layout/Content/Commerce/Nexus)', () => {
+    const allowed = ['Layout', 'Content', 'Commerce', 'Nexus']
     for (const block of pageBlocks) {
       expect(allowed, `${block.slug} has no group`).toContain(block.admin?.group)
     }
@@ -131,6 +137,63 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
     }
     expect(lexicalEmbedBlockSlugs).not.toContain('section')
     expect(lexicalEmbedBlockSlugs).not.toContain('richText')
+  })
+
+  it('#444 nexus blocks stay page-level (no Lexical embeds, no topBlocks)', () => {
+    for (const slug of ['nexusHero', 'nexusCategoryMatrix', 'nexusProductRail', 'nexusSlotExplorer']) {
+      expect(pageBlockSlugs).toContain(slug)
+      expect(lexicalEmbedBlockSlugs).not.toContain(slug)
+      // Sections may nest them (they render as nx-* under any preset).
+      expect(sectionChildSlugs).toContain(slug)
+      expect(bySlug(slug)?.admin?.group).toBe('Nexus')
+    }
+  })
+
+  it('#454 columns block: 2–4 column rows, closed layout/gap selects, no section/columns nesting', () => {
+    const columns = bySlug('columns')
+    expect(columns, 'columns block missing').toBeDefined()
+    expect(columns?.admin?.group).toBe('Layout')
+
+    const tabsField = (columns!.fields ?? []).find((f) => f.type === 'tabs') as TabsField | undefined
+    expect(tabsField, 'columns needs a tabs field').toBeDefined()
+    const [columnsTab, layoutTab] = tabsField!.tabs
+
+    // Columns tab: array of rows, each holding a nested blocks field
+    const colsField = columnsTab.fields.find(
+      (f) => 'name' in f && f.name === 'columns',
+    ) as (Field & { minRows?: number; maxRows?: number; fields: Field[] }) | undefined
+    expect(colsField?.type).toBe('array')
+    expect(colsField?.minRows).toBe(2)
+    expect(colsField?.maxRows).toBe(4)
+    const inner = colsField?.fields.find(
+      (f) => 'name' in f && f.name === 'blocks',
+    ) as BlocksFieldShape | undefined
+    expect(inner?.type).toBe('blocks')
+    expect(inner?.blockReferences).toEqual(columnChildSlugs)
+    // no recursive columns, no section-in-column (server-enforced)
+    const allowed = (inner!.filterOptions as () => string[])()
+    expect(allowed).not.toContain('section')
+    expect(allowed).not.toContain('columns')
+    expect(columnChildSlugs).toEqual(
+      pageBlockSlugs.filter((s) => s !== 'section' && s !== 'columns'),
+    )
+
+    // Layout tab: closed selects only (never raw CSS from the editor)
+    expect(layoutTab.name).toBe('layout')
+    const layoutFields = layoutTab.fields as SelectFieldShape[]
+    expect(layoutFields.map((f) => f.name)).toEqual(['layout', 'gap'])
+    expect(layoutFields[0].options.map((o) => (typeof o === 'string' ? o : o.value))).toEqual([
+      'equal',
+      'wide-left',
+      'wide-right',
+    ])
+    expect(layoutFields[0].defaultValue).toBe('equal')
+    expect(layoutFields[1].options.map((o) => (typeof o === 'string' ? o : o.value))).toEqual([
+      'sm',
+      'md',
+      'lg',
+    ])
+    expect(layoutFields[1].defaultValue).toBe('md')
   })
 
   it('#148 RichTextBlock.richtext carries a field-level lexical editor (BlocksFeature embeds)', () => {

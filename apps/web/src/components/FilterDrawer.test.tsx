@@ -90,7 +90,7 @@ const CSS_DIR = path.resolve(__dirname)
 describe('FilterDrawer CSS single-sourcing', () => {
   it('#401 the drawer base block lives in primitives.css; shop.css keeps only its breakpoint opt-in', () => {
     const primitives = fs.readFileSync(path.join(CSS_DIR, 'ui/primitives.css'), 'utf8')
-    const shop = fs.readFileSync(path.resolve(CSS_DIR, '../app/shop/shop.css'), 'utf8')
+    const shop = fs.readFileSync(path.resolve(CSS_DIR, '../app/(frontend)/shop/shop.css'), 'utf8')
     expect(primitives).toContain('.filter-drawer__panel')
     expect(primitives).toContain('.filter-drawer__backdrop')
     // shop.css opts in at its own breakpoint; the panel/backdrop definitions
@@ -100,7 +100,7 @@ describe('FilterDrawer CSS single-sourcing', () => {
   })
 
   it('#401b builder.css hides the inline filters and shows the drawer trigger on mobile', () => {
-    const builder = fs.readFileSync(path.resolve(CSS_DIR, '../app/builder/builder.css'), 'utf8')
+    const builder = fs.readFileSync(path.resolve(CSS_DIR, '../app/(frontend)/builder/builder.css'), 'utf8')
     const mobile = builder.slice(builder.indexOf('@media (max-width: 900px)'))
     expect(mobile).toContain('.panel-filters')
     expect(mobile).toContain('.filter-drawer__open')

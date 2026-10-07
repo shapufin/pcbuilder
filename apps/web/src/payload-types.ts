@@ -85,6 +85,11 @@ export interface Config {
     videoEmbed: VideoEmbedBlock;
     section: SectionBlock;
     contactForm: ContactFormBlock;
+    nexusHero: NexusHeroBlock;
+    nexusCategoryMatrix: NexusCategoryMatrixBlock;
+    nexusProductRail: NexusProductRailBlock;
+    nexusSlotExplorer: NexusSlotExplorerBlock;
+    columns: ColumnsBlock;
   };
   collections: {
     users: User;
@@ -163,14 +168,18 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'packaging-tiers': PackagingTier;
     'builder-settings': BuilderSetting;
     'site-settings': SiteSetting;
     theme: Theme;
+    'mega-menu': MegaMenu;
   };
   globalsSelect: {
+    'packaging-tiers': PackagingTiersSelect<false> | PackagingTiersSelect<true>;
     'builder-settings': BuilderSettingsSelect<false> | BuilderSettingsSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     theme: ThemeSelect<false> | ThemeSelect<true>;
+    'mega-menu': MegaMenuSelect<false> | MegaMenuSelect<true>;
   };
   locale: null;
   widgets: {
@@ -533,6 +542,11 @@ export interface SectionBlock {
         | NewsletterSignupBlock
         | VideoEmbedBlock
         | ContactFormBlock
+        | NexusHeroBlock
+        | NexusCategoryMatrixBlock
+        | NexusProductRailBlock
+        | NexusSlotExplorerBlock
+        | ColumnsBlock
       )[]
     | null;
   layout?: {
@@ -566,141 +580,94 @@ export interface ContactFormBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "NexusHeroBlock".
  */
-export interface User {
-  id: number;
-  roles?: ('admin' | 'manager' | 'staff' | 'customer')[] | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
+export interface NexusHeroBlock {
+  eyebrow?: string | null;
+  heading: string;
+  /**
+   * Word(s) inside the heading rendered in the gradient accent.
+   */
+  gradientText?: string | null;
+  body?: string | null;
+  ctas?:
     | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
+        label: string;
+        url: string;
+        style?: ('primary' | 'ghost') | null;
+        id?: string | null;
       }[]
     | null;
-  password?: string | null;
-  collection: 'users';
+  /**
+   * Lazy-loaded 3D rig (three.js). Uncheck for a copy-only hero.
+   */
+  showRigVisualizer?: boolean | null;
+  /**
+   * Small caption under the CTAs.
+   */
+  hint?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nexusHero';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "pages".
+ * via the `definition` "NexusCategoryMatrixBlock".
  */
-export interface Page {
-  id: number;
-  title: string;
-  slug: string;
+export interface NexusCategoryMatrixBlock {
+  eyebrow?: string | null;
+  heading: string;
+  items: {
+    category: number | Category;
+    icon: 'gpu' | 'cpu' | 'cooling' | 'ram' | 'storage' | 'power' | 'case' | 'motherboard';
+    blurb?: string | null;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nexusCategoryMatrix';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NexusProductRailBlock".
+ */
+export interface NexusProductRailBlock {
+  eyebrow?: string | null;
+  heading: string;
   /**
-   * Exactly one page renders / (enforced server-side)
+   * Products are drawn from this category; empty = latest published.
    */
-  isHomepage?: boolean | null;
-  layout?:
-    | (
-        | HeroBlock
-        | RichTextBlock
-        | ProductGridBlock
-        | FeaturedCategoryBlock
-        | CtaBannerBlock
-        | TemplatesCarouselBlock
-        | ComparisonTableBlock
-        | FaqBlock
-        | TestimonialsBlock
-        | LogosStripBlock
-        | NewsletterSignupBlock
-        | VideoEmbedBlock
-        | SectionBlock
-        | ContactFormBlock
-      )[]
+  category?: (number | null) | Category;
+  limit?: number | null;
+  /**
+   * Show the prebuilt-tier attribute as a chip on each card.
+   */
+  showTierChips?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nexusProductRail';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NexusSlotExplorerBlock".
+ */
+export interface NexusSlotExplorerBlock {
+  eyebrow?: string | null;
+  heading: string;
+  body?: string | null;
+  /**
+   * Optional — leave empty to use the first published product per slot category.
+   */
+  slots?:
+    | {
+        slot: 'gpu' | 'cpu' | 'cooling' | 'ram' | 'storage' | 'power' | 'case' | 'motherboard';
+        product: number | Product;
+        id?: string | null;
+      }[]
     | null;
-  seo?: {
-    title?: string | null;
-    description?: string | null;
-    /**
-     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
-     */
-    image?: (number | null) | Media;
-  };
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "attribute-types".
- */
-export interface AttributeType {
-  id: number;
-  name: string;
-  /**
-   * URL filter param name, e.g. "socket" → ?socket=AM5
-   */
-  slug: string;
-  valueType: 'enum' | 'number';
-  /**
-   * Display unit, e.g. MHz, GB, W
-   */
-  unit?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "attribute-values".
- */
-export interface AttributeValue {
-  id: number;
-  attributeType: number | AttributeType;
-  value: string;
-  displayLabel?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "prices".
- */
-export interface Price {
-  id: number;
-  /**
-   * Minor units (cents)
-   */
-  amount: number;
-  currency: string;
-  variant?: (number | null) | Variant;
-  product?: (number | null) | Product;
-  validFrom?: string | null;
-  validUntil?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "variants".
- */
-export interface Variant {
-  id: number;
-  /**
-   * Used for administrative purposes, not shown to customers. This is populated by default.
-   */
-  title?: string | null;
-  product: number | Product;
-  options: (number | VariantOption)[];
-  inventory?: number | null;
-  priceInEUREnabled?: boolean | null;
-  priceInEUR?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nexusSlotExplorer';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -758,6 +725,37 @@ export interface Product {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attribute-types".
+ */
+export interface AttributeType {
+  id: number;
+  name: string;
+  /**
+   * URL filter param name, e.g. "socket" → ?socket=AM5
+   */
+  slug: string;
+  valueType: 'enum' | 'number';
+  /**
+   * Display unit, e.g. MHz, GB, W
+   */
+  unit?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attribute-values".
+ */
+export interface AttributeValue {
+  id: number;
+  attributeType: number | AttributeType;
+  value: string;
+  displayLabel?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "variantTypes".
  */
 export interface VariantType {
@@ -792,17 +790,37 @@ export interface VariantOption {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "variants".
+ */
+export interface Variant {
+  id: number;
+  /**
+   * Used for administrative purposes, not shown to customers. This is populated by default.
+   */
+  title?: string | null;
+  product: number | Product;
+  options: (number | VariantOption)[];
+  inventory?: number | null;
+  priceInEUREnabled?: boolean | null;
+  priceInEUR?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "components".
  */
 export interface Component {
   id: number;
   name: string;
+  category: number | ComponentCategory;
+  brand?: (number | null) | Brand;
   /**
    * Price/SKU/inventory source — A1: component references a ProductVariant
    */
   productVariant: number | Variant;
-  category: number | ComponentCategory;
-  brand?: (number | null) | Brand;
   images?: (number | Media)[] | null;
   description?: string | null;
   marketingCopy?: {
@@ -820,26 +838,62 @@ export interface Component {
     };
     [k: string]: unknown;
   } | null;
-  socket?: ('AM5' | 'LGA1700' | 'LGA1851') | null;
-  ramType?: ('DDR4' | 'DDR5') | null;
-  ramSpeedMhz?: number | null;
-  tdpWatts?: number | null;
-  psuWatts?: number | null;
-  moboFormFactor?: ('ATX' | 'mATX' | 'ITX') | null;
-  caseSupportedFormFactors?: ('ATX' | 'mATX' | 'ITX')[] | null;
-  gpuLengthMm?: number | null;
-  caseGpuMaxLengthMm?: number | null;
-  coolerSocketSupport?: ('AM5' | 'LGA1700' | 'LGA1851')[] | null;
-  storageInterface?: ('NVMe' | 'SATA') | null;
-  pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
   /**
-   * Physical DIMM slots (motherboards) — caps RAM picks via resolveSlotLimits
+   * CPU, motherboard — auto-compat: socket must match
+   */
+  socket?: ('AM5' | 'LGA1700' | 'LGA1851') | null;
+  /**
+   * RAM, motherboard — auto-compat: memory type must match
+   */
+  ramType?: ('DDR4' | 'DDR5') | null;
+  /**
+   * RAM speed in MHz
+   */
+  ramSpeedMhz?: number | null;
+  /**
+   * DIMM slots (motherboards) — caps RAM picks
    */
   ramSlots?: number | null;
   /**
-   * M.2 sockets (motherboards) — caps NVMe storage picks via resolveSlotLimits
+   * CPU, GPU — feeds power envelope
+   */
+  tdpWatts?: number | null;
+  /**
+   * PSU — rated wattage for power envelope
+   */
+  psuWatts?: number | null;
+  /**
+   * Motherboard — auto-compat: must fit case
+   */
+  moboFormFactor?: ('ATX' | 'mATX' | 'ITX') | null;
+  /**
+   * Case — boards supported
+   */
+  caseSupportedFormFactors?: ('ATX' | 'mATX' | 'ITX')[] | null;
+  /**
+   * GPU clearance length (mm)
+   */
+  gpuLengthMm?: number | null;
+  /**
+   * Case max GPU length (mm)
+   */
+  caseGpuMaxLengthMm?: number | null;
+  /**
+   * Storage interface (NVMe/SATA)
+   */
+  storageInterface?: ('NVMe' | 'SATA') | null;
+  /**
+   * M.2 sockets (motherboards)
    */
   m2Slots?: number | null;
+  /**
+   * Cooler sockets supported
+   */
+  coolerSocketSupport?: ('AM5' | 'LGA1700' | 'LGA1851')[] | null;
+  /**
+   * PCIe generation
+   */
+  pcieVersion?: ('3.0' | '4.0' | '5.0') | null;
   /**
    * RGB-capable part — lights its blueprint zone under RGB sync
    */
@@ -888,6 +942,146 @@ export interface ComponentCategory {
    */
   maxSelectable?: number | null;
   helperText?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ColumnsBlock".
+ */
+export interface ColumnsBlock {
+  /**
+   * 2–4 columns; each column stacks any blocks. Renders as a vertical stack on mobile.
+   */
+  columns?:
+    | {
+        blocks?:
+          | (
+              | HeroBlock
+              | RichTextBlock
+              | ProductGridBlock
+              | FeaturedCategoryBlock
+              | CtaBannerBlock
+              | TemplatesCarouselBlock
+              | ComparisonTableBlock
+              | FaqBlock
+              | TestimonialsBlock
+              | LogosStripBlock
+              | NewsletterSignupBlock
+              | VideoEmbedBlock
+              | ContactFormBlock
+              | NexusHeroBlock
+              | NexusCategoryMatrixBlock
+              | NexusProductRailBlock
+              | NexusSlotExplorerBlock
+            )[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  layout?: {
+    /**
+     * Column split — wide-left/wide-right weight the edge column 2:1 (intended for 2 columns; extra columns share the remainder equally).
+     */
+    layout?: ('equal' | 'wide-left' | 'wide-right') | null;
+    /**
+     * Column spacing — mapped to theme spacing tokens on the storefront
+     */
+    gap?: ('sm' | 'md' | 'lg') | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'columns';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  roles?: ('admin' | 'manager' | 'staff' | 'customer')[] | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * Exactly one page renders / (enforced server-side)
+   */
+  isHomepage?: boolean | null;
+  layout?:
+    | (
+        | HeroBlock
+        | RichTextBlock
+        | ProductGridBlock
+        | FeaturedCategoryBlock
+        | CtaBannerBlock
+        | TemplatesCarouselBlock
+        | ComparisonTableBlock
+        | FaqBlock
+        | TestimonialsBlock
+        | LogosStripBlock
+        | NewsletterSignupBlock
+        | VideoEmbedBlock
+        | SectionBlock
+        | ContactFormBlock
+        | NexusHeroBlock
+        | NexusCategoryMatrixBlock
+        | NexusProductRailBlock
+        | NexusSlotExplorerBlock
+        | ColumnsBlock
+      )[]
+    | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "prices".
+ */
+export interface Price {
+  id: number;
+  /**
+   * Minor units (cents)
+   */
+  amount: number;
+  currency: string;
+  variant?: (number | null) | Variant;
+  product?: (number | null) | Product;
+  validFrom?: string | null;
+  validUntil?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1003,9 +1197,11 @@ export interface Cart {
         product?: (number | null) | Product;
         variant?: (number | null) | Variant;
         quantity: number;
-        lineType?: ('standard' | 'configured-build') | null;
+        lineType?: ('standard' | 'configured-build' | 'packaging') | null;
         configuredBuild?: (number | null) | ConfiguredBuild;
         buildName?: string | null;
+        packagingTier?: string | null;
+        lineLabel?: string | null;
         subItems?:
           | {
               component?: (number | null) | Component;
@@ -1151,9 +1347,11 @@ export interface Order {
         product?: (number | null) | Product;
         variant?: (number | null) | Variant;
         quantity: number;
-        lineType?: ('standard' | 'configured-build') | null;
+        lineType?: ('standard' | 'configured-build' | 'packaging') | null;
         configuredBuild?: (number | null) | ConfiguredBuild;
         buildName?: string | null;
+        packagingTier?: string | null;
+        lineLabel?: string | null;
         subItems?:
           | {
               component?: (number | null) | Component;
@@ -1862,6 +2060,8 @@ export interface CartsSelect<T extends boolean = true> {
         lineType?: T;
         configuredBuild?: T;
         buildName?: T;
+        packagingTier?: T;
+        lineLabel?: T;
         subItems?:
           | T
           | {
@@ -1901,6 +2101,8 @@ export interface OrdersSelect<T extends boolean = true> {
         lineType?: T;
         configuredBuild?: T;
         buildName?: T;
+        packagingTier?: T;
+        lineLabel?: T;
         subItems?:
           | T
           | {
@@ -2006,26 +2208,26 @@ export interface ComponentCategoriesSelect<T extends boolean = true> {
  */
 export interface ComponentsSelect<T extends boolean = true> {
   name?: T;
-  productVariant?: T;
   category?: T;
   brand?: T;
+  productVariant?: T;
   images?: T;
   description?: T;
   marketingCopy?: T;
   socket?: T;
   ramType?: T;
   ramSpeedMhz?: T;
+  ramSlots?: T;
   tdpWatts?: T;
   psuWatts?: T;
   moboFormFactor?: T;
   caseSupportedFormFactors?: T;
   gpuLengthMm?: T;
   caseGpuMaxLengthMm?: T;
-  coolerSocketSupport?: T;
   storageInterface?: T;
-  pcieVersion?: T;
-  ramSlots?: T;
   m2Slots?: T;
+  coolerSocketSupport?: T;
+  pcieVersion?: T;
   hasRgb?: T;
   specsJson?: T;
   compatTags?:
@@ -2159,6 +2361,39 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
+ * Delivery/packaging upgrades offered at checkout (Nexus storefront).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "packaging-tiers".
+ */
+export interface PackagingTier {
+  id: number;
+  tiers?:
+    | {
+        /**
+         * Stable id (lowercase, dashes) — cart lines reference it, e.g. pelican
+         */
+        id: string;
+        name: string;
+        badge?: string | null;
+        description?: string | null;
+        features?:
+          | {
+              text: string;
+              id?: string | null;
+            }[]
+          | null;
+        /**
+         * Upgrade price in EUR cents (0 = free default tier)
+         */
+        priceCents: number;
+        enabled?: boolean | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "builder-settings".
  */
@@ -2178,6 +2413,10 @@ export interface BuilderSetting {
 export interface SiteSetting {
   id: number;
   /**
+   * Default visual skin used across the Payload Admin Back-Office.
+   */
+  adminTheme?: ('precision-dark' | 'cyber-neon' | 'light-clean' | 'classic-payload') | null;
+  /**
    * Shown in the site header. Empty list = no header links (Shop/Builder are not structural).
    */
   navLinks?:
@@ -2194,6 +2433,15 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Telemetry-strip lines shown by the Nexus header (entry 71). Empty list = strip hidden.
+   */
+  announcements?:
+    | {
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2206,7 +2454,7 @@ export interface Theme {
   /**
    * Design swap — empty fields fall back to this preset.
    */
-  preset?: ('dark' | 'light' | 'midnight' | 'rig-dark') | null;
+  preset?: ('dark' | 'light' | 'midnight' | 'rig-dark' | 'nexus') | null;
   /**
    * Leave a field empty to use the preset value.
    */
@@ -2250,6 +2498,73 @@ export interface Theme {
   createdAt?: string | null;
 }
 /**
+ * Nexus header flyout — sections, items and the featured promo card.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mega-menu".
+ */
+export interface MegaMenu {
+  id: number;
+  /**
+   * Empty list = mega-menu trigger hidden.
+   */
+  sections?:
+    | {
+        title: string;
+        description?: string | null;
+        /**
+         * Where the section title links (default /shop).
+         */
+        url?: string | null;
+        items?:
+          | {
+              label: string;
+              url: string;
+              subtitle?: string | null;
+              badge?: string | null;
+              icon?: ('speed' | 'cpu' | 'fan' | 'memory' | 'hard-drive' | 'zap' | 'box' | 'chip') | null;
+              id?: string | null;
+            }[]
+          | null;
+        featuredPromo?: {
+          title?: string | null;
+          description?: string | null;
+          buttonText?: string | null;
+          url?: string | null;
+          image?: (number | null) | Media;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "packaging-tiers_select".
+ */
+export interface PackagingTiersSelect<T extends boolean = true> {
+  tiers?:
+    | T
+    | {
+        id?: T;
+        name?: T;
+        badge?: T;
+        description?: T;
+        features?:
+          | T
+          | {
+              text?: T;
+              id?: T;
+            };
+        priceCents?: T;
+        enabled?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "builder-settings_select".
  */
@@ -2264,6 +2579,7 @@ export interface BuilderSettingsSelect<T extends boolean = true> {
  * via the `definition` "site-settings_select".
  */
 export interface SiteSettingsSelect<T extends boolean = true> {
+  adminTheme?: T;
   navLinks?:
     | T
     | {
@@ -2276,6 +2592,12 @@ export interface SiteSettingsSelect<T extends boolean = true> {
     | {
         label?: T;
         url?: T;
+        id?: T;
+      };
+  announcements?:
+    | T
+    | {
+        text?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -2323,6 +2645,42 @@ export interface ThemeSelect<T extends boolean = true> {
         body?: T;
         heading?: T;
         mono?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mega-menu_select".
+ */
+export interface MegaMenuSelect<T extends boolean = true> {
+  sections?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        url?: T;
+        items?:
+          | T
+          | {
+              label?: T;
+              url?: T;
+              subtitle?: T;
+              badge?: T;
+              icon?: T;
+              id?: T;
+            };
+        featuredPromo?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              buttonText?: T;
+              url?: T;
+              image?: T;
+            };
+        id?: T;
       };
   updatedAt?: T;
   createdAt?: T;

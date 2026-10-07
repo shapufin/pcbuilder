@@ -27,7 +27,12 @@ export const BuildTemplates: CollectionConfig = {
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   versions: { drafts: true },
-  admin: { useAsTitle: 'name', defaultColumns: ['name', 'tags', 'basePrice', '_status'] },
+  admin: {
+    useAsTitle: 'name',
+    defaultColumns: ['name', 'tags', 'basePrice', '_status', 'updatedAt'],
+    listSearchableFields: ['name', 'description'],
+    group: 'PC Builder',
+  },
   hooks: {
     beforeChange: [
       async ({ data, req }) => {
@@ -64,8 +69,13 @@ export const BuildTemplates: CollectionConfig = {
     ],
   },
   fields: [
-    { name: 'name', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { position: 'sidebar' } },
+    {
+      type: 'row',
+      fields: [
+        { name: 'name', type: 'text', required: true, admin: { width: '60%' } },
+        { name: 'slug', type: 'text', unique: true, index: true, required: true, admin: { width: '40%', position: 'sidebar' } },
+      ],
+    },
     { name: 'description', type: 'textarea' },
     { name: 'heroCopy', type: 'richText' },
     { name: 'images', type: 'upload', relationTo: 'media', hasMany: true },

@@ -14,11 +14,13 @@ export type DrawerItem = {
   product?: { id?: number | string; title?: string } | number | string
   lineType?: string
   buildName?: string
+  lineLabel?: string
 }
 
 type DrawerCart = { items?: DrawerItem[]; subtotal?: number }
 
 const titleOf = (item: DrawerItem): string => {
+  if (item.lineType === 'packaging') return item.lineLabel || 'Packaging'
   if (item.lineType === 'configured-build') return item.buildName || 'Configured build'
   return typeof item.product === 'object' && item.product ? item.product.title ?? 'Product' : 'Product'
 }

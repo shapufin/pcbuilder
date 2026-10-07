@@ -14,6 +14,11 @@ import { NewsletterSignup } from './components/NewsletterSignup'
 import { VideoEmbed } from './components/VideoEmbed'
 import { Section } from './components/Section'
 import { ContactForm } from './components/ContactForm'
+import { Columns } from './components/Columns'
+import { NexusHero } from '../themes/nexus/blocks/NexusHero'
+import { NexusCategoryMatrix } from '../themes/nexus/blocks/NexusCategoryMatrix'
+import { NexusProductRail } from '../themes/nexus/blocks/NexusProductRail'
+import { NexusSlotExplorer } from '../themes/nexus/blocks/NexusSlotExplorer'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BlockComponent = ComponentType<{ block: any }>
@@ -38,4 +43,11 @@ export const blockRegistry: Record<string, BlockComponent> = {
   videoEmbed: VideoEmbed,
   section: Section,
   contactForm: ContactForm,
+  // Entry 71 Nexus pack — slugs pinned by definitions.test.ts #147.
+  nexusHero: NexusHero,
+  nexusCategoryMatrix: NexusCategoryMatrix,
+  nexusProductRail: NexusProductRail,
+  nexusSlotExplorer: NexusSlotExplorer,
+  // Entry 74 — horizontal container primitive.
+  columns: Columns,
 }

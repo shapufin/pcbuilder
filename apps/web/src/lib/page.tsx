@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import type { Metadata } from 'next'
 import { getPayloadClient } from '@/lib/shop'
 
@@ -10,7 +11,7 @@ export type PageDoc = {
   seo?: { title?: string | null; description?: string | null; image?: { url?: string | null } | null } | null
 }
 
-export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
+export const getPageBySlug = cache(async function getPageBySlug(slug: string): Promise<PageDoc | null> {
   try {
     const payload = await getPayloadClient()
     const res = await payload.find({
@@ -23,9 +24,9 @@ export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
   } catch {
     return null
   }
-}
+})
 
-export async function getHomepagePage(): Promise<PageDoc | null> {
+export const getHomepagePage = cache(async function getHomepagePage(): Promise<PageDoc | null> {
   try {
     const payload = await getPayloadClient()
     const res = await payload.find({
@@ -38,7 +39,7 @@ export async function getHomepagePage(): Promise<PageDoc | null> {
   } catch {
     return null
   }
-}
+})
 
 const siteName = 'BuildMyRig'
 

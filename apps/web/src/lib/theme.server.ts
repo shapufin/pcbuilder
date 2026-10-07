@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { getPayloadClient } from './shop'
 import {
   DEFAULT_THEME,
@@ -109,12 +110,16 @@ export const THEME_BOOT_SCRIPT = `try{if(localStorage.getItem('bmr_theme')==='al
  * admin's radius/fonts are kept so toggling doesn't shift type/layout.
  * 'light'/'dark' ship no skin, so the alt block needs none.
  */
-export async function getThemeAssets(): Promise<{
+// Entry 71: cached per request — the layout AND pack-aware pages (PDP) call
+// this; without cache() that's two findGlobal reads per render.
+export const getThemeAssets = cache(async function getThemeAssets(): Promise<{
   css: string
   skin: string
   altCss: string
   altLabel: string
   defaultLabel: string
+  /** Component pack id from the active preset (e.g. 'nexus'), undefined = shared chrome. */
+  pack: string | undefined
 }> {
   let resolved
   try {
@@ -149,5 +154,6 @@ export async function getThemeAssets(): Promise<{
     altCss,
     altLabel: (THEME_PRESETS[altPreset] as ThemePresetDef).label,
     defaultLabel: (THEME_PRESETS[resolved.preset] as ThemePresetDef).label,
+    pack: (THEME_PRESETS[resolved.preset] as ThemePresetDef).pack,
   }
-}
+})

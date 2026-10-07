@@ -1,4 +1,5 @@
 import type { Block, Config, Plugin } from 'payload'
+import { MegaMenu } from './globals/MegaMenu.ts'
 import { SiteSettings } from './globals/SiteSettings.ts'
 import { Theme } from './globals/Theme.ts'
 import { categoryTopBlocksPlugin } from './plugins/category-top-blocks.ts'
@@ -44,13 +45,15 @@ export const pagesPlugin =
     if (pluginOptions.enabled === false) return withBlocks
     const withGlobals: Config = {
       ...withBlocks,
-      globals: [...(withBlocks.globals ?? []), SiteSettings, Theme],
+      globals: [...(withBlocks.globals ?? []), SiteSettings, Theme, MegaMenu],
     }
     return seoFieldsPlugin()(categoryTopBlocksPlugin()(withGlobals))
   }
 
 export { DEFAULT_SITE_SETTINGS, isSafeNavLinkUrl, resolveSiteSettings } from './lib/site-settings.ts'
 export type { NavLink, SiteSettings } from './lib/site-settings.ts'
+export { DEFAULT_MEGA_MENU, MEGA_MENU_ICONS, resolveMegaMenu } from './lib/mega-menu.ts'
+export type { MegaMenu, MegaMenuIcon, MegaMenuItem, MegaMenuPromo, MegaMenuSection } from './lib/mega-menu.ts'
 export {
   DEFAULT_THEME,
   LIGHT_COLORS,
@@ -65,6 +68,6 @@ export {
 } from './lib/theme.ts'
 export type { Theme, ThemeColors, ThemePreset, ThemePresetDef } from './lib/theme.ts'
 export { pageBlocks } from './blocks/definitions.ts'
-export { lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './blocks/slugs.ts'
+export { columnChildSlugs, lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './blocks/slugs.ts'
 
 export default pagesPlugin

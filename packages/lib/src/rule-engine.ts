@@ -5,8 +5,17 @@
 
 // ---------- Types ----------
 
-export type Socket = 'AM5' | 'LGA1700' | 'LGA1851'
-export type FormFactor = 'ATX' | 'mATX' | 'ITX'
+export type Socket =
+  | 'AM4'
+  | 'AM5'
+  | 'sTR5'
+  | 'sTRX4'
+  | 'LGA1200'
+  | 'LGA1700'
+  | 'LGA1851'
+  | 'LGA2066'
+  | (string & {})
+export type FormFactor = 'ATX' | 'mATX' | 'ITX' | (string & {})
 
 export type RuleCriticalSpec = {
   socket?: Socket
@@ -37,6 +46,8 @@ export interface ComponentDisplay {
   description?: string
   /** Cosmetic (specsJson) key/values for spec chips — never rule-evaluated. */
   specs?: Record<string, string | number | boolean | (string | number)[]>
+  /** Display label + unit per cosmetic spec key (from the category's spec template). */
+  specLabels?: Record<string, { label: string; unit?: string }>
   /** RGB-capable part — visual designs light its zone under RGB sync. */
   hasRgb?: boolean
 }
@@ -48,6 +59,8 @@ export interface ComponentSpecEntry {
   priceCents: number
   inStock?: boolean
   display?: ComponentDisplay
+  /** Derived platform memberships ('amd'/'intel'); absent/empty = any path. */
+  platforms?: string[]
 }
 
 export type RuleType = 'requires' | 'excludes' | 'supports' | 'warns'
@@ -99,6 +112,8 @@ export interface BuilderIndex {
   }[]
   power: DerivedPowerConfig
   rulesVersion: string
+  /** Usable platform paths (sockets present in data) — builder "build path" UI. */
+  platforms?: { id: string; label: string; sockets: string[] }[]
 }
 
 export type Selections = Record<string, string[]>

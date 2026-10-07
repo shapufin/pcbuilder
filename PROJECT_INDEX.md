@@ -7,7 +7,8 @@ Where things live. Not a manual — a map. Domain rules:
 
 | Path | Contents |
 | --- | --- |
-| `apps/web/src/app/` | Next.js routes: storefront, `/builder`, `/admin` (Payload), `/api/*` route handlers, `auth/`, `account/`, `shop/`, `wishlist/` |
+| `apps/web/src/app/(frontend)/` | storefront root layout + routes: `/builder`, `/api/*` route handlers, `auth/`, `account/`, `shop/`, `wishlist/` |
+| `apps/web/src/app/(payload)/` | Payload root layout + `/admin` + `/api/graphql` etc. — NO shared `app/layout.tsx`: a top-level root layout wraps route groups too (nested-`<html>` bug, entry 76) |
 | `apps/web/src/collections/` | app-level Payload collections (`Users.ts`, `Pages.ts`) |
 | `apps/web/src/{components,blocks,lib}/` | storefront components, block renderers/registry, server+client libs |
 | `apps/web/src/payload.config.ts` | Payload config (collections, plugins, CSRF allowlist) |
@@ -51,9 +52,9 @@ Where things live. Not a manual — a map. Domain rules:
   `src/payments/stripe-webhooks.ts` → adapter internals at
   `packages/plugin-shop/node_modules/@payloadcms/plugin-ecommerce/
   dist/payments/adapters/stripe/`.
-- Auth/account: `apps/web/src/lib/auth.ts`, `src/app/api/auth/
-  register/route.ts`, `src/app/auth/{login,register}/`,
-  `src/app/account/`, `src/proxy.ts`, `src/components/AccountNav.tsx`,
+- Auth/account: `apps/web/src/lib/auth.ts`, `src/app/(frontend)/api/auth/
+  register/route.ts`, `src/app/(frontend)/auth/{login,register}/`,
+  `src/app/(frontend)/account/`, `src/proxy.ts`, `src/components/AccountNav.tsx`,
   claim endpoint `builderClaimBuildEndpoint` in
   `packages/plugin-pc-builder/src/endpoints.ts`, orders read override in
   `packages/plugin-shop/src/index.ts`.
@@ -84,15 +85,15 @@ Where things live. Not a manual — a map. Domain rules:
   gated on `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`).
 - Site settings / search / wishlist: `plugin-pages/src/{globals,lib}/`
   + app `src/lib/site-settings.server.ts`, `src/lib/search.ts`,
-  `src/lib/wishlist-store.ts`, `src/app/shop/search/page.tsx`,
-  `src/app/wishlist/`, `WishlistNav`/`WishlistButton`.
+  `src/lib/wishlist-store.ts`, `src/app/(frontend)/shop/search/page.tsx`,
+  `src/app/(frontend)/wishlist/`, `WishlistNav`/`WishlistButton`.
 - Order emails: `plugin-shop/src/emails/` — `resend.ts`, `templates.ts`,
   `order-emails.ts` (hooked in `ordersCollectionOverride`).
 - Theme: `packages/ui/tokens.css` (rig-dark statics — the default) +
   `packages/ui/skins/` (preset overlays), `plugin-pages/src/lib/theme.ts`
   (`THEME_PRESETS` registry — dark/light/midnight/rig-dark)
   + `src/globals/Theme.ts`, app `src/lib/theme.server.ts`
-  (`getThemeAssets` single fetch) + `layout.tsx`
+  (`getThemeAssets` single fetch) + `(frontend)/layout.tsx`
   (`#theme-vars`/`#theme-skin`, next/font Inter+Space_Grotesk),
   enforcement `apps/web/eslint-rules/no-raw-hex.mjs`. Visitor toggle
   (entry 60): `getThemeAssets()` → `altCss` alt preset →
@@ -102,9 +103,9 @@ Where things live. Not a manual — a map. Domain rules:
   `mergeBlocks`; app `src/blocks/renderBlocks.tsx` + `PageRenderer.tsx`,
   `blocks/components/Section.tsx`, `lexical-converters.tsx`, `registry.tsx`,
   `collections/Pages.ts`.
-- Entry-23 sweep: `src/lib/password-reset.ts`, `src/app/api/auth/
-  {forgot-password,reset-password}/`, `src/app/auth/{forgot,reset}/`,
-  `src/lib/contact.ts`, `src/app/api/contact/route.ts`,
+- Entry-23 sweep: `src/lib/password-reset.ts`, `src/app/(frontend)/api/auth/
+  {forgot-password,reset-password}/`, `src/app/(frontend)/auth/{forgot,reset}/`,
+  `src/lib/contact.ts`, `src/app/(frontend)/api/contact/route.ts`,
   `plugin-pages/src/blocks/contact-form.ts`,
   `src/blocks/components/ContactForm*.tsx`,
   `plugin-shop/src/{analytics/plausible.ts,analytics/order-purchase.ts,

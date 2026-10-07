@@ -57,4 +57,20 @@ describe('site settings - link resolution', () => {
     expect(resolved.footerLinks[0]!.label).toHaveLength(60)
     expect(resolved.footerLinks[0]!.url).toHaveLength(2048)
   })
+
+  it('#438 announcements: missing -> defaults; empty -> hidden; rows cleaned', () => {
+    expect(resolveSiteSettings(null).announcements).toEqual(DEFAULT_SITE_SETTINGS.announcements)
+    expect(resolveSiteSettings({ announcements: [] }).announcements).toEqual([])
+    const resolved = resolveSiteSettings({
+      announcements: [{ text: '  First  ' }, { text: '' }, { notText: true }, { text: 'x'.repeat(300) }],
+    })
+    expect(resolved.announcements).toEqual(['First', 'x'.repeat(160)])
+  })
+
+  it('#450 adminTheme: valid option preserved; invalid or missing falls back to default', () => {
+    expect(resolveSiteSettings(null).adminTheme).toBe('precision-dark')
+    expect(resolveSiteSettings({ adminTheme: 'cyber-neon' }).adminTheme).toBe('cyber-neon')
+    expect(resolveSiteSettings({ adminTheme: 'light-clean' }).adminTheme).toBe('light-clean')
+    expect(resolveSiteSettings({ adminTheme: 'invalid-theme' }).adminTheme).toBe('precision-dark')
+  })
 })

@@ -1,0 +1,244 @@
+/* Checkout — two-column form + order summary. */
+
+.checkout-page {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-5);
+}
+
+.checkout-page--narrow {
+  max-width: var(--container-narrow);
+}
+
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.checkout-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.checkout-form__section {
+  display: grid;
+  gap: var(--space-3);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.checkout-form__legend {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+.address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.address-grid .field--full {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Order summary ---------- */
+
+.order-summary {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-4));
+  display: grid;
+  gap: var(--space-4);
+}
+
+.order-summary__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.order-summary__line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.order-summary__line-qty {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-summary__totals {
+  display: grid;
+  gap: var(--space-1);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+.order-summary__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+}
+
+.order-summary__row--total {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  padding-top: var(--space-1);
+}
+
+.order-summary__row--discount {
+  color: var(--color-success);
+}
+
+.order-summary__row--muted {
+  color: var(--color-text-muted);
+}
+
+.discount-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.discount-row .input {
+  flex: 1;
+}
+
+.discount-msg {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.discount-msg--ok {
+  color: var(--color-success);
+}
+
+.discount-msg--err {
+  color: var(--color-danger);
+}
+
+.checkout-msg {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+.checkout-msg--muted {
+  color: var(--color-text-muted);
+}
+
+.pay-btn {
+  margin-top: var(--space-4);
+}
+
+.checkout-msg--err {
+  color: var(--color-danger);
+}
+
+.checkout-msg--warn {
+  color: var(--color-warning);
+}
+
+@media (max-width: 860px) {
+  .checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .order-summary {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Entry 71 — packaging tier picker (Nexus checkout upsell). */
+.packaging-picker {
+  border: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+
+.packaging-picker__grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: var(--space-2);
+}
+
+.packaging-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+
+.packaging-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+.packaging-card--active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 0 16px var(--color-primary-glow, var(--color-primary-soft));
+}
+
+.packaging-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.packaging-card__name {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.packaging-card__badge {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+}
+
+.packaging-card__desc,
+.packaging-card__feature {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.packaging-card__features {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.packaging-card__price {
+  margin-top: auto;
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+}

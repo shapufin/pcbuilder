@@ -1,4 +1,7 @@
 import type { Payload, TypedUser } from 'payload'
+import { synthesizeCompatibilityRules } from './derived-rules.ts'
+import { specLabel } from './spec-templates.ts'
+import { builderPaths, platformsForComponent } from './platforms.ts'
 import {
   createRuleEngine,
   type BuilderIndex,
@@ -119,7 +122,7 @@ const cosmeticSpecs = (
   return Object.keys(out).length > 0 ? out : undefined
 }
 
-const displayOf = (c: ComponentRow): ComponentDisplay => {
+const displayOf = (c: ComponentRow, categorySlug?: string): ComponentDisplay => {
   const display: ComponentDisplay = { name: c.name }
   const brand = nameOf(c.brand)
   if (brand) display.brand = brand
@@ -128,7 +131,19 @@ const displayOf = (c: ComponentRow): ComponentDisplay => {
   if (image) display.image = image
   if (c.description) display.description = c.description
   const specs = cosmeticSpecs(c.specsJson)
-  if (specs) display.specs = specs
+  if (specs) {
+    display.specs = specs
+    if (categorySlug) {
+      // Template labels/units for chips (entry 68 §A) — keys without a template
+      // entry simply carry no label.
+      const labels: NonNullable<ComponentDisplay['specLabels']> = {}
+      for (const key of Object.keys(specs)) {
+        const def = specLabel(categorySlug, key)
+        if (def.label !== key || def.unit) labels[key] = def
+      }
+      if (Object.keys(labels).length > 0) display.specLabels = labels
+    }
+  }
   return display
 }
 
@@ -150,6 +165,8 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     ...(c.helperText ? { helperText: c.helperText } : {}),
     ...(c.icon ? { icon: c.icon } : {}),
   }))
+
+  const slugByCategoryId = new Map(categories.map((cat) => [cat.id, cat.slug]))
 
   const components: ComponentSpecEntry[] = (compsRes.docs as ComponentRow[]).map((c) => {
     const specs: RuleCriticalSpec = {}
@@ -182,7 +199,10 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
       specs,
       priceCents,
       inStock,
-      display: displayOf(c),
+      display: displayOf(c, slugByCategoryId.get(idOf(c.category))),
+      ...(platformsForComponent(slugByCategoryId.get(idOf(c.category)) ?? '', specs).length
+        ? { platforms: platformsForComponent(slugByCategoryId.get(idOf(c.category)) ?? '', specs) }
+        : {}),
     }
   })
 
@@ -206,6 +226,11 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
           ? { kind: 'component', id: idOf(r.targetComponent), name: nameOf(r.targetComponent) }
           : { kind: 'category', id: idOf(r.targetCategory), name: nameOf(r.targetCategory) },
     }))
+
+  // Standard relations synthesized from typed spec fields (spec §B, entry 68):
+  // socket/ramType/ff/GPU-length/cooler-socket/NVMe. Authored rules win on
+  // exact-key conflicts; per-product specials remain authored in the CMS.
+  rules.push(...synthesizeCompatibilityRules(components, categories, rules))
 
   interface PowerRow {
     overheadMultiplier?: number
@@ -248,7 +273,14 @@ export const buildBuilderIndex = async (payload: Payload): Promise<BuilderIndex>
     maxTs(powerRes.docs as { updatedAt?: string }[]),
   ].join('-')
 
-  return { components, rules, categories, power, rulesVersion }
+  return {
+    components,
+    rules,
+    categories,
+    power,
+    rulesVersion,
+    platforms: builderPaths({ components, categories }),
+  }
 }
 
 /** Single-instance in-memory cache (same deviation as the rate limiter — see

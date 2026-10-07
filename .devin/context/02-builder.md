@@ -58,22 +58,22 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   `builderDesignOptions()` (admin select), never-throw
   `resolveBuilderDesign()` (own-prop check, #305); default `rig-studio`
   since the P4 flip (entry 54, #363). `apps/web` maps slug → component in
-  `app/builder/designs.ts` (P2) and reads the global via
+  `app/(frontend)/builder/designs.ts` (P2) and reads the global via
   `apps/web/src/lib/builder-settings.server.ts` `getBuilderDesign()`
   (never-throw, like `getSiteSettings`).
 - `src/globals/builder-settings.ts` — plugin-owned global (public read /
   manager write); `BuilderSettingsNavLink` in `afterNavLinks` needs a
   `generate:importmap` after plugin admin changes.
-- **P2 architecture (entry 52)**: `app/builder/builder-provider.tsx` owns
+- **P2 architecture (entry 52)**: `app/(frontend)/builder/builder-provider.tsx` owns
   index fetch + hydration + `?template=`/`?build=` (+rgbColor) + engine +
   `resolveSlotLimits` + loading/error renders; designs consume
   `useBuilder()` (`state`/`actions`/`meta` incl. `actionStatus` — never
   re-instantiate `useBuildActions` inside a design). `actions.select`
   resolves `limits[cat]?.max ?? maxSelectable` — spec caps bind in every
-  design. `app/builder/designs.ts` maps slug → component (`rig-studio`
+  design. `app/(frontend)/builder/designs.ts` maps slug → component (`rig-studio`
   via `next/dynamic`, code-split; parity test #331); `configure/page.tsx`
   → `getBuilderDesign()` → `BuilderShell`. Design kit in
-  `app/builder/kit/`: `useBuildActions` (save/claim/cart/share, POST body
+  `app/(frontend)/builder/kit/`: `useBuildActions` (save/claim/cart/share, POST body
   sends `rgbColor`), `option-rows`, `build-io`, `BuilderToasts`.
   `builder-store.rgbColor`/`setRgbColor` is cosmetic — does NOT clear
   buildId/shareId (#93). Cap-shrink: existing picks persist until the
@@ -87,7 +87,7 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   badge). Drawer base CSS lives in `primitives.css`; each page opts the
   trigger in at its own breakpoint. `useId()` on the search input —
   two mounts would duplicate a hardcoded id.
-- **P3 (entry 53)**: `app/builder/designs/rig-studio/` is the full
+- **P3 (entry 53)**: `app/(frontend)/builder/designs/rig-studio/` is the full
   RIG_model1 port — pure `useBuilder()` presentation, no
   index/engine/fetch/store imports inside the dir (verified by review
   grep). Layout: `index.tsx` lifts view/hoverZone/toggles/modal state;
@@ -125,6 +125,33 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   `hasRgb` flags, mobo `ramSlots`/`m2Slots` (ITX 2/2, ATX 4/3),
   ram/storage `maxSelectable` → 4; `BuilderSpec` widened
   (bool + `Record<string, unknown>`). Invariants #359–#362.
+## Specs-as-data layers (entry 68 — design doc `20-spec-templates-auto-compat-design.md`)
+
+- **Three spec layers, don't conflate**: typed `components` fields
+  (`socket`/`ramType`/`psuWatts`/…) = rule-evaluated; `specsJson` =
+  cosmetic display only (never rules); product `attributeValues` = shop
+  facets.
+- `src/lib/spec-templates.ts` — per-category spec vocab registry over
+  `specsJson` storage; `SpecFieldsField` ui-field renders it as an admin
+  form (`useField('specsJson')` write-on-edit only, unknown keys
+  preserved, raw JSON collapsed under it); drift-guard test pins
+  seed↔registry. `ComponentDisplay.specLabels` → option chips get
+  label+unit.
+- `src/lib/derived-rules.ts` — standard relations synthesized at
+  `buildBuilderIndex` from typed specs (socket/ramType/ff/gpu-len/
+  cooler-socket/NVMe — **not SATA, not PSU, not PCIe**); explicit
+  per-direction rows (never the `bi` mirror), deduped vs authored rules.
+  Authored rules are now only product-specific specials — a new
+  component is constrained by filling its specs, no rule writing.
+- `src/lib/platforms.ts` — `SOCKET_PLATFORM` (AM5→amd, LGA1700/1851→
+  intel), `platforms` per entry + `index.platforms`, `pathVisible` (ram
+  binds via in-path mobo ramTypes), `pathBoundCategoryIds` (the 4 slots
+  a switch clears), `inferPath`. Store `path` persisted; provider
+  `actions.setPath` clears bound slots on engage/switch (widening to
+  null keeps picks), `?path=` + inference from restored picks;
+  `optionsFor`/`optionRows` filter at provider level. Shared
+  `kit/PathSwitcher` (confirm-guarded) mounts in both designs.
+
 - `packages/lib/src/slot-limits.ts` — `resolveSlotLimits()` caps picks
   by host spec (`SLOT_LIMIT_RULES`: mobo `ramSlots`→`ram`,
   `m2Slots`→`storage`; keyed by category ID internally; integer specs

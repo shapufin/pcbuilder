@@ -1,4 +1,5 @@
 import type { Block } from 'payload'
+import { ColumnsBlock } from './columns.ts'
 import { ComparisonTableBlock } from './comparison-table.ts'
 import { ContactFormBlock } from './contact-form.ts'
 import { CtaBannerBlock } from './cta-banner.ts'
@@ -7,6 +8,10 @@ import { FeaturedCategoryBlock } from './featured-category.ts'
 import { HeroBlock } from './hero.ts'
 import { LogosStripBlock } from './logos-strip.ts'
 import { NewsletterSignupBlock } from './newsletter-signup.ts'
+import { NexusCategoryMatrixBlock } from './nexus-category-matrix.ts'
+import { NexusHeroBlock } from './nexus-hero.ts'
+import { NexusProductRailBlock } from './nexus-product-rail.ts'
+import { NexusSlotExplorerBlock } from './nexus-slot-explorer.ts'
 import { ProductGridBlock } from './product-grid.ts'
 import { RichTextBlock } from './rich-text.ts'
 import { SectionBlock } from './section.ts'
@@ -24,6 +29,7 @@ import { VideoEmbedBlock } from './video-embed.ts'
  * Slug lists live in `slugs.ts` (no import cycle).
  */
 
+export { ColumnsBlock } from './columns.ts'
 export { ComparisonTableBlock } from './comparison-table.ts'
 export { ContactFormBlock } from './contact-form.ts'
 export { CtaBannerBlock } from './cta-banner.ts'
@@ -32,13 +38,17 @@ export { FeaturedCategoryBlock } from './featured-category.ts'
 export { HeroBlock } from './hero.ts'
 export { LogosStripBlock } from './logos-strip.ts'
 export { NewsletterSignupBlock } from './newsletter-signup.ts'
+export { NexusCategoryMatrixBlock } from './nexus-category-matrix.ts'
+export { NexusHeroBlock } from './nexus-hero.ts'
+export { NexusProductRailBlock } from './nexus-product-rail.ts'
+export { NexusSlotExplorerBlock } from './nexus-slot-explorer.ts'
 export { ProductGridBlock } from './product-grid.ts'
 export { RichTextBlock, richTextFeatures } from './rich-text.ts'
 export { SectionBlock } from './section.ts'
 export { TemplatesCarouselBlock } from './templates-carousel.ts'
 export { TestimonialsBlock } from './testimonials.ts'
 export { VideoEmbedBlock } from './video-embed.ts'
-export { lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './slugs.ts'
+export { columnChildSlugs, lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './slugs.ts'
 
 export const pageBlocks: Block[] = [
   HeroBlock,
@@ -55,4 +65,9 @@ export const pageBlocks: Block[] = [
   VideoEmbedBlock,
   SectionBlock,
   ContactFormBlock,
+  NexusHeroBlock,
+  NexusCategoryMatrixBlock,
+  NexusProductRailBlock,
+  NexusSlotExplorerBlock,
+  ColumnsBlock,
 ]

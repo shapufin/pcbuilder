@@ -29,7 +29,21 @@ export {
   DEFAULT_BUILDER_DESIGN,
   resolveBuilderDesign,
 } from './lib/builder-designs.ts'
+export { SPEC_TEMPLATES, specTemplateFor, specLabel } from './lib/spec-templates.ts'
+export {
+  SOCKET_PLATFORM,
+  PATH_BOUND_SLUGS,
+  platformsForComponent,
+  builderPaths,
+  makePathVisible,
+  pathVisible,
+  pathIsOffered,
+  pathBoundCategoryIds,
+  inferPath,
+} from './lib/platforms.ts'
+export type { PlatformId, BuilderPath } from './lib/platforms.ts'
 export type { BuilderDesign } from './lib/builder-designs.ts'
+export type { SpecFieldDef, SpecFieldType } from './lib/spec-templates.ts'
 
 /**
  * plugin-pc-builder — component catalog, compatibility rules, build templates.

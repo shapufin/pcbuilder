@@ -66,3 +66,15 @@ export function specRows(specs: Record<string, unknown> | null | undefined): Spe
   for (const [k, v] of Object.entries(specs)) walk(k, v)
   return rows
 }
+
+/**
+ * specRows minus a top-level key set — entry 71 Nexus PDP renders marketing
+ * meta (spScore, goldenBin, features…) as chips/badges, so those keys are
+ * filtered out of the generic table instead of double-rendering as raw rows.
+ */
+export function specRowsExcept(
+  specs: Record<string, unknown> | null | undefined,
+  exclude: ReadonlySet<string>,
+): SpecRow[] {
+  return specRows(specs).filter((row) => !exclude.has(row.key.split('.')[0]!))
+}

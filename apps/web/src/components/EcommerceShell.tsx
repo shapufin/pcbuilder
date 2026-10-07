@@ -8,6 +8,18 @@ const cartApi = {
   cartsFetchQuery: {
     depth: 1,
     populate: { products: { title: true } },
+    // The plugin's base select is { items, subtotal } only — checkout reads
+    // server-computed discountTotal/shippingTotal/taxTotal/total/discountCode
+    // off the provider cart, so they must be selected or they silently read
+    // as 0/subtotal. deepMergeSimple merges these into the base select.
+    select: {
+      total: true,
+      discountTotal: true,
+      shippingTotal: true,
+      taxTotal: true,
+      discountCode: true,
+      shippingCountry: true,
+    } as const,
   },
 }
 

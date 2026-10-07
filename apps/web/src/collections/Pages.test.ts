@@ -14,8 +14,8 @@ describe('Pages layout field allow-list', () => {
     (f) => f.type === 'blocks' && 'name' in f && f.name === 'layout',
   ) as Extract<(typeof Pages.fields)[number], { type: 'blocks' }>
 
-  it('#156 layout references the 14 page slugs and filterOptions pins the same set', () => {
-    expect(pageBlockSlugs).toHaveLength(14)
+  it('#156 layout references the 19 page slugs (14 + 4 nexus, entry 71; + columns, entry 74) and filterOptions pins the same set', () => {
+    expect(pageBlockSlugs).toHaveLength(19)
     expect(layout.blocks).toEqual([])
     expect([...(layout.blockReferences ?? [])]).toEqual([...pageBlockSlugs])
 

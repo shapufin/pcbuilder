@@ -63,8 +63,10 @@ export const seedPages = async (payload: Payload): Promise<number> => {
     created += 1
   }
 
-  const gpusId = catIdByTitle.get('GPUs')
-  const cpusId = catIdByTitle.get('CPU')
+  const matrixItem = (title: string, icon: string, blurb: string) => {
+    const id = catIdByTitle.get(title)
+    return id ? { category: id, icon, blurb } : null
+  }
 
   await createPage({
     title: 'Home',
@@ -75,34 +77,60 @@ export const seedPages = async (payload: Payload): Promise<number> => {
       title: 'BuildMyRig — custom PCs, configured your way',
       description: 'Pre-built gaming and creator PCs, or configure your own — step by step.',
     },
+    // Entry 71: Nexus-composed homepage. The nx-* blocks render under every
+    // preset (vars adapt); under the Nexus pack they get the full treatment.
     layout: [
       {
-        blockType: 'hero',
-        heading: 'Build your perfect rig',
-        subheading: 'Pre-built gaming and creator PCs, or configure your own — step by step.',
-        variant: 'image',
-        align: 'center',
+        blockType: 'nexusHero',
+        eyebrow: 'Atelier silicon // cleanroom builds',
+        heading: 'Precision built. Thermally invisible.',
+        gradientText: 'Thermally invisible.',
+        body: 'Hand-binned CPUs, vapor-chamber GPUs and ISO-6 cleanroom assembly — configure your own rig or pick a turnkey workstation.',
         ctas: [
-          { label: 'Open the builder', url: '/builder', style: 'primary' },
-          { label: 'Browse components', url: '/shop', style: 'secondary' },
+          { label: 'Open the configurator', url: '/builder', style: 'primary' },
+          { label: 'Browse the catalog', url: '/shop', style: 'ghost' },
         ],
+        showRigVisualizer: true,
+        hint: 'Drag the rig to orbit · all parts compatibility-checked',
       },
-      { blockType: 'templatesCarousel', heading: 'Ready-to-go builds', autoplay: false },
-      { blockType: 'productGrid', heading: 'Latest products', limit: 4, columns: '3' },
-      ...(cpusId
-        ? [{ blockType: 'productGrid', heading: 'Top CPUs', category: cpusId, limit: 4, columns: '3', viewAllLabel: 'View all CPUs' }]
-        : []),
-      ...(gpusId
+      {
+        blockType: 'nexusCategoryMatrix',
+        eyebrow: 'Component ecosystem',
+        heading: 'Pick your silicon',
+        items: [
+          matrixItem('GPUs', 'gpu', 'PCIe 5.0 flagships to 1080p workhorses'),
+          matrixItem('CPU', 'cpu', 'Binned chips, delidded options, AM5 & LGA1700'),
+          matrixItem('Cooling', 'cooling', '360mm AIOs and quiet air towers'),
+          matrixItem('RAM', 'ram', 'DDR5 6000–6400 MT/s low-latency kits'),
+          matrixItem('Storage', 'storage', 'NVMe up to 7,450 MB/s reads'),
+          matrixItem('PSUs', 'power', 'ATX 3.1 modular, 650–1000W'),
+        ].filter(Boolean),
+      },
+      {
+        blockType: 'nexusProductRail',
+        eyebrow: 'Fresh silicon',
+        heading: 'Latest drops',
+        limit: 6,
+      },
+      ...(catIdByTitle.get('Pre-Built Rigs')
         ? [
             {
-              blockType: 'featuredCategory',
-              category: gpusId,
-              heading: 'Graphics cards for every budget',
-              copy: 'From 1080p entry cards to flagship 4K GPUs — filtered to your case and PSU by the builder.',
-              ctaLabel: 'Shop GPUs',
+              blockType: 'nexusProductRail',
+              eyebrow: 'Turnkey',
+              heading: 'Pre-built workstations',
+              category: catIdByTitle.get('Pre-Built Rigs'),
+              limit: 3,
+              showTierChips: true,
             },
           ]
         : []),
+      {
+        blockType: 'nexusSlotExplorer',
+        eyebrow: 'Interactive architecture',
+        heading: 'Explore the motherboard',
+        body: 'Click a mounted module to inspect it — empty slots open the catalog.',
+      },
+      { blockType: 'templatesCarousel', heading: 'Ready-to-go builds', autoplay: false },
       { blockType: 'logosStrip', heading: 'Brands we carry', brands: allBrandIds },
       {
         blockType: 'testimonials',

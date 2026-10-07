@@ -136,39 +136,29 @@ plan: `.devin/plans/plan-bmr-next-rounds.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#428 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#449 + e2e; per-package counts in 05).
 
-60. **Entry 65** — **AI entry points**: thin pointers to AGENTS.md for
-   Copilot (`.github/copilot-instructions.md`), Gemini CLI (`GEMINI.md`),
-   Aider (`CONVENTIONS.md`), Cursor (`.cursor/rules/buildmyrig.mdc`) and
-   Windsurf (`.windsurf/rules/buildmyrig.md`); OpenCode/Codex read
-   AGENTS.md natively (no `opencode.json` — V2 `instructions` unresolved).
-   `workflow:check` requires all five + pins their references, frontmatter
-   and 4 000-char cap (guard proven by breakage). PASS.
-59. **Entry 64** — **last unblocked backlog, all closed**: **spec facets +
-   per-facet counts** (`lib/facets.ts`; `?socket=AM5`; counts from the
-   non-facet set; audit S2) + **PDP compatibility list** (`compatRows()`;
-   audit S3) + attribute display names + `scripts/backfill-attributes.mjs`
-   (21 products repaired — dev DB predated the field) + **critical-path
-   pass**: framer-motion ~57 KB chunk off `/shop`+PDP (CSS badge pop, lazy
-   drawer, click-time fly-to-cart) and `scripts/perf-probe.mjs` (real LCP
-   1.46 s vs Lighthouse lantern 3.7 s). 547 unit, typecheck 6/6, lint 4/4,
-   build 25/25, **19/19 e2e**. SHIP.
-58. **Entry 63** — **review-fix round on 59–62** (both review findings
-   closed): `FilterDrawer` panel id → `useId` (trigger `aria-controls`
-   matches the panel; #415 pins two drawers → distinct ids; e2e selects
-   by role) + `suppressHydrationWarning` on the three theme style tags
-   (boot script rewrites `media` pre-hydration; **dev-mode verified: 0
-   console messages** — gotcha #40) + stale generated types synced
-   (`paymentProvider`, entry-57 drift). 532 unit, typecheck 6/6, lint
-   4/4, build 25/25, 16/16 e2e. SHIP.
-57. **Entry 62** — **PDP RelatedProducts rail** (audit S3 nearly done):
-   ≤4 same-category published products via `ProductCardGrid`, self
-   excluded, hidden when none. Two stale S3 "gaps" (gallery, variant
-   picker) re-marked done — both landed entry 47. e2e-only round:
-   `related-products.spec.ts` → **16/16 e2e**, build 25/25. SHIP.
-43–56. **Entries 47–61** — Precision Dark redesign, theme-swap registry,
-   megaplan P0–P4 + review-fix round, Lighthouse re-run, €0 confirm-free +
-   settlement-core + SEC-001, CI build-flake fix, mobile FilterDrawer,
-   visitor theme toggle, PDP `specRows()` nested-spec fix. Full text in
-   `.devin/tracking/agents-archive-2026-10.md`.
+70. **Entry 78** — **Payload Admin CMS UI/UX redesign & multi-skin system**:
+   Precision Dark design system (`admin.css`); 4 swappable GUI themes
+   (`precision-dark`, `cyber-neon`, `light-clean`, `classic-payload`) via
+   header selector & SiteSettings; vector branding; live telemetry dashboard
+   metrics & 1-click action launchers; domain navigation groupings (Store,
+   PC Builder, Content, Settings, System); BuildStatsView restyled; test #450
+   green; Playwright 49 admin routes crawl 100% clean; all gates passed.
+69. **Entry 77** — **app audit & dynamic CMS flexibility**: browser audit +
+   screenshots; packaging tier cart line fallback to price 0; `SOCKET_PLATFORM` +
+   `Socket` widened (AM4, sTR5, LGA1200, LGA2066, custom socket maps); Nexus
+   mega-menu tablet stack (≤900px); mobile modal overscroll-contain; CartDrawer
+   `min-height: 0` sticky CTA; gates trio green.
+68. **Entry 76** — **root-layout split**: `app/layout.tsx` wrapped route
+   groups → nested `<html>` on `/admin`. Storefront → `app/(frontend)/`,
+   Payload root → `app/(payload)/layout.tsx` (no top-level layout);
+   `allowedDevOrigins`; `@/app/` imports, rule globs, context docs repointed;
+   06-gotchas grew (group-root semantics, PS `[[...]]` wildcard). Console-
+   clean `/admin`+`/`, all routes 200, tsc/lint green.
+67. **Entry 74–75** — **`columns` container & live UX walkthrough**: 2–4 side-by-side
+   stacks (`columnChildSlugs` = page blocks minus section/columns); live walkthrough
+   fixes (guest-secret cart patch, totals select, mobile overflow). 607 unit, gates green.
+43–66. **Entries 47–73** — Precision Dark, megaplan + review-fix, theme
+   toggle, spec facets, Nexus pack, spec templates, mega-menu UX. Verbatim in archive.
+
