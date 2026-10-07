@@ -35,10 +35,11 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Playwright artifacts
+# Playwright & local upload artifacts
 apps/web/test-results/
 apps/web/playwright-report/
 .playwright-mcp/
+apps/web/media/
 
 # trace-mcp local index
 .trace-mcp/
