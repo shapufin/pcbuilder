@@ -338,12 +338,47 @@ export const builderClaimBuildEndpoint: Endpoint = {
       }
       return bad(403, 'build belongs to another user')
     }
-    await req.payload.update({
+    // VERIFY-001 (claim TOCTOU): atomic CAS update matching only unowned builds.
+    // If a concurrent claim race wins between find and update, 0 docs are updated.
+    const updateRes = await req.payload.update({
       collection: 'configured-builds',
-      id: doc.id,
+      where: {
+        and: [
+          { id: { equals: doc.id } },
+          { or: [{ user: { exists: false } }, { user: { equals: null } }] },
+        ],
+      },
       data: { user: req.user.id } as never,
       overrideAccess: true,
     })
+    const updatedDocs = (updateRes as { docs?: unknown[] })?.docs
+    if (!Array.isArray(updatedDocs) || updatedDocs.length === 0) {
+      const recheck = await req.payload.find({
+        collection: 'configured-builds',
+        where: { id: { equals: doc.id } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const reDoc = recheck.docs[0] as
+        | { id: string | number; user?: { id: string | number } | string | number | null }
+        | undefined
+      const newOwner =
+        reDoc?.user == null
+          ? null
+          : typeof reDoc.user === 'object'
+            ? reDoc.user.id
+            : reDoc.user
+      if (newOwner !== null && String(newOwner) === String(req.user.id)) {
+        return ok({
+          id: doc.id,
+          shareId: parsed.data.shareId,
+          claimed: false,
+          alreadyClaimed: true,
+        })
+      }
+      return bad(403, 'build belongs to another user')
+    }
     return ok({ id: doc.id, shareId: parsed.data.shareId, claimed: true })
   },
 }

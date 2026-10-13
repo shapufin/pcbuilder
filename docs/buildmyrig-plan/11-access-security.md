@@ -86,7 +86,7 @@ each line is an operator action.
 | 5 | Add every new env var to `turbo.json` `env` allowlists | strict env mode silently drops undeclared vars from `dev`/`build` tasks (entry 24) |
 | 6 | Deploy behind a proxy/CDN that **overwrites** `X-Forwarded-For` + `X-Real-IP`; never expose the origin | rate-limit keying contract above (VULN-01) |
 | 7 | Swap the in-memory limiter for Upstash on multi-instance/serverless hosts | single-instance limiter is ineffective across instances (entry 11 deviation) |
-| 8 | Harden the build-claim write to a CAS (`where: { user: { exists: false } }`) | VERIFY-001 TOCTOU above |
+| 8 | ~~Harden the build-claim write to a CAS (`where: { user: { exists: false } }`)~~ | **Resolved (entry 123)**: atomic CAS update with race re-check in `packages/plugin-pc-builder/src/endpoints.ts` (VERIFY-001 closed) |
 | 9 | Register the Stripe webhook endpoint (`/api/payments/stripe/webhooks`) + set `STRIPE_WEBHOOK_SECRET` | the webhook is the reliable settlement path (CAS-idempotent); the client poll is best-effort |
 | 10 | Optional: schedule a reservations sweeper | holds self-expire (30-min TTL) and are swept lazily on the next `initiatePayment`; a cron just tidies low-traffic stores |
 | 11 | Set `RESEND_API_KEY` + `EMAIL_FROM` (+ `STAFF_ALERT_EMAIL` for low-stock/contact) | without them every send is a logged dry-run (entry 23) |
@@ -97,5 +97,5 @@ each line is an operator action.
 
 ## Open security notes (entry 15 review)
 
-- **VERIFY-001 — claim TOCTOU**: `POST /api/builder/builds/claim` reads the build (`user: null`) then writes. Two sessions claiming the same shareId in the same instant could both observe `user: null` and both get `claimed: true` (data harm: one build, two "owners" of the same row — the loser's later read still shows the winner's owner). Sequential claims are correct (403 foreign / idempotent `alreadyClaimed`). Hardening deferred: make the attach a CAS (`updateMany` with `where: { user: { exists: false } }`).
+- ~~**VERIFY-001 — claim TOCTOU**~~: **Resolved (entry 123)**. `POST /api/builder/builds/claim` uses an atomic CAS `update` with `{ and: [{ id: { equals: doc.id } }, { or: [{ user: { exists: false } }, { user: { equals: null } }] }] }`. If a concurrent race occurs, 0 docs are updated and a re-check evaluates the winning owner (403 foreign / idempotent 200). Test #86b.
 - **VERIFY-002 — register-409 enumeration**: a duplicate-email 409 confirms an address exists. Accepted tradeoff — standard signup-flow behavior; payloads' own pre-check makes it unavoidable without email-first flows (which need the deferred Resend adapter anyway).

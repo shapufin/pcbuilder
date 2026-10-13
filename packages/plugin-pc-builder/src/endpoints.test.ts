@@ -28,11 +28,23 @@ const components: Doc[] = [{ id: 31, name: 'Microsoft Windows 11 Home' }]
 
 const matches = (doc: Doc, where: Record<string, unknown> | undefined): boolean => {
   if (!where) return true
+  if (Array.isArray(where.and)) return (where.and as Doc[]).every((w) => matches(doc, w))
   if (Array.isArray(where.or)) return (where.or as Doc[]).some((w) => matches(doc, w))
   for (const [field, cond] of Object.entries(where)) {
-    if (cond && typeof cond === 'object' && 'equals' in (cond as Doc)) {
-      const expected = String((cond as { equals: unknown }).equals)
-      if (String(doc[field]) !== expected) return false
+    if (cond && typeof cond === 'object') {
+      if ('equals' in (cond as Doc)) {
+        const expected = (cond as { equals: unknown }).equals
+        if (expected === null) {
+          if (doc[field] !== null && doc[field] !== undefined) return false
+        } else if (String(doc[field]) !== String(expected)) {
+          return false
+        }
+      }
+      if ('exists' in (cond as Doc)) {
+        const expected = (cond as { exists: boolean }).exists
+        const exists = doc[field] !== undefined && doc[field] !== null
+        if (exists !== expected) return false
+      }
     }
   }
   return true
@@ -57,11 +69,17 @@ const makePayload = (existing: Doc[] = []) => {
       created.push(doc)
       return doc
     }),
-    update: vi.fn(async ({ id, data }: { id: string | number; data: Doc }) => {
-      const doc = [...existing, ...created].find((d) => d.id === id)
-      if (!doc) throw new Error('not found')
-      Object.assign(doc, data)
-      return doc
+    update: vi.fn(async ({ id, where, data }: { id?: string | number; where?: Record<string, unknown>; data: Doc }) => {
+      if (id !== undefined) {
+        const doc = [...existing, ...created].find((d) => d.id === id)
+        if (!doc) throw new Error('not found')
+        Object.assign(doc, data)
+        return doc
+      }
+      const source = [...existing, ...created]
+      const matched = source.filter((d) => matches(d, where))
+      matched.forEach((d) => Object.assign(d, data))
+      return { docs: matched }
     }),
   }
 }
@@ -213,7 +231,11 @@ describe('claim endpoint — entry 15 (anonymous save -> account)', () => {
     expect(payload.update).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'configured-builds',
-        id: 55,
+        where: expect.objectContaining({
+          and: expect.arrayContaining([
+            { id: { equals: 55 } },
+          ]),
+        }),
         data: { user: 7 },
       }),
     )
@@ -224,6 +246,24 @@ describe('claim endpoint — entry 15 (anonymous save -> account)', () => {
     expect(mine.status).toBe(200)
     expect(await mine.json()).toMatchObject({ id: 61, claimed: false, alreadyClaimed: true })
     expect(payload.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('#86b VERIFY-001 claim CAS TOCTOU race: concurrent claim re-checks and yields 403 for foreign winner or 200 alreadyClaimed for same user', async () => {
+    const racingDoc = { id: 70, user: 999, shareId: 'race-share' }
+    const payload = makePayload([racingDoc])
+    payload.update.mockResolvedValueOnce({ docs: [] })
+
+    const res = await claim({ shareId: 'race-share' }, payload)
+    expect(res.status).toBe(403)
+    expect(await res.json()).toMatchObject({ error: 'build belongs to another user' })
+
+    const myRacingDoc = { id: 71, user: 7, shareId: 'my-race-share' }
+    const payloadSame = makePayload([myRacingDoc])
+    payloadSame.update.mockResolvedValueOnce({ docs: [] })
+
+    const resSame = await claim({ shareId: 'my-race-share' }, payloadSame)
+    expect(resSame.status).toBe(200)
+    expect(await resSame.json()).toMatchObject({ id: 71, claimed: false, alreadyClaimed: true })
   })
 })
 

@@ -69,4 +69,4 @@
 - Wishlist product-validity re-check on render (stale snapshot/404 risk).
 - Seed spec undershoot: case-fan slot category, 3rd template, 20 ordinary products, customer user, seeded media, product attributeValues; true upsert idempotency + `--drop` flag.
 - ~~Multiple `derived-power-rules` uniqueness; A9 index gzip measurement at scale; `BMR_PREVIEW_URL` doc'd but unread; bare `/search` alias.~~ **All closed (entries 37–41)**: singleton guard + index warning; index measured (23.3 KB raw / 2.9 KB gzip at 33 components → ~43 KB gzip at 500); `BMR_PREVIEW_URL` dropped from the env docs; `/search` → `/shop/search` redirect.
-- Claim TOCTOU (VERIFY-001) and XFF spoofability (VULN-01) — open by deferral; both live before prod without an XFF-overwriting proxy.
+- ~~Claim TOCTOU (VERIFY-001)~~ — **closed (entry 123)** via atomic CAS update in `packages/plugin-pc-builder/src/endpoints.ts` (test #86b); XFF spoofability (VULN-01) open by deferral (handled by production reverse proxy contract).

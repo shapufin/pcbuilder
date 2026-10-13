@@ -2,6 +2,15 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-13 (123) — Security Hardening: Atomic CAS on Build Claim (VERIFY-001 Closed)
+
+Pre-production security audit hardening closing VERIFY-001 (claim TOCTOU):
+
+- **Atomic CAS on Build Claim** — `POST /api/builder/builds/claim` in `packages/plugin-pc-builder/src/endpoints.ts` now uses an atomic `update` with conditional `where: { and: [{ id: { equals: doc.id } }, { or: [{ user: { exists: false } }, { user: { equals: null } }] }] }`.
+- **Race Condition Resolution** — If two concurrent requests attempt to claim the same guest build, exactly one wins the update; the second update matches 0 documents and safely re-checks ownership via a secondary find (returning `alreadyClaimed: true` for the same user or 403 `build belongs to another user` for foreign users).
+- **Test Coverage** — Extended `packages/plugin-pc-builder/src/endpoints.test.ts` with test `#86b` verifying race resolution, and updated `#86` to assert conditional `where` parameters.
+- **Gates**: All 16 test files / 118 tests in `plugin-pc-builder` green; all 79 test files / 422 tests in `web` green; `tsc --noEmit` clean across 6 packages; `pnpm lint` clean; `pnpm workflow:check` PASSED. VERIFY-001 resolved.
+
 ## 2026-10-13 (122) — Comprehensive Admin GUI & Backend Audit: Zero-Gap Surface Verification & Workflow Suite
 
 Full-spectrum audit across all Payload CMS back-office pages, custom views, and interactive logic:

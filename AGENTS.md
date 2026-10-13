@@ -111,6 +111,11 @@ Last 1–2 dates stay here; older entries live in
 25–51 verbatim).
 Tests numbered cumulatively (#1–#647 + e2e; per-package counts in 05).
 
+16. **Entry 123** — **Claim CAS Hardening (VERIFY-001 Closed)**:
+    `POST /api/builder/builds/claim` upgraded to atomic CAS `update` with
+    `where: { and: [{ id }, { or: [{ user: exists false }, { user: null }] }] }`.
+    Race re-check guarantees safe 403 on foreign claim or 200 idempotent for own.
+    Test #86b added. Lib 86 / shop 163 / pc-builder 118 / web 422 green, tc+lint 0.
 15. **Entry 122** — **Admin GUI & Backend Audit**: Full 60-route crawl
     (all 6 custom views, 4 globals, 20 collections across list/create/edit)
     via `admin-crawl.spec.ts` (added `/admin/design-system` custom view);
@@ -138,7 +143,7 @@ Tests numbered cumulatively (#1–#647 + e2e; per-package counts in 05).
    view, review fixes, crawl fixes, list-table cells + registry headers,
    global views + collection headers, admin audit fix round, e2e crawl green.
    Verbatim in archive (rotated 2026-10-12/-13).
-43–98. **Entries 47–106** — Precision Dark redesign, admin overlays, command palette, modern commerce overhaul, performance ISR, design spec, primitive library, plugins manager, attribute terms manager, product spec fields, modern dashboard primitive migration, motion split, AdminGUI prototype alignment, desktop persistent sidebar, Users directory telemetry, Products & Components list elevation, Orders collection elevation, Builder Analytics elevation, Compatibility Rule Matrix elevation. Verbatim in archive.
+43–98. **Entries 47–106** — Precision Dark redesign, admin overlays, command palette, modern commerce overhaul, performance ISR, design spec, primitive library, and list elevations. Verbatim in archive.
 
 ## graphify
 
