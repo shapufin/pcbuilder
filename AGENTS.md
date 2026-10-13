@@ -111,6 +111,12 @@ Last 1–2 dates stay here; older entries live in
 25–51 verbatim).
 Tests numbered cumulatively (#1–#647 + e2e; per-package counts in 05).
 
+15. **Entry 122** — **Admin GUI & Backend Audit**: Full 60-route crawl
+    (all 6 custom views, 4 globals, 20 collections across list/create/edit)
+    via `admin-crawl.spec.ts` (added `/admin/design-system` custom view);
+    new `admin-workflows.spec.ts` testing 5 interactive browser workflows
+    (Rule Sandbox, Product SERP sync, Attribute Terms, Theme toggle, Facets).
+    0 route errors (HTTP/page/console); unit 422 web, tc+lint 0, e2e clean.
 12. **Entry 120** — **Money-format unification**: `formatEUR(cents|null)`
    promoted to `packages/lib` (`money.ts`, Intl en-IE, null-safe); `Price.tsx`
    re-exports it, `templates.ts` re-exports as `formatEur`, 3 admin headers'

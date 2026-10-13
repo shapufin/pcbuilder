@@ -76,6 +76,7 @@ test.describe('Admin Route Crawl & Error Detection', () => {
       '/admin/compatibility-rules-manager',
       '/admin/build-stats',
       '/admin/plugins',
+      '/admin/design-system',
     ]
 
     const routes: string[] = [...customViews]
