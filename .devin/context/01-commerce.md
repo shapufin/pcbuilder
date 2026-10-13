@@ -193,14 +193,15 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
 
 ## Emails (Resend)
 
-- Sender: `packages/plugin-shop/src/emails/resend.ts` — direct fetch to
-  Resend `/emails`, `RESEND_API_KEY` + `EMAIL_FROM` required, **dry-run
-  log when either is missing** (no SDK), `AbortSignal.timeout(5000)`,
-  throws on non-2xx — callers decide policy.
+- Sender: `@buildmyrig/lib/server` (`packages/lib/src/mail.ts`, entry 121 —
+  server-only subpath; `plugin-shop/src/emails/resend.ts` re-exports it)
+  — direct fetch to Resend `/emails`, `RESEND_API_KEY` + `EMAIL_FROM`
+  required, **dry-run log when either is missing** (no SDK),
+  `AbortSignal.timeout(5000)`, throws on non-2xx — callers decide policy.
 - Templates: `emails/templates.ts` — inline HTML, **every interpolation
   `escapeHtml`-ed** (order fields carry customer input), `formatEur`
-  cents→EUR with non-finite guard. Plain `{subject, html}` interface —
-  react-email deliberately deferred.
+  cents→EUR = re-export of lib `formatEUR` (non-finite guard). Plain
+  `{subject, html}` interface — react-email deliberately deferred.
 - `orderEmailsAfterChange` (orders `afterChange`): create → confirmation;
   `processing → completed` → shipping; **never throws** — a down Resend
   must not break settlement or staff updates. Recipient resolution:
@@ -226,9 +227,23 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   server-side `purchase` fires on order create via
   `analytics/order-purchase.ts` (skips cancelled/refunded).
 
+## Store settings & verified reviews (entry 79)
+
+- `StoreSettings` global (`globals/store-settings.ts`): provides `freeShippingThresholdCents`
+  (powers `FreeShippingMeter`), `promoBanner` (`enabled`, `text`, `link`, `countdownEnd`,
+  `variant`, `dismissible`), and 4 editable `trustBadges`. Resolved via
+  `lib/store-settings.ts` (`resolveStoreSettings`) and `apps/web/src/lib/store-settings.server.ts`.
+- `Reviews` collection (`collections/reviews.ts`): moderated collection with `status`
+  (`approved|pending|rejected`), 1–5 `rating`, `title`, `comment`, `verifiedPurchase`,
+  and private `authorEmail` (staff-read only). Public reads return `status: 'approved'`.
+- Review submission: `POST /api/reviews` — IP-rate limited, origin-checked, Zod-validated,
+  cross-checks completed customer orders to automatically flag `verifiedPurchase: true`.
+- Product enhancements: `productsCollectionOverride` adds `badgeType` (`hot|new|sale|bestseller|custom`),
+  `customBadgeText`, `crossSells` (frequently bought together), and `customBlocks` tab for PDP modular layouts.
+
 ## Verify
 
-- `pnpm test` (plugin-shop suite covers webhooks/emails/orders access).
+- `pnpm test` (plugin-shop suite covers webhooks/emails/orders access/store-settings/reviews).
 - Webhook e2e contract: signature reject, settle, replay-idempotency,
   refund, cleanup — needs a key-ful prod-build server.
 - Rate limits on commerce POSTs: in-memory, IP-keyed — see 03.

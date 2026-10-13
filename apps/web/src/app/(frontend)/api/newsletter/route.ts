@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { rateLimit } from '@buildmyrig/lib'
-import { newsletterWelcomeHtml, sendResendEmail } from '@buildmyrig/plugin-shop/emails'
+import { sendResendEmail } from '@buildmyrig/lib/server'
+import { newsletterWelcomeHtml } from '@buildmyrig/plugin-shop/emails'
 import { clientIp, defaultAllowedOrigins, isAllowedOrigin } from '@/lib/auth'
 
 const limiter = rateLimit({ windowMs: 60_000, max: 5 })

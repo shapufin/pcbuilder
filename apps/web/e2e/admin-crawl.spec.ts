@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@admin.com'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin'
+// Same seed credentials as e2e/helpers.ts.
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@buildmyrig.test'
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Password123!'
 
 test.describe('Admin Route Crawl & Error Detection', () => {
   test('crawls all admin collections, globals, and custom views without runtime errors', async ({
@@ -51,7 +52,15 @@ test.describe('Admin Route Crawl & Error Detection', () => {
       'configured-builds',
       'media',
       'attribute-types',
-      'attribute-values',
+      'discount-codes',
+      'reviews',
+      'shipping-bands',
+      'tax-rates',
+      'inventory-reservations',
+      'variants',
+      // 'attribute-values' is intentionally absent — the collection is
+      // admin.hidden (terms are managed inside the unified attribute-types
+      // manager), so Payload serves no admin routes for it.
     ]
 
     const globals = [
@@ -66,6 +75,7 @@ test.describe('Admin Route Crawl & Error Detection', () => {
       '/admin/account',
       '/admin/compatibility-rules-manager',
       '/admin/build-stats',
+      '/admin/plugins',
     ]
 
     const routes: string[] = [...customViews]

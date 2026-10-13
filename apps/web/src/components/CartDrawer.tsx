@@ -7,6 +7,7 @@ import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { drawerMotion, prefersReducedMotion } from '@/lib/motion'
 import { Price } from '@/components/ui/Price'
+import { FreeShippingMeter } from '@/components/FreeShippingMeter'
 
 export type DrawerItem = {
   id?: string | number
@@ -106,6 +107,12 @@ export function CartDrawerOverlay({
             ✕
           </button>
         </div>
+
+        {items.length > 0 && (
+          <div style={{ padding: '0 var(--space-4) var(--space-2)' }}>
+            <FreeShippingMeter currentTotalCents={subtotal} />
+          </div>
+        )}
 
         {items.length === 0 ? (
           <p className="cart-drawer__empty">

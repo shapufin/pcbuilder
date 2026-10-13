@@ -1,4 +1,4 @@
-import type { Block, Config, Plugin } from 'payload'
+import type { Block, Config, GlobalConfig, Plugin } from 'payload'
 import { MegaMenu } from './globals/MegaMenu.ts'
 import { SiteSettings } from './globals/SiteSettings.ts'
 import { Theme } from './globals/Theme.ts'
@@ -9,6 +9,12 @@ import { pageBlocks } from './blocks/definitions.ts'
 export interface PagesPluginOptions {
   /** Enable or disable the plugin. @default true */
   enabled?: boolean
+  /** Custom UI component path for the elevated site-settings edit header (entry 110) */
+  siteSettingsHeaderComponent?: string
+  /** Custom UI component path for the elevated theme edit header (entry 110) */
+  themeHeaderComponent?: string
+  /** Custom UI component path for the elevated mega-menu edit header (entry 110) */
+  megaMenuHeaderComponent?: string
 }
 
 const mergeBlocks = (existing: Block[] | undefined, incoming: Block[]): Block[] => {
@@ -43,9 +49,32 @@ export const pagesPlugin =
       blocks: mergeBlocks(incomingConfig.blocks, pageBlocks),
     }
     if (pluginOptions.enabled === false) return withBlocks
+    // Elevated edit-view headers mount on elements.Description (Payload renders
+    // it as DocumentHeader.AfterHeader) — entry 110.
+    const withDescription = (g: GlobalConfig, component?: string): GlobalConfig =>
+      component
+        ? {
+            ...g,
+            admin: {
+              ...g.admin,
+              components: {
+                ...g.admin?.components,
+                elements: {
+                  ...g.admin?.components?.elements,
+                  Description: component,
+                },
+              },
+            },
+          }
+        : g
     const withGlobals: Config = {
       ...withBlocks,
-      globals: [...(withBlocks.globals ?? []), SiteSettings, Theme, MegaMenu],
+      globals: [
+        ...(withBlocks.globals ?? []),
+        withDescription(SiteSettings, pluginOptions.siteSettingsHeaderComponent),
+        withDescription(Theme, pluginOptions.themeHeaderComponent),
+        withDescription(MegaMenu, pluginOptions.megaMenuHeaderComponent),
+      ],
     }
     return seoFieldsPlugin()(categoryTopBlocksPlugin()(withGlobals))
   }

@@ -1,4 +1,4 @@
-import { sendResendEmail } from '@buildmyrig/plugin-shop/emails'
+import { sendResendEmail } from '@buildmyrig/lib/server'
 import { contactLimiter, handleContactSubmission } from '@/lib/contact'
 
 const logger = {

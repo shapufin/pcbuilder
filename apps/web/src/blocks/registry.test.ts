@@ -41,6 +41,9 @@ describe('block registry coverage', () => {
       'nexusProductRail:NexusProductRail',
       'nexusSlotExplorer:NexusSlotExplorer',
       'columns:Columns',
+      'trustBadges:TrustBadges',
+      'bannerCountdown:BannerCountdown',
+      'reviewsShowcase:ReviewsShowcase',
     ])
     expect(pairs.map((p) => p.split(':')[0])).toEqual([...pageBlockSlugs])
   })

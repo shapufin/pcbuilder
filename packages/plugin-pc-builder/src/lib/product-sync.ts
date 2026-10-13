@@ -47,7 +47,7 @@ export const syncComponentProductLink = async (
     id: numericId(doc.id, 'component'),
     depth: 1,
     overrideAccess: true,
-  })) as ComponentIdDoc & { productVariant?: unknown }
+  })) as ComponentIdDoc & { productVariant?: unknown; specsJson?: Record<string, unknown> | null }
   const targetProductId = productLinkFor(comp)
 
   const linked = await payload.find({
@@ -69,10 +69,33 @@ export const syncComponentProductLink = async (
   }
 
   if (targetProductId != null) {
+    const existingProduct = (await payload.findByID({
+      collection: 'products',
+      id: numericId(targetProductId, 'product'),
+      depth: 0,
+      overrideAccess: true,
+    })) as { id: number; specsJson?: Record<string, unknown> | null }
+
+    const updateData: {
+      isComponent: boolean
+      component: number
+      specsJson?: Record<string, unknown>
+    } = { isComponent: true, component: numericId(doc.id, 'component') }
+
+    // Inherit specsJson to product if product has no specs yet
+    if (
+      comp.specsJson &&
+      typeof comp.specsJson === 'object' &&
+      Object.keys(comp.specsJson).length > 0 &&
+      (!existingProduct.specsJson || Object.keys(existingProduct.specsJson).length === 0)
+    ) {
+      updateData.specsJson = comp.specsJson
+    }
+
     await payload.update({
       collection: 'products',
       id: numericId(targetProductId, 'product'),
-      data: { isComponent: true, component: numericId(doc.id, 'component') },
+      data: updateData,
       overrideAccess: true,
     })
   }

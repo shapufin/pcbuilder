@@ -1,4 +1,4 @@
-import { sendResendEmail } from '@buildmyrig/plugin-shop/emails'
+import { sendResendEmail } from '@buildmyrig/lib/server'
 import { getPayloadClient } from '@/lib/shop'
 import { forgotPasswordLimiter, requestPasswordReset } from '@/lib/password-reset'
 

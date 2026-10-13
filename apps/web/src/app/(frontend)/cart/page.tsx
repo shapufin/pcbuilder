@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { Price } from '@/components/ui/Price'
+import { FreeShippingMeter } from '@/components/FreeShippingMeter'
 import '../shop/shop.css'
 import './cart.css'
 
@@ -145,6 +146,7 @@ export default function CartPage() {
             })}
           </ul>
           <aside className="cart-summary" aria-label="Order summary">
+            <FreeShippingMeter currentTotalCents={subtotal} />
             <div className="cart-summary__row cart-summary__row--total">
               <span>Subtotal</span>
               <Price cents={subtotal} />

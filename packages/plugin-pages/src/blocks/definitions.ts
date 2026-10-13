@@ -18,6 +18,9 @@ import { SectionBlock } from './section.ts'
 import { TemplatesCarouselBlock } from './templates-carousel.ts'
 import { TestimonialsBlock } from './testimonials.ts'
 import { VideoEmbedBlock } from './video-embed.ts'
+import { TrustBadgesBlock } from './trust-badges.ts'
+import { BannerCountdownBlock } from './banner-countdown.ts'
+import { ReviewsShowcaseBlock } from './reviews-showcase.ts'
 
 /**
  * One block config per file (Payload best practice / entry 22 Step D); this
@@ -48,6 +51,9 @@ export { SectionBlock } from './section.ts'
 export { TemplatesCarouselBlock } from './templates-carousel.ts'
 export { TestimonialsBlock } from './testimonials.ts'
 export { VideoEmbedBlock } from './video-embed.ts'
+export { TrustBadgesBlock } from './trust-badges.ts'
+export { BannerCountdownBlock } from './banner-countdown.ts'
+export { ReviewsShowcaseBlock } from './reviews-showcase.ts'
 export { columnChildSlugs, lexicalEmbedBlockSlugs, pageBlockSlugs, sectionChildSlugs } from './slugs.ts'
 
 export const pageBlocks: Block[] = [
@@ -70,4 +76,7 @@ export const pageBlocks: Block[] = [
   NexusProductRailBlock,
   NexusSlotExplorerBlock,
   ColumnsBlock,
+  TrustBadgesBlock,
+  BannerCountdownBlock,
+  ReviewsShowcaseBlock,
 ]

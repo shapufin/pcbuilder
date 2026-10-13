@@ -33,15 +33,25 @@ const relId = (v: unknown): string | number | null => {
   return v as string | number
 }
 
-/** Release every expired hold — called lazily before creating a new one. */
-const sweepExpired = async (payload: Payload, req: PayloadRequest): Promise<void> => {
-  await payload.update({
+/**
+ * Release every expired hold. Runs lazily before creating a new reservation,
+ * and on-demand via `POST /api/inventory-reservations/sweep` so stale holds
+ * don't sit 'held' forever when no new payment is initiated. Idempotent —
+ * re-sweeping is a no-op (the `held` + expiry `where` re-selects nothing).
+ * Returns the number of rows released.
+ */
+export const sweepExpiredReservations = async (
+  payload: Payload,
+  req: PayloadRequest,
+): Promise<number> => {
+  const result = (await payload.update({
     collection: RESERVATIONS as never,
     where: { and: [{ status: { equals: 'held' } }, { expiresAt: { less_than: new Date().toISOString() } }] } as never,
     data: { status: 'released' } as never,
     overrideAccess: true,
     req,
-  })
+  })) as { docs?: unknown[] }
+  return Array.isArray(result?.docs) ? result.docs.length : 0
 }
 
 /**
@@ -82,7 +92,7 @@ export const createReservationFromCart = async ({
   paymentIntentID: string
 }): Promise<void> => {
   if (!paymentIntentID || !cart?.id) return
-  await sweepExpired(payload, req)
+  await sweepExpiredReservations(payload, req)
   await releaseHeldForCart(payload, req, cart.id)
   const items: ReservationItem[] = []
   for (const raw of Array.isArray(cart.items) ? cart.items : []) {

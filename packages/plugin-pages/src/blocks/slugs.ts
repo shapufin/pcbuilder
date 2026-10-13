@@ -35,6 +35,10 @@ export const pageBlockSlugs: BlockSlug[] = [
   'nexusSlotExplorer',
   // Entry 74 — columns container (2–4 side-by-side block stacks).
   'columns',
+  // Marketing & Commerce blocks
+  'trustBadges',
+  'bannerCountdown',
+  'reviewsShowcase',
 ]
 
 /** What a Section may nest: everything except another section (no recursion). */
@@ -60,4 +64,6 @@ export const lexicalEmbedBlockSlugs: BlockSlug[] = [
   'templatesCarousel',
   'videoEmbed',
   'newsletterSignup',
+  'trustBadges',
+  'bannerCountdown',
 ]

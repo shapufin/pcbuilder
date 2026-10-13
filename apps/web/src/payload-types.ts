@@ -90,6 +90,9 @@ export interface Config {
     nexusProductRail: NexusProductRailBlock;
     nexusSlotExplorer: NexusSlotExplorerBlock;
     columns: ColumnsBlock;
+    trustBadges: TrustBadgesBlock;
+    bannerCountdown: BannerCountdownBlock;
+    reviewsShowcase: ReviewsShowcaseBlock;
   };
   collections: {
     users: User;
@@ -104,6 +107,7 @@ export interface Config {
     'shipping-bands': ShippingBand;
     'tax-rates': TaxRate;
     'inventory-reservations': InventoryReservation;
+    reviews: Review;
     addresses: Address;
     variants: Variant;
     variantTypes: VariantType;
@@ -144,6 +148,7 @@ export interface Config {
     'shipping-bands': ShippingBandsSelect<false> | ShippingBandsSelect<true>;
     'tax-rates': TaxRatesSelect<false> | TaxRatesSelect<true>;
     'inventory-reservations': InventoryReservationsSelect<false> | InventoryReservationsSelect<true>;
+    reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
     variants: VariantsSelect<false> | VariantsSelect<true>;
     variantTypes: VariantTypesSelect<false> | VariantTypesSelect<true>;
@@ -169,6 +174,7 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'packaging-tiers': PackagingTier;
+    'store-settings': StoreSetting;
     'builder-settings': BuilderSetting;
     'site-settings': SiteSetting;
     theme: Theme;
@@ -176,6 +182,7 @@ export interface Config {
   };
   globalsSelect: {
     'packaging-tiers': PackagingTiersSelect<false> | PackagingTiersSelect<true>;
+    'store-settings': StoreSettingsSelect<false> | StoreSettingsSelect<true>;
     'builder-settings': BuilderSettingsSelect<false> | BuilderSettingsSelect<true>;
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     theme: ThemeSelect<false> | ThemeSelect<true>;
@@ -547,6 +554,9 @@ export interface SectionBlock {
         | NexusProductRailBlock
         | NexusSlotExplorerBlock
         | ColumnsBlock
+        | TrustBadgesBlock
+        | BannerCountdownBlock
+        | ReviewsShowcaseBlock
       )[]
     | null;
   layout?: {
@@ -677,30 +687,21 @@ export interface Product {
   id: number;
   title: string;
   slug: string;
-  category?: (number | null) | Category;
-  brand?: (number | null) | Brand;
-  gallery?: (number | Media)[] | null;
-  description?: string | null;
-  attributeValues?:
+  /**
+   * High-impact product bullet points displayed beside the buy box on the product page.
+   */
+  keyFeatures?:
     | {
-        attributeType: number | AttributeType;
-        value: number | AttributeValue;
+        feature: string;
         id?: string | null;
       }[]
     | null;
+  gallery?: (number | Media)[] | null;
+  description?: string | null;
   /**
-   * Cosmetic specs; display + whitelisted filters
+   * Recommended upgrades & accessories shown in PDP and Cart
    */
-  specsJson?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  inventory?: number | null;
+  crossSells?: (number | Product)[] | null;
   enableVariants?: boolean | null;
   variantTypes?: (number | VariantType)[] | null;
   variants?: {
@@ -711,6 +712,54 @@ export interface Product {
   priceInEUREnabled?: boolean | null;
   priceInEUR?: number | null;
   /**
+   * Original strike-through MSRP in EUR cents (e.g. 15900 = €159.00). Must be greater than priceInEUR to trigger discount badge.
+   */
+  compareAtPriceInEUR?: number | null;
+  /**
+   * Internal wholesale purchase cost in EUR cents (e.g. 9500 = €95.00) for margin tracking (Staff & Admin only).
+   */
+  costInEUR?: number | null;
+  /**
+   * Warehouse tracking code
+   */
+  sku?: string | null;
+  /**
+   * Official OEM hardware part number
+   */
+  mpn?: string | null;
+  inventory?: number | null;
+  /**
+   * When disabled, product is treated as having unlimited availability.
+   */
+  trackQuantity?: boolean | null;
+  /**
+   * Allow customers to purchase when stock level reaches 0.
+   */
+  allowBackorders?: boolean | null;
+  /**
+   * Physical package weight for shipping band calculation.
+   */
+  weightKg?: number | null;
+  attributeValues?:
+    | {
+        attributeType: number | AttributeType;
+        value: number | AttributeValue;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Structured JSON specs displayed in PDP specification table
+   */
+  specsJson?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
    * Set by the PC builder plugin when a component references this product
    */
   isComponent?: boolean | null;
@@ -718,41 +767,35 @@ export interface Product {
    * Builder component bound to this product (admin-only visibility)
    */
   component?: (number | null) | Component;
+  /**
+   * Primary catalog category taxonomy
+   */
+  category?: (number | null) | Category;
+  /**
+   * Hardware brand / Manufacturer
+   */
+  brand?: (number | null) | Brand;
+  /**
+   * Ribbon badge displayed on catalog cards
+   */
+  badgeType?: ('none' | 'hot' | 'new' | 'sale' | 'bestseller' | 'custom') | null;
+  customBadgeText?: string | null;
+  /**
+   * Warranty badge shown on PDP
+   */
+  warrantyTier?: ('standard' | 'extended' | 'premium' | 'lifetime') | null;
+  /**
+   * Highlight on Homepage showcases
+   */
+  isFeatured?: boolean | null;
+  /**
+   * Display in trending components carousel
+   */
+  isTrending?: boolean | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "attribute-types".
- */
-export interface AttributeType {
-  id: number;
-  name: string;
-  /**
-   * URL filter param name, e.g. "socket" → ?socket=AM5
-   */
-  slug: string;
-  valueType: 'enum' | 'number';
-  /**
-   * Display unit, e.g. MHz, GB, W
-   */
-  unit?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "attribute-values".
- */
-export interface AttributeValue {
-  id: number;
-  attributeType: number | AttributeType;
-  value: string;
-  displayLabel?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -807,6 +850,39 @@ export interface Variant {
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attribute-types".
+ */
+export interface AttributeType {
+  id: number;
+  name: string;
+  /**
+   * URL filter param name, e.g. "socket" → ?socket=AM5
+   */
+  slug: string;
+  valueType: 'enum' | 'number';
+  /**
+   * Display unit, e.g. MHz, GB, W
+   */
+  unit?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Attribute terms/values. Managed within parent Attribute Types in the unified attributes manager.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "attribute-values".
+ */
+export interface AttributeValue {
+  id: number;
+  attributeType: number | AttributeType;
+  value: string;
+  displayLabel?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -974,6 +1050,9 @@ export interface ColumnsBlock {
               | NexusCategoryMatrixBlock
               | NexusProductRailBlock
               | NexusSlotExplorerBlock
+              | TrustBadgesBlock
+              | BannerCountdownBlock
+              | ReviewsShowcaseBlock
             )[]
           | null;
         id?: string | null;
@@ -992,6 +1071,88 @@ export interface ColumnsBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'columns';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TrustBadgesBlock".
+ */
+export interface TrustBadgesBlock {
+  eyebrow?: string | null;
+  heading?: string | null;
+  style?: ('glass' | 'solid' | 'minimal') | null;
+  items?:
+    | {
+        /**
+         * e.g. shield-check, truck, cpu, headphones, zap, award
+         */
+        icon: string;
+        title: string;
+        subtitle?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'trustBadges';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "BannerCountdownBlock".
+ */
+export interface BannerCountdownBlock {
+  badgeText?: string | null;
+  countdownEnd: string;
+  heading: string;
+  subheading?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  variant?: ('cyber-neon' | 'precision-accent' | 'dark-stealth' | 'golden-edition') | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'bannerCountdown';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ReviewsShowcaseBlock".
+ */
+export interface ReviewsShowcaseBlock {
+  eyebrow?: string | null;
+  heading: string;
+  limit?: number | null;
+  /**
+   * Leave empty to automatically pull the highest-rated verified reviews.
+   */
+  featuredReviews?: (number | Review)[] | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'reviewsShowcase';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  product: number | Product;
+  /**
+   * Score (1–5 stars)
+   */
+  rating: number;
+  status: 'approved' | 'pending' | 'rejected';
+  authorName: string;
+  /**
+   * Private to staff
+   */
+  authorEmail: string;
+  title: string;
+  comment: string;
+  /**
+   * Verified customer purchase
+   */
+  verifiedPurchase?: boolean | null;
+  helpfulCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1053,6 +1214,9 @@ export interface Page {
         | NexusProductRailBlock
         | NexusSlotExplorerBlock
         | ColumnsBlock
+        | TrustBadgesBlock
+        | BannerCountdownBlock
+        | ReviewsShowcaseBlock
       )[]
     | null;
   seo?: {
@@ -1068,6 +1232,8 @@ export interface Page {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Legacy pricing schedule table. Active product pricing is managed directly on Products & Variants (priceInEUR / compareAtPriceInEUR).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "prices".
  */
@@ -1623,6 +1789,10 @@ export interface PayloadLockedDocument {
         value: number | InventoryReservation;
       } | null)
     | ({
+        relationTo: 'reviews';
+        value: number | Review;
+      } | null)
+    | ({
         relationTo: 'addresses';
         value: number | Address;
       } | null)
@@ -1955,6 +2125,23 @@ export interface InventoryReservationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews_select".
+ */
+export interface ReviewsSelect<T extends boolean = true> {
+  product?: T;
+  rating?: T;
+  status?: T;
+  authorName?: T;
+  authorEmail?: T;
+  title?: T;
+  comment?: T;
+  verifiedPurchase?: T;
+  helpfulCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "addresses_select".
  */
 export interface AddressesSelect<T extends boolean = true> {
@@ -2021,10 +2208,28 @@ export interface VariantOptionsSelect<T extends boolean = true> {
 export interface ProductsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  category?: T;
-  brand?: T;
+  keyFeatures?:
+    | T
+    | {
+        feature?: T;
+        id?: T;
+      };
   gallery?: T;
   description?: T;
+  crossSells?: T;
+  enableVariants?: T;
+  variantTypes?: T;
+  variants?: T;
+  priceInEUREnabled?: T;
+  priceInEUR?: T;
+  compareAtPriceInEUR?: T;
+  costInEUR?: T;
+  sku?: T;
+  mpn?: T;
+  inventory?: T;
+  trackQuantity?: T;
+  allowBackorders?: T;
+  weightKg?: T;
   attributeValues?:
     | T
     | {
@@ -2033,14 +2238,15 @@ export interface ProductsSelect<T extends boolean = true> {
         id?: T;
       };
   specsJson?: T;
-  inventory?: T;
-  enableVariants?: T;
-  variantTypes?: T;
-  variants?: T;
-  priceInEUREnabled?: T;
-  priceInEUR?: T;
   isComponent?: T;
   component?: T;
+  category?: T;
+  brand?: T;
+  badgeType?: T;
+  customBadgeText?: T;
+  warrantyTier?: T;
+  isFeatured?: T;
+  isTrending?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -2394,6 +2600,65 @@ export interface PackagingTier {
   createdAt?: string | null;
 }
 /**
+ * Control storewide promotions, free shipping thresholds, and trust guarantees.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "store-settings".
+ */
+export interface StoreSetting {
+  id: number;
+  /**
+   * Cents (e.g. 15000 = €150.00). In-cart meter calculates progress towards this amount.
+   */
+  freeShippingThresholdCents: number;
+  promoBanner: {
+    enabled?: boolean | null;
+    dismissible?: boolean | null;
+    text: string;
+    badgeText?: string | null;
+    link?: string | null;
+    variant?: ('neon' | 'accent' | 'dark' | 'gold') | null;
+    /**
+     * If set, displays an interactive live ticking countdown in the banner.
+     */
+    countdownEnd?: string | null;
+  };
+  trustBadges?:
+    | {
+        /**
+         * e.g. shield-check, truck, cpu, headphones
+         */
+        icon: string;
+        title: string;
+        subtitle?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Enable or disable modular commerce features across the admin interface and storefront.
+   */
+  features?: {
+    /**
+     * Enable promotional coupon codes, voucher discounts, and checkout coupon entry.
+     */
+    discountCodes?: boolean | null;
+    /**
+     * Enable customer review submissions, star ratings, and moderation.
+     */
+    reviews?: boolean | null;
+    /**
+     * Hold stock for 15 minutes when items are in cart to eliminate checkout race conditions.
+     */
+    inventoryReservations?: boolean | null;
+    /**
+     * Enable country-specific destination VAT calculation and tax breakdown tables.
+     */
+    taxRates?: boolean | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "builder-settings".
  */
@@ -2559,6 +2824,43 @@ export interface PackagingTiersSelect<T extends boolean = true> {
             };
         priceCents?: T;
         enabled?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "store-settings_select".
+ */
+export interface StoreSettingsSelect<T extends boolean = true> {
+  freeShippingThresholdCents?: T;
+  promoBanner?:
+    | T
+    | {
+        enabled?: T;
+        dismissible?: T;
+        text?: T;
+        badgeText?: T;
+        link?: T;
+        variant?: T;
+        countdownEnd?: T;
+      };
+  trustBadges?:
+    | T
+    | {
+        icon?: T;
+        title?: T;
+        subtitle?: T;
+        id?: T;
+      };
+  features?:
+    | T
+    | {
+        discountCodes?: T;
+        reviews?: T;
+        inventoryReservations?: T;
+        taxRates?: T;
       };
   updatedAt?: T;
   createdAt?: T;

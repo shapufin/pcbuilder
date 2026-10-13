@@ -292,7 +292,7 @@ const seed = async (): Promise<void> => {
   })
   await payload.create({
     collection: 'shipping-bands',
-    data: { label: 'Free over €500', minSubtotal: 50_000, price: 0, enabled: true },
+    data: { label: 'Free over €150', minSubtotal: 15_000, price: 0, enabled: true },
   })
   await payload.create({
     collection: 'tax-rates',

@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { getPayloadClient } from '@/lib/shop'
 import { rateLimit } from '@buildmyrig/lib'
+import { clientIp, defaultAllowedOrigins, isAllowedOrigin } from '@/lib/auth'
 import { checkLiveProductIds, MAX_WISHLIST_CHECK } from '@/lib/wishlist'
 
 /**
@@ -11,7 +12,11 @@ import { checkLiveProductIds, MAX_WISHLIST_CHECK } from '@/lib/wishlist'
 const limiter = rateLimit({ windowMs: 60_000, max: 20 })
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (!isAllowedOrigin(req.headers.get('origin'), defaultAllowedOrigins())) {
+    return Response.json({ error: 'Origin not allowed' }, { status: 403 })
+  }
+
+  const ip = clientIp(req.headers)
   const limited = limiter.check(ip)
   if (!limited.ok) {
     return Response.json(

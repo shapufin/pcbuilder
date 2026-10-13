@@ -5,6 +5,7 @@ import {
   releaseReservations,
   convertReservation,
   heldQuantities,
+  sweepExpiredReservations,
   wrapWithReservations,
   RESERVATION_TTL_MS,
 } from './reservations.ts'
@@ -176,6 +177,47 @@ describe('createReservationFromCart', () => {
     ).resolves.toBeUndefined()
     // Standard-less line contributed no units; the reservation still exists.
     expect(store['inventory-reservations']).toHaveLength(1)
+  })
+})
+
+describe('sweepExpiredReservations', () => {
+  it('#634 releases expired holds and reports the released count', async () => {
+    const { payload, store } = makePayload({
+      reservations: [
+        { id: 1, status: 'held', expiresAt: new Date(Date.now() - 60_000).toISOString(), items: [] },
+        { id: 2, status: 'held', expiresAt: new Date(Date.now() - 1_000).toISOString(), items: [] },
+        { id: 3, status: 'held', expiresAt: new Date(Date.now() + 60_000).toISOString(), items: [] },
+        { id: 4, status: 'converted', expiresAt: new Date(Date.now() - 60_000).toISOString(), items: [] },
+      ],
+    })
+    const released = await sweepExpiredReservations(payload as never, asReq(payload as never))
+    expect(released).toBe(2)
+    const rows = store['inventory-reservations']
+    expect(rows[0].status).toBe('released')
+    expect(rows[1].status).toBe('released')
+    // Active holds and settled rows are untouched.
+    expect(rows[2].status).toBe('held')
+    expect(rows[3].status).toBe('converted')
+  })
+
+  it('#635 is idempotent — a second sweep releases nothing', async () => {
+    const { payload } = makePayload({
+      reservations: [
+        { id: 1, status: 'held', expiresAt: new Date(Date.now() - 60_000).toISOString(), items: [] },
+      ],
+    })
+    expect(await sweepExpiredReservations(payload as never, asReq(payload as never))).toBe(1)
+    expect(await sweepExpiredReservations(payload as never, asReq(payload as never))).toBe(0)
+  })
+
+  it('#636 returns 0 when nothing is expired (no writes issued against live holds)', async () => {
+    const { payload, store } = makePayload({
+      reservations: [
+        { id: 1, status: 'held', expiresAt: new Date(Date.now() + 60_000).toISOString(), items: [] },
+      ],
+    })
+    expect(await sweepExpiredReservations(payload as never, asReq(payload as never))).toBe(0)
+    expect(store['inventory-reservations'][0].status).toBe('held')
   })
 })
 

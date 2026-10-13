@@ -63,7 +63,11 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   (never-throw, like `getSiteSettings`).
 - `src/globals/builder-settings.ts` — plugin-owned global (public read /
   manager write); `BuilderSettingsNavLink` in `afterNavLinks` needs a
-  `generate:importmap` after plugin admin changes.
+  `generate:importmap` after plugin admin changes. Entry 110:
+  `pcBuilderPlugin.builderSettingsHeaderComponent` mounts the elevated
+  `BuilderSettingsHeader` via `admin.components.elements.Description`
+  (`DocumentHeader.AfterHeader`); its `RENDERER_LABELS` map mirrors
+  `BUILDER_DESIGNS` slugs client-side.
 - **P2 architecture (entry 52)**: `app/(frontend)/builder/builder-provider.tsx` owns
   index fetch + hydration + `?template=`/`?build=` (+rgbColor) + engine +
   `resolveSlotLimits` + loading/error renders; designs consume

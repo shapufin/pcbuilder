@@ -92,73 +92,57 @@ Codex read `AGENTS.md` natively. `workflow:check` fails if a pointer drifts.
   `sessions.jsonl` (gitignored JSONL). Hook-less tools follow the
   contract manually; the ledger answers "what changed" on resume.
 
-## Current status (2026-10-04)
+## Current status (2026-10-10)
 
-Phases 0–3, 5 done; Phase 4 nearly done; CI all-8-gates green
-(37194748589). **Entries 25–45 committed + pushed to `origin/main`**
-(`135b463`). **RIG Studio megaplan (entries 45–54) pushed** at `9b6efa6`;
-**entries 55–57 pushed** at `0565804` (`1a3ed2f..0565804`: review-fix
-round 2, Lighthouse re-run, €0 confirm-free + SEC-001 re-check).
-**Entry 56: Lighthouse re-run done** (Round D) — first
-post-redesign audit; a11y 100 everywhere, home perf 82–91 band is a
-watch item. **Entry 47: "Precision Dark" frontend redesign committed**
-in 6 domain commits (`ac3e6e1`..`a153f2b`) **+ pushed, CI green** (`37127009398`) — tokens v2 + primitives/shell/product-card/shop/
-product/cart/checkout/auth/blocks CSS; all 14 blocks + builder retokenized;
-`style={{` 269→20; uisight mobile+desktop clean (15 findings → 0);
-107 web unit + e2e 11/11. Plan: `~/.devin/plans/plan-e7bb003c0cf36a76.md`.
-**The gap register is fully resolved** — all
-7 blocking items fixed (entries 30–32), every minor either fixed
-(entries 33–44: analytics funnel, C1 checkout address+country tax, C4
-reservations at scale, C5 wishlist staleness, C6 seed fidelity, C7 index
-measured, C8 derived-power singleton, C9 doc drift, C10 deployment
-checklist, raw-inventory masking, entry-44 review round) or a declared
-decision (transactions/addresses staff-read aligned to spec; stock-write
-manager+, customers→users, redirects, Shipments declared) or a
-prod-keyed deferral (claim CAS, XFF — in the deployment checklist).
-**Entry 44**: 3-reviewer code-review pass → webhook settlement hardened
-(stale-claim resume, orphan-order reuse, resumable decrement, snapshot
-discount counting, `charge.succeeded`), checkout 3DS-return + €0
-degrade + retry, shareId-update fix — **384 unit + 11 e2e green**.
-**Round B stays owner-keyed** (Stripe e2e, Resend, Postgres migrate,
-Sentry, Plausible); **Round D complete** (mobile `FilterDrawer`, entry
-59) + **entry 60: visitor theme toggle** (`#theme-alt` swap + header
-`ThemeToggle`, `bmr_theme` persisted) + **entry 61: nested-`specsJson`
-spec-table fix** (audit S3) + **entry 62: PDP RelatedProducts** +
-**entry 63: review fixes** + **entry 64: spec facets, PDP compatibility,
-critical-path pass** — **audit S2/S3 fully closed, no unblocked backlog
-left**; entries 55–63 pushed at `d5fc10b`, flake fix `596aa7a` — **CI
-all-8 green (37208259966)**. Detail:
-`docs/buildmyrig-plan/18-progress-log.md`;
-plan: `.devin/plans/plan-bmr-next-rounds.md`.
+Phases 0–3, 5 done; Phase 4 hardening complete; CI all-8-gates green.
+"Precision Dark" frontend redesign committed + pushed. The gap register is
+fully resolved (all 7 blocking items fixed; all minor items closed or declared).
+Recent rounds: entries 88–91 (perf ISR, admin hydration, GUI design spec,
+primitive library), entries 92–110 = Admin GUI Modernization Program
+(dashboard, nav, command palette, plugins manager, collection list headers,
+rule matrix, build stats — entries 107–109; global edit-view headers for
+`site-settings`/`builder-settings` via `elements.Description` — entry 110).
+Detail: `docs/buildmyrig-plan/18-progress-log.md`.
 
 ## Session log
 
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#449 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#647 + e2e; per-package counts in 05).
 
-70. **Entry 78** — **Payload Admin CMS UI/UX redesign & multi-skin system**:
-   Precision Dark design system (`admin.css`); 4 swappable GUI themes
-   (`precision-dark`, `cyber-neon`, `light-clean`, `classic-payload`) via
-   header selector & SiteSettings; vector branding; live telemetry dashboard
-   metrics & 1-click action launchers; domain navigation groupings (Store,
-   PC Builder, Content, Settings, System); BuildStatsView restyled; test #450
-   green; Playwright 49 admin routes crawl 100% clean; all gates passed.
-69. **Entry 77** — **app audit & dynamic CMS flexibility**: browser audit +
-   screenshots; packaging tier cart line fallback to price 0; `SOCKET_PLATFORM` +
-   `Socket` widened (AM4, sTR5, LGA1200, LGA2066, custom socket maps); Nexus
-   mega-menu tablet stack (≤900px); mobile modal overscroll-contain; CartDrawer
-   `min-height: 0` sticky CTA; gates trio green.
-68. **Entry 76** — **root-layout split**: `app/layout.tsx` wrapped route
-   groups → nested `<html>` on `/admin`. Storefront → `app/(frontend)/`,
-   Payload root → `app/(payload)/layout.tsx` (no top-level layout);
-   `allowedDevOrigins`; `@/app/` imports, rule globs, context docs repointed;
-   06-gotchas grew (group-root semantics, PS `[[...]]` wildcard). Console-
-   clean `/admin`+`/`, all routes 200, tsc/lint green.
-67. **Entry 74–75** — **`columns` container & live UX walkthrough**: 2–4 side-by-side
-   stacks (`columnChildSlugs` = page blocks minus section/columns); live walkthrough
-   fixes (guest-secret cart patch, totals select, mobile overflow). 607 unit, gates green.
-43–66. **Entries 47–73** — Precision Dark, megaplan + review-fix, theme
-   toggle, spec facets, Nexus pack, spec templates, mega-menu UX. Verbatim in archive.
+12. **Entry 120** — **Money-format unification**: `formatEUR(cents|null)`
+   promoted to `packages/lib` (`money.ts`, Intl en-IE, null-safe); `Price.tsx`
+   re-exports it, `templates.ts` re-exports as `formatEur`, 3 admin headers'
+   inline copies replaced — five impls → one. Backlog item 1 closed.
+   #645–#647; lib 83 / plugin-shop 166 / web 422 unit green, tc+lint 0.
+13. **Entry 119** — **Graphify rebuild + architecture audit**: 3 546 nodes /
+    7 778 edges / 215 communities on 639 files; package bridges verified
+    (`BuilderIndex` shared spine, `pagesPlugin`→config, `shopPlugin`→checkout
+    Path A). Two refactor findings → `17-assumptions-backlog.md`: unify
+    `formatEUR`/`formatEur` in `packages/lib`; relocate `sendResendEmail` out of
+    plugin-shop. `getPayloadClient()` flagged 61-edge chokepoint.
+14. **Entry 121** — **Mailer relocation**: `sendResendEmail` →
+    `packages/lib/src/mail.ts` behind new `@buildmyrig/lib/server`
+    subpath (`.` entry stays browser-pure); `emails/resend.ts` = re-export;
+    3 web routes (forgot-password, contact, newsletter) decoupled from
+    plugin-shop. `01-commerce.md` updated. Tests moved (#118–#120 names
+    kept); lib 86 / shop 163 / web 422, tc+lint 0.
+99–110. **Entries 107–118** — Mockup parity slide-over creates, Design System
+   view, review fixes, crawl fixes, list-table cells + registry headers,
+   global views + collection headers, admin audit fix round, e2e crawl green.
+   Verbatim in archive (rotated 2026-10-12/-13).
+43–98. **Entries 47–106** — Precision Dark redesign, admin overlays, command palette, modern commerce overhaul, performance ISR, design spec, primitive library, plugins manager, attribute terms manager, product spec fields, modern dashboard primitive migration, motion split, AdminGUI prototype alignment, desktop persistent sidebar, Users directory telemetry, Products & Components list elevation, Orders collection elevation, Builder Analytics elevation, Compatibility Rule Matrix elevation. Verbatim in archive.
 
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

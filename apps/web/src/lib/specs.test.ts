@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compatRows, specRows } from './specs'
+import { compatRows, resolveProductSpecs, specRows } from './specs'
 
 /**
  * Product spec table (entry 61, audit S3 gap): specsJson can hold nested
@@ -95,3 +95,30 @@ describe('compatRows — PDP compatibility list', () => {
     ).toEqual([{ name: 'Form Factor', value: 'ATX' }])
   })
 })
+
+describe('resolveProductSpecs — automatic spec inheritance and merge', () => {
+  it('falls back to component specs when product specs are absent or empty', () => {
+    expect(resolveProductSpecs(null, { cores: 8, threads: 16 })).toEqual({ cores: 8, threads: 16 })
+    expect(resolveProductSpecs({}, { cores: 8, threads: 16 })).toEqual({ cores: 8, threads: 16 })
+  })
+
+  it('uses product specs when component specs are absent or empty', () => {
+    expect(resolveProductSpecs({ spScore: 108 }, null)).toEqual({ spScore: 108 })
+    expect(resolveProductSpecs({ spScore: 108 }, {})).toEqual({ spScore: 108 })
+  })
+
+  it('merges both with product specs taking precedence on key overlap', () => {
+    expect(
+      resolveProductSpecs(
+        { spScore: 108, tdp: 125 },
+        { cores: 8, threads: 16, tdp: 105 },
+      ),
+    ).toEqual({ cores: 8, threads: 16, tdp: 125, spScore: 108 })
+  })
+
+  it('returns null when both are empty or null', () => {
+    expect(resolveProductSpecs(null, null)).toBeNull()
+    expect(resolveProductSpecs({}, {})).toBeNull()
+  })
+})
+

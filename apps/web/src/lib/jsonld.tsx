@@ -30,6 +30,10 @@ export function productJsonLd(product: {
   category?: { title?: string; slug?: string } | null
   /** false = verified out of stock; true/undefined = in stock or untracked. */
   inStock?: boolean
+  aggregateRating?: {
+    ratingValue: number
+    reviewCount: number
+  } | null
 }): Record<string, unknown> {
   const url = `${origin()}/product/${product.slug}`
   return {
@@ -40,6 +44,16 @@ export function productJsonLd(product: {
     description: product.description ?? undefined,
     brand: product.brand?.name ? { '@type': 'Brand', name: product.brand.name } : undefined,
     category: product.category?.title ?? undefined,
+    aggregateRating:
+      product.aggregateRating && product.aggregateRating.reviewCount > 0
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: product.aggregateRating.ratingValue.toFixed(1),
+            reviewCount: product.aggregateRating.reviewCount,
+            bestRating: 5,
+            worstRating: 1,
+          }
+        : undefined,
     offers: {
       '@type': 'Offer',
       priceCurrency: 'EUR',

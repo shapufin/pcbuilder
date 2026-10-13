@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isManager, isStaff } from '../lib/access.ts'
+import { sweepExpiredReservations } from '../lib/reservations.ts'
 
 /**
  * Inventory reservations (audit gap P2-C6): one hold per payment initiation.
@@ -21,6 +22,22 @@ export const InventoryReservations: CollectionConfig = {
     defaultColumns: ['paymentIntentID', 'cart', 'status', 'expiresAt'],
     group: 'Store',
   },
+  endpoints: [
+    {
+      // POST /api/inventory-reservations/sweep — staff-triggered expiry sweep.
+      // The lifecycle only swept lazily inside createReservationFromCart, so
+      // stale 'held' rows sat forever when checkout volume was zero.
+      path: '/sweep',
+      method: 'post',
+      handler: async (req) => {
+        if (!isStaff(req.user as { roles?: string[] | null } | null)) {
+          return Response.json({ message: 'Forbidden' }, { status: 403 })
+        }
+        const released = await sweepExpiredReservations(req.payload, req)
+        return Response.json({ released })
+      },
+    },
+  ],
   fields: [
     { name: 'paymentIntentID', type: 'text', required: true, index: true, admin: { description: 'Stripe PaymentIntent the hold is keyed to' } },
     { name: 'cart', type: 'relationship', relationTo: 'carts' as never, required: true },

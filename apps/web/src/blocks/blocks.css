@@ -589,3 +589,220 @@
   line-height: var(--leading-body);
   font-size: var(--text-base);
 }
+
+/* ---------- Trust & Guarantees Badges ---------- */
+
+.blk-trust-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.blk-trust-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.blk-trust-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.blk-trust-card[data-style='glass'] {
+  background: var(--color-surface-subtle);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.blk-trust-card[data-style='solid'] {
+  background: var(--color-surface-raised);
+}
+
+.blk-trust-card[data-style='minimal'] {
+  background: transparent;
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.blk-trust-card__icon {
+  font-size: var(--text-xl);
+  line-height: 1;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.blk-trust-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.blk-trust-card__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.blk-trust-card__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: var(--leading-snug);
+  margin: 0;
+}
+
+/* ---------- Promotional Countdown Banner ---------- */
+
+.blk-countdown-banner {
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+}
+
+.blk-countdown-banner[data-variant='cyber-neon'] {
+  background: linear-gradient(135deg, var(--color-surface-raised) 0%, var(--color-surface) 100%);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 30px var(--color-primary-glow);
+}
+
+.blk-countdown-banner[data-variant='precision-accent'] {
+  background: linear-gradient(135deg, var(--color-primary-strong) 0%, var(--color-primary-hover-strong) 100%);
+  color: var(--color-on-primary);
+}
+
+.blk-countdown-banner[data-variant='golden-edition'] {
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-raised) 100%);
+  border-color: var(--color-gold, var(--color-primary));
+}
+
+.blk-countdown-banner__badge {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-black);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  margin-bottom: var(--space-3);
+}
+
+.blk-countdown-banner__title {
+  font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+  font-weight: var(--weight-black);
+  margin: 0 0 var(--space-2);
+}
+
+.blk-countdown-banner__sub {
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto var(--space-6);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+}
+
+.blk-countdown-timer {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--space-6);
+}
+
+.blk-countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  min-width: 64px;
+}
+
+.blk-countdown-val {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-black);
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+.blk-countdown-lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ---------- Reviews Showcase ---------- */
+
+.blk-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.blk-review-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.blk-review-card__stars {
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  letter-spacing: 2px;
+}
+
+.blk-review-card__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  margin: 0;
+}
+
+.blk-review-card__comment {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+  margin: 0;
+  flex-grow: 1;
+}
+
+.blk-review-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.blk-review-card__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-success);
+  font-weight: var(--weight-semibold);
+}
+

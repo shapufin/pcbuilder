@@ -11,12 +11,11 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   registers because Lexical `BlocksFeature` boot-resolves slugs), and
   wraps mini-plugins `plugins/seo-fields.ts` +
   `plugins/category-top-blocks.ts`.
-- 18 block configs in `packages/plugin-pages/src/blocks/` (one file
+- 22 block configs in `packages/plugin-pages/src/blocks/` (one file
   each + `slugs.ts` literal lists + `definitions.ts` assembler;
   `rich-text.ts` exports `richTextFeatures`). Entry 71 added the four
-  `nexus*` blocks (hero/categoryMatrix/productRail/slotExplorer,
-  `admin.group: 'Nexus'`, page-level only — not in
-  `lexicalEmbedBlockSlugs`).
+  `nexus*` blocks; Entry 74 added `columns`; Entry 79 added `trustBadges`,
+  `bannerCountdown`, and `reviewsShowcase` (`admin.group: 'Commerce'`).
 - Layout uses **references, not embeds**: `blocks: []` +
   `blockReferences` + **`filterOptions` as the server-side allow-list**
   (verified in payload's `validateBlocksFilterOptions`; pinned by #156).
@@ -135,6 +134,11 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   Resolver: plugin `lib/` + app `src/lib/site-settings.server.ts`
   `getSiteSettings()` (never throws; defaults while no doc). Header/
   footer render in `(frontend)/layout.tsx` + `SiteFooter.tsx` (both async).
+  Entry 110: `pagesPlugin.{siteSettings,theme,megaMenu}HeaderComponent` mount
+  elevated edit-view headers via `admin.components.elements.Description`
+  (Payload renders it as `DocumentHeader.AfterHeader` below the title) —
+  `SiteSettingsHeader.tsx` / `ThemeHeader.tsx` / `MegaMenuHeader.tsx` in
+  apps/web admin components; shared `withDescription` merge helper.
 - `seed-pages` is idempotent-by-slug — it **skips existing pages**;
   content edits to seeds won't reach an existing dev DB (patch via
   admin REST `PATCH /api/pages/:id` or reseed fresh).
@@ -143,14 +147,57 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
 - Wishlist: zustand persist `bmr-wishlist-v1`, `skipHydration` +
   hydration effect, cap 50 (`src/lib/wishlist-store.ts`).
 
-## Admin components
+## Admin components & GUI architecture (entries 81–82)
 
-- New `components.views`/`afterNavLinks`/`components.Field`/`RowLabel`
-  specifiers require `pnpm payload -- generate:importmap` (dev server
-  stopped) or the route 500s on the missing specifier. The generated
-  `importMap.js` imports `@payloadcms/plugin-seo/client` — keep that dep
-  in apps/web. Specifier convention (relative to `apps/web/src`):
-  `'../../../packages/<pkg>/src/admin/<Comp>#<Comp>'`.
+**Design spec (entry 90): `docs/buildmyrig-plan/22-admin-gui-design.md`** —
+canonical admin design system: ergonomic contracts, `--theme-*` skins,
+`admin/ui/` primitive library (cva+clsx, `bmr-*` classes, no Tailwind/hex),
+data-table standard. Read it before touching any admin component.
+
+- **Custom Modern Navigation**: `admin.components.Nav` replaced by
+  `apps/web/src/app/(payload)/admin/components/ModernAdminNav.tsx` with
+  live search (⌘K), 5 domain workspaces (Store, PC Builder, Content,
+  Settings, System), Lucide icons, full/rail (`68px`) mode toggle, section dividers,
+  and active link indicators.
+- **Plugins & Extensions Manager (entry 82)**: Registered `/admin/plugins`
+  custom view via `PluginsManagerView.tsx`, providing a WordPress-style
+  catalog of installed modules, live search, category tabs, and activation toggles.
+- **Custom Modern Dashboard**: `admin.components.views.dashboard` replaced
+  by `ModernAdminDashboard.tsx` with live WAL status beacon, 4 KPI cards
+  (revenue, builds, rule engine, telemetry), 1-click action chips, and
+  structured domain workspace hub.
+- **Theme Engine**: `AdminHeaderActions.tsx` provides 4 skins
+  (`precision-dark`, `light-clean`, `cyber-neon`, `classic-payload`)
+  persisted via `localStorage` and `cookie`, synced on client via
+  `AdminThemeSync.tsx`.
+- **SaaS Design System & Form Controls (entry 82)**: `apps/web/src/app/(payload)/admin.css`
+  provides complete Shadcn-style token overrides, polished tables, elevated filter
+  builder, prominent "+ Add New" action buttons, and scoped React-Select controls
+  (`:not(.rs__input)`) preventing placeholder text clipping.
+- **List-table cells (entry 111)**: `EntityListCell`/`CodeChipCell`/
+  `PriceListCell` (`admin/components/`) wired as `field.admin.components.Cell`
+  by `listCellElevationPlugin()` in `apps/web/src/lib/admin-list-cells.ts` —
+  `LIST_CELL_MAP` per collection slug, recursive field walker (tabs/groups/
+  blocks), preserves existing `admin.components`; appended LAST in
+  `payload.config.ts` plugins so it sees plugin-registered collections.
+  Cell contract: `link:true` alone → build `/admin/collections/<slug>/<id>`
+  (`linkURL` only set with `formatDocURL`); `onClick` wins (drawer select);
+  NO `useConfig` — cells run in the server `renderListView` pass. List
+  rowData only carries selected columns, so media relations stay ids →
+  monogram fallback (thumbnails appear where docs arrive populated).
+- **Registry headers (entry 112)**: `RegistryListHeader` covers the 12
+  remaining nav-visible collections — one component resolves
+  `LIST_HEADER_REGISTRY[slug]` from the pathname (badge/scope/queries/
+  resolve→4 metrics/alert/facets/actions); wired via
+  `applyListHeaderElevation` (`beforeList` append). Add a new collection by
+  adding a registry entry + slug, never a new component file.
+- New `components.views`/`Nav`/`Field`/`RowLabel` specifiers require
+  `pnpm payload -- generate:importmap` (dev server stopped) or the route
+  500s on the missing specifier. The generated `importMap.js` imports
+  `@payloadcms/plugin-seo/client` — keep that dep in apps/web. Specifier
+  convention (relative to `apps/web/src`):
+  `'../../../packages/<pkg>/src/admin/<Comp>#<Comp>'` or
+  `'./app/(payload)/admin/components/<Comp>#<Comp>'`.
 - plugin-pages admin client components (entry 73):
   `src/admin/MegaMenuPreview.tsx` (ui-field live flyout mock —
   `useForm().getDataByPath('sections')` → real `resolveMegaMenu`,

@@ -12,7 +12,9 @@ import { SiteHeader } from '../../components/SiteHeader'
 import { SiteFooter } from '../../components/SiteFooter'
 import { NexusHeader } from '../../themes/nexus/NexusHeader'
 import { NexusFooter } from '../../themes/nexus/NexusFooter'
+import { PromoTopBanner } from '../../components/PromoTopBanner'
 import { getSiteSettings } from '@/lib/site-settings.server'
+import { getStoreSettings } from '@/lib/store-settings.server'
 import { getMegaMenu } from '@/themes/nexus/lib/mega-menu.server'
 import '../../themes/nexus/nexus.css'
 import { getThemeAssets, THEME_BOOT_SCRIPT } from '@/lib/theme.server'
@@ -55,7 +57,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [siteSettings, theme] = await Promise.all([getSiteSettings(), getThemeAssets()])
+  const [siteSettings, storeSettings, theme] = await Promise.all([
+    getSiteSettings(),
+    getStoreSettings(),
+    getThemeAssets(),
+  ])
   const isNexus = theme.pack === 'nexus'
   const megaMenu = isNexus ? await getMegaMenu() : { sections: [] }
   return (
@@ -103,6 +109,7 @@ export default async function RootLayout({
           <Script src="https://plausible.io/js/script.js" data-domain={plausibleDomain} strategy="afterInteractive" />
         ) : null}
         <EcommerceShell>
+          <PromoTopBanner promo={storeSettings.promoBanner} />
           {isNexus ? (
             <NexusHeader
               navLinks={siteSettings.navLinks}

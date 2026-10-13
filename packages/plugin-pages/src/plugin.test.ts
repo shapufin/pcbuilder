@@ -156,6 +156,59 @@ describe('pagesPlugin - theme global (entry 21)', () => {
 })
 
 /**
+ * Entry 110 — site-settings elevated admin header: the plugin mounts a custom
+ * Description element (rendered by Payload as AfterHeader below the doc title)
+ * only when the host app passes a component specifier.
+ */
+describe('pagesPlugin - site-settings admin header (entry 110)', () => {
+  it('#565 mounts elements.Description specifier on site-settings only when option passed', async () => {
+    const specifier = './app/(payload)/admin/components/SiteSettingsHeader#SiteSettingsHeader'
+    const out = (await pagesPlugin({ siteSettingsHeaderComponent: specifier })(cfg([]))) as Config
+    const globals = (out.globals ?? []) as GlobalConfig[]
+    const siteSettings = globals.find((g) => g.slug === 'site-settings') as GlobalConfig
+    const description = siteSettings.admin?.components?.elements?.Description
+    expect(String(description)).toContain('SiteSettingsHeader')
+
+    // other globals and the no-option path stay untouched
+    const theme = globals.find((g) => g.slug === 'theme') as GlobalConfig
+    expect(theme.admin?.components?.elements?.Description).toBeUndefined()
+    const bare = (await pagesPlugin()(cfg([]))) as Config
+    const bareSite = (bare.globals ?? []).find(
+      (g) => (g as GlobalConfig).slug === 'site-settings',
+    ) as GlobalConfig
+    expect(bareSite.admin?.components?.elements?.Description).toBeUndefined()
+  })
+
+  it('#578 mounts elements.Description specifier on theme only when option passed', async () => {
+    const specifier = './app/(payload)/admin/components/ThemeHeader#ThemeHeader'
+    const out = (await pagesPlugin({ themeHeaderComponent: specifier })(cfg([]))) as Config
+    const globals = (out.globals ?? []) as GlobalConfig[]
+    const theme = globals.find((g) => g.slug === 'theme') as GlobalConfig
+    expect(String(theme.admin?.components?.elements?.Description)).toContain('ThemeHeader')
+
+    const bare = (await pagesPlugin()(cfg([]))) as Config
+    const bareTheme = (bare.globals ?? []).find(
+      (g) => (g as GlobalConfig).slug === 'theme',
+    ) as GlobalConfig
+    expect(bareTheme.admin?.components?.elements?.Description).toBeUndefined()
+  })
+
+  it('#579 mounts elements.Description specifier on mega-menu only when option passed', async () => {
+    const specifier = './app/(payload)/admin/components/MegaMenuHeader#MegaMenuHeader'
+    const out = (await pagesPlugin({ megaMenuHeaderComponent: specifier })(cfg([]))) as Config
+    const globals = (out.globals ?? []) as GlobalConfig[]
+    const megaMenu = globals.find((g) => g.slug === 'mega-menu') as GlobalConfig
+    expect(String(megaMenu.admin?.components?.elements?.Description)).toContain('MegaMenuHeader')
+
+    const bare = (await pagesPlugin()(cfg([]))) as Config
+    const bareMenu = (bare.globals ?? []).find(
+      (g) => (g as GlobalConfig).slug === 'mega-menu',
+    ) as GlobalConfig
+    expect(bareMenu.admin?.components?.elements?.Description).toBeUndefined()
+  })
+})
+
+/**
  * Step D (entry 22) - blockReferences against config.blocks: define each block
  * once at the config level, reference by slug everywhere.
  */

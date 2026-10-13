@@ -13,7 +13,13 @@ export const Prices: CollectionConfig = {
     update: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
-  admin: { useAsTitle: 'amount', defaultColumns: ['amount', 'currency', 'variant', 'product'], group: 'Store' },
+  admin: {
+    useAsTitle: 'amount',
+    defaultColumns: ['amount', 'currency', 'variant', 'product'],
+    group: 'Store',
+    hidden: true,
+    description: 'Legacy pricing schedule table. Active product pricing is managed directly on Products & Variants (priceInEUR / compareAtPriceInEUR).',
+  },
   fields: [
     { name: 'amount', type: 'number', required: true, min: 0, admin: { description: 'Minor units (cents)' } },
     { name: 'currency', type: 'text', defaultValue: 'EUR', required: true },

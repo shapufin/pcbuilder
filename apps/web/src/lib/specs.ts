@@ -78,3 +78,26 @@ export function specRowsExcept(
 ): SpecRow[] {
   return specRows(specs).filter((row) => !exclude.has(row.key.split('.')[0]!))
 }
+
+/**
+ * Resolves specs for product display: if product.specsJson is missing or empty,
+ * automatically falls back to the linked builder component specsJson.
+ * If both exist, merges them with product-level specs taking precedence.
+ */
+export function resolveProductSpecs(
+  productSpecs?: Record<string, unknown> | null,
+  componentSpecs?: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  const hasProduct =
+    Boolean(productSpecs) && typeof productSpecs === 'object' && Object.keys(productSpecs!).length > 0
+  const hasComp =
+    Boolean(componentSpecs) && typeof componentSpecs === 'object' && Object.keys(componentSpecs!).length > 0
+
+  if (hasProduct && hasComp) {
+    return { ...componentSpecs, ...productSpecs }
+  }
+  if (hasProduct) return productSpecs!
+  if (hasComp) return componentSpecs!
+  return null
+}
+

@@ -51,6 +51,9 @@ describe('pageBlocks (moved from apps/web, entry 19)', () => {
       'nexusProductRail',
       'nexusSlotExplorer',
       'columns',
+      'trustBadges',
+      'bannerCountdown',
+      'reviewsShowcase',
     ])
     expect(pageBlockSlugs).toEqual(pageBlocks.map((b) => b.slug))
   })
@@ -131,6 +134,8 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
       'templatesCarousel',
       'videoEmbed',
       'newsletterSignup',
+      'trustBadges',
+      'bannerCountdown',
     ])
     for (const slug of lexicalEmbedBlockSlugs) {
       expect(pageBlockSlugs).toContain(slug)

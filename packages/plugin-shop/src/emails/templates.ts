@@ -26,13 +26,8 @@ export const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
-/** Cents → grouped euro string ('129900' → '€1,299.00'). */
-export const formatEur = (cents: number | null | undefined): string => {
-  const value = typeof cents === 'number' && Number.isFinite(cents) ? cents : 0
-  const [whole, fraction] = (value / 100).toFixed(2).split('.')
-  const grouped = (whole ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  return `€${grouped}.${fraction ?? '00'}`
-}
+/** Cents → grouped euro string ('129900' → '€1,299.00'). Shared impl in @buildmyrig/lib. */
+export { formatEUR as formatEur } from '@buildmyrig/lib'
 
 const shell = (title: string, body: string): string => `<!doctype html>
 <html>

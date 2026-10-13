@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { sendResendEmail } from './resend.ts'
+import { sendResendEmail } from './mail'
 
 /**
  * Entry 20 (Phase 5 Step B): transactional sender for order emails
  * (12-integrations-ops.md "Email - Resend"). Mirrors the newsletter route's
  * contract: without RESEND_API_KEY + EMAIL_FROM → dry-run log, no network.
+ * Relocated from plugin-shop to lib in entry 121 — assertions unchanged.
  */
 describe('sendResendEmail (entry 20)', () => {
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }

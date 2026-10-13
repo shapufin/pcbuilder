@@ -1,88 +1,79 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useSyncExternalStore } from 'react'
+import { Sun, Moon, Zap, Sliders } from 'lucide-react'
 
 const THEMES = [
-  { label: '⚡ Precision Dark', value: 'precision-dark' },
-  { label: '🌌 Cyber Neon', value: 'cyber-neon' },
-  { label: '☀️ Light Clean', value: 'light-clean' },
-  { label: '📦 Classic Payload', value: 'classic-payload' },
+  { label: '⚡ Modern Slate (Dark)', value: 'precision-dark', icon: Moon },
+  { label: '☀️ Enterprise SaaS (Light)', value: 'light-clean', icon: Sun },
+  { label: '🌌 Cyber Neon (Tech)', value: 'cyber-neon', icon: Zap },
+  { label: '📦 Classic Payload', value: 'classic-payload', icon: Sliders },
 ] as const
 
 type AdminTheme = (typeof THEMES)[number]['value']
 
-const getInitialTheme = (): AdminTheme => {
-  if (typeof window === 'undefined') return 'precision-dark'
-  const stored = localStorage.getItem('bmr_admin_theme') as AdminTheme | null
-  const rootTheme = document.documentElement.getAttribute('data-admin-theme') as AdminTheme | null
-  return stored || rootTheme || 'precision-dark'
+const subscribeTheme = (cb: () => void) => {
+  window.addEventListener('storage', cb)
+  window.addEventListener('bmr-admin-theme-change', cb)
+  return () => {
+    window.removeEventListener('storage', cb)
+    window.removeEventListener('bmr-admin-theme-change', cb)
+  }
 }
 
+const getThemeSnapshot = (): AdminTheme => {
+  try {
+    const stored = localStorage.getItem('bmr_admin_theme') as AdminTheme | null
+    const rootTheme = document.documentElement.getAttribute('data-admin-theme') as AdminTheme | null
+    const val = stored || rootTheme
+    if (val && ['precision-dark', 'cyber-neon', 'light-clean', 'classic-payload'].includes(val)) {
+      return val
+    }
+  } catch {}
+  return 'precision-dark'
+}
+
+const getThemeServerSnapshot = (): AdminTheme => 'precision-dark'
+
 export const AdminHeaderActions: React.FC = () => {
-  const [currentTheme, setCurrentTheme] = useState<AdminTheme>(getInitialTheme)
+  const currentTheme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot)
 
   const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value as AdminTheme
-    setCurrentTheme(next)
     document.documentElement.setAttribute('data-admin-theme', next)
-    localStorage.setItem('bmr_admin_theme', next)
-    // Also save in cookie for server-side initial rendering
+    document.documentElement.setAttribute('data-theme', next === 'light-clean' ? 'light' : 'dark')
+    try {
+      localStorage.setItem('bmr_admin_theme', next)
+    } catch {}
     document.cookie = `bmr_admin_theme=${next}; path=/; max-age=31536000; SameSite=Lax`
+    window.dispatchEvent(new CustomEvent('bmr-admin-theme-change', { detail: next }))
   }
 
   return (
-    <div className="bmr-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
-      <select
-        aria-label="Admin GUI Theme"
-        className="bmr-theme-select"
-        value={currentTheme}
-        onChange={handleThemeChange}
-        style={{
-          background: 'var(--theme-elevation-150, var(--color-surface))',
-          color: 'var(--theme-text, var(--color-text))',
-          border: '1px solid var(--theme-elevation-300, var(--color-border))',
-          borderRadius: 'var(--radius-sm, 6px)',
-          padding: '4px 8px',
-          fontSize: '12px',
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        {THEMES.map((t) => (
-          <option
-            key={t.value}
-            value={t.value}
-            style={{
-              background: 'var(--theme-elevation-100, var(--color-surface))',
-              color: 'var(--theme-text, var(--color-text))',
-            }}
-          >
-            {t.label}
-          </option>
-        ))}
-      </select>
+    <div className="bmr-header-actions">
+      <div className="bmr-theme-select-wrapper">
+        <select
+          aria-label="Admin GUI Theme"
+          className="bmr-theme-select"
+          value={currentTheme}
+          onChange={handleThemeChange}
+        >
+          {THEMES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <a
         href="/"
         target="_blank"
         rel="noopener noreferrer"
-        className="bmr-store-link"
-        title="Open Storefront in new tab"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          fontSize: '11px',
-          fontWeight: 700,
-          textDecoration: 'none',
-          color: 'var(--theme-accent, var(--color-primary))',
-          background: 'var(--theme-accent-soft, var(--color-primary-soft))',
-          border: '1px solid var(--theme-accent, var(--color-primary))',
-          padding: '4px 8px',
-          borderRadius: 'var(--radius-sm, 6px)',
-        }}
+        className="bmr-header-store-btn"
+        title="Open live Storefront in new tab"
       >
-        🚀 Storefront ↗
+        <span>Storefront ↗</span>
       </a>
     </div>
   )

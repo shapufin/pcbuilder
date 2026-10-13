@@ -55,3 +55,20 @@ RIG_model1/
 
 # AI Studio reference app (entry 71 Nexus port source — read-only reference)
 shop layout/
+
+# AI Studio admin-GUI mockup (entry 90 design-doc source — read-only reference)
+AdminGUI/
+buildmyrig-studio-admin---modern-cms-&-pc-engine-console/
+
+# Graphify knowledge-graph artifacts + config backups (generated, per-machine)
+graphify-out/
+*.graphify-bak
+.graphifyignore
+
+# Per-tool local AI dirs (generated configs/hooks, not shared rules)
+.agents/
+.codex/
+.opencode/
+
+# Stray screenshot captures at repo root (legit assets live nested, e.g. seed-assets/)
+/*.png

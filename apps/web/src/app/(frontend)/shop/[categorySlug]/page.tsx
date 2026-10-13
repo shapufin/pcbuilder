@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Fragment } from 'react'
+import { cache, Fragment } from 'react'
 import { notFound } from 'next/navigation'
 import type { Where } from 'payload'
 import { getPayloadClient, productFilters } from '@/lib/shop'
@@ -15,16 +15,37 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+export const revalidate = 3600
+
+export const getCategoryBySlug = cache(async (slug: string) => {
+  const payload = await getPayloadClient()
+  const res = await payload.find({
+    collection: 'categories',
+    where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] },
+    limit: 1,
+    depth: 2,
+  })
+  return res.docs[0] ?? null
+})
+
+export async function generateStaticParams() {
+  try {
+    const payload = await getPayloadClient()
+    const res = await payload.find({
+      collection: 'categories',
+      where: { _status: { equals: 'published' } },
+      limit: 50,
+      depth: 0,
+    })
+    return res.docs.map((doc) => ({ categorySlug: doc.slug }))
+  } catch {
+    return []
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<import('next').Metadata> {
   const { categorySlug } = await params
-  const payload = await getPayloadClient()
-  const category = (
-    await payload.find({
-      collection: 'categories',
-      where: { and: [{ slug: { equals: categorySlug } }, { _status: { equals: 'published' } }] },
-      limit: 1,
-    })
-  ).docs[0]
+  const category = await getCategoryBySlug(categorySlug)
   return {
     title: category ? `${category.title} | BuildMyRig` : 'Shop | BuildMyRig',
     description: category?.description ?? undefined,
@@ -84,15 +105,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { categorySlug } = await params
   const sp = await searchParams
   const payload = await getPayloadClient()
-
-  const category = (
-    await payload.find({
-      collection: 'categories',
-      where: { and: [{ slug: { equals: categorySlug } }, { _status: { equals: 'published' } }] },
-      limit: 1,
-      depth: 2,
-    })
-  ).docs[0]
+  const category = await getCategoryBySlug(categorySlug)
   if (!category) notFound()
 
   type CategoryWithBlocks = typeof category & {

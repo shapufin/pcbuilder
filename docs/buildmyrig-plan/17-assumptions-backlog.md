@@ -51,6 +51,8 @@
 - Build "fork" (duplicate + edit shared builds) — v1 has duplicate only.
 - Native mobile app / PWA offline builder.
 - GA4 if ads attribution demanded; server-side tag manager.
+- ~~**Money-format helper unification** — `formatEUR` (`apps/web/src/components/ui/Price.tsx`) and `formatEur` (`packages/plugin-shop/src/emails/templates.ts`, null-safe variant) are two implementations of the same concern, forced apart by the plugin boundary. Promote a single `formatEUR(cents | null)` to `packages/lib` and re-export from both call sites. (Graphify audit, entry 119.)~~ **Done entry 120** — `packages/lib/src/money.ts`; 5 impls → 1.
+- ~~**Mailer relocation** — `sendResendEmail` lives in `packages/plugin-shop/src/emails/resend.ts` but is generic infra imported by three `apps/web` routes (`forgot-password`, `newsletter`, `contact`). Move to `packages/lib` (or a thin `apps/web/src/lib/mail.ts` wrapper) so plugin-shop owns only order/stock emails. (Graphify audit, entry 119.)~~ **Done entry 121** — `@buildmyrig/lib/server` (`mail.ts`); plugin re-exports.
 
 ## Audit-deferred (entries 26–29 — see `19-feature-audit.md` gap register for detail)
 

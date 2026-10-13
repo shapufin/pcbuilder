@@ -16,6 +16,7 @@ Full state: `AGENTS.md`. Deep docs: `docs/buildmyrig-plan/00-index.md`.
 - rule, compatibility, component, template, configured-build, socket → `02-builder.md`
 - role, access, CSRF, origin, rate limit, XFF, upload, auth → `03-security-access.md`
 - page, block, section, lexical, theme, token, site-settings, seo → `04-cms-pages-theme.md`
+- admin GUI, nav, dashboard, plugins manager, admin skin, button, table, badge, dialog, form primitive → `docs/buildmyrig-plan/22-admin-gui-design.md` (+ `04-cms-pages-theme.md` § admin)
 - build, test, lint, CI, env, turbo, dependency, upgrade, schema push → `05-devops-gates.md`
 - PowerShell/probe/zustand/vitest/playwright/payload-REST weirdness → `06-gotchas.md`
 - Deep spec detail → `docs/buildmyrig-plan/<topic>.md`; map: `PROJECT_INDEX.md`
@@ -24,6 +25,9 @@ Full state: `AGENTS.md`. Deep docs: `docs/buildmyrig-plan/00-index.md`.
 
 - Code nav/usages/impact → trace-mcp (`search`, `find_usages`,
   `get_change_impact`, `batch`) — never grep for symbols
+- Codebase structure/impact/hidden coupling → graphify (`graphify-out/GRAPH_REPORT.md`
+  for orientation, /graphify query|path|explain for edges) — complements trace-mcp:
+  trace-mcp for exact symbol usage, graphify for architecture and cross-community impact
 - Library/framework API truth (Next 16, Payload, zod…) → context7 —
   never trust memory on fast-moving APIs
 - Versions/peers/CVEs → web_search — never guess advisory ranges
@@ -58,6 +62,8 @@ thin, never a second copy of the rules.
   `pnpm-workspace.yaml`.
 - Prefer latest stable deps; upgrade early inside peer windows; verify
   peers/advisories via web research; majors need user sign-off.
+- Refactors touching god nodes (see GRAPH_REPORT.md: getPayloadClient, formatEUR,
+  useBuilder) require impact check before editing.
 
 ## Update contract (keeps this workflow alive)
 

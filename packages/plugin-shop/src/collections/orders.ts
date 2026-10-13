@@ -89,8 +89,10 @@ const pinOrderFieldWrites = (fields: Field[]): Field[] =>
  */
 export const ordersCollectionOverride = ({
   defaultCollection,
+  ordersListHeaderComponent,
 }: {
   defaultCollection: CollectionConfig
+  ordersListHeaderComponent?: string
 }): CollectionConfig =>
   ({
     ...defaultCollection,
@@ -127,6 +129,19 @@ export const ordersCollectionOverride = ({
       defaultColumns: ['id', 'customer', 'status', 'total', 'createdAt'],
       listSearchableFields: ['id', 'customerEmail'],
       group: 'Store',
+      ...(ordersListHeaderComponent
+        ? {
+            components: {
+              ...defaultCollection.admin?.components,
+              beforeList: [
+                ...(Array.isArray(defaultCollection.admin?.components?.beforeList)
+                  ? defaultCollection.admin.components.beforeList
+                  : []),
+                ordersListHeaderComponent,
+              ],
+            },
+          }
+        : {}),
     },
     access: {
       ...defaultCollection.access,

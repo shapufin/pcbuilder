@@ -15,6 +15,23 @@ export const AttributeTypes: CollectionConfig = {
     listSearchableFields: ['name', 'slug'],
     group: 'Store',
   },
+  hooks: {
+    afterDelete: [
+      async ({ id, req }) => {
+        try {
+          await req.payload.delete({
+            collection: 'attribute-values',
+            where: { attributeType: { equals: id } },
+            overrideAccess: true,
+          })
+        } catch (err) {
+          req.payload.logger.error(
+            `attribute-types: cascade delete of attribute-values failed for type ${String(id)}: ${String(err)}`,
+          )
+        }
+      },
+    ],
+  },
   fields: [
     {
       type: 'row',

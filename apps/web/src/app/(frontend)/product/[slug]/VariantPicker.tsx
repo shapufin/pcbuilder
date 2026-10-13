@@ -21,17 +21,24 @@ export function VariantPicker({
   productId,
   productTitle,
   fallbackPriceCents,
+  compareAtPriceCents,
   variants,
 }: {
   productId: number | string
   productTitle: string
   fallbackPriceCents: number
+  compareAtPriceCents?: number | null
   variants: PickerVariant[]
 }) {
   const [index, setIndex] = useState(0)
   const variant = variants[index] ?? variants[0]
   const priceCents = variant?.priceInEUR ?? fallbackPriceCents
   const inStock = variant == null || variant.inventory == null || variant.inventory > 0
+  const hasDiscount =
+    typeof compareAtPriceCents === 'number' && compareAtPriceCents > priceCents
+  const discountPercent = hasDiscount
+    ? Math.round(((compareAtPriceCents - priceCents) / compareAtPriceCents) * 100)
+    : 0
 
   return (
     <>
@@ -53,7 +60,15 @@ export function VariantPicker({
           </div>
         </fieldset>
       ) : null}
-      <p className="buy-box__price">{formatEUR(priceCents)}</p>
+      <div className="buy-box__price-row">
+        <p className="buy-box__price">{formatEUR(priceCents)}</p>
+        {hasDiscount && (
+          <div className="buy-box__discount-wrap">
+            <span className="buy-box__compare-at">{formatEUR(compareAtPriceCents)}</span>
+            <span className="buy-box__savings-pill">SAVE {discountPercent}%</span>
+          </div>
+        )}
+      </div>
       <p className={`buy-box__stock${inStock ? '' : ' buy-box__stock--out'}`}>
         {inStock ? 'In stock' : 'Out of stock'}
       </p>

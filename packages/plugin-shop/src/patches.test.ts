@@ -26,6 +26,14 @@ describe('plugin-ecommerce patch pins', () => {
   })
 
   it('#235 merge endpoint receives the composite cart matcher', () => {
-    expect(patch).toMatch(/mergeCartEndpoint\(\{\n\s*\+?\s*cartItemMatcher,/)
+    expect(patch).toMatch(/mergeCartEndpoint\(\{\r?\n\s*\+?\s*cartItemMatcher,/)
+  })
+
+  it('#236 VariantOptionsSelector null-guards orphaned draft variants', () => {
+    // Autosave-created draft variants carry product:null; upstream calls
+    // findByID(data.product) unconditionally → NotFound → 500 on the whole
+    // /admin/collections/variants/<id> edit view.
+    expect(patch).toMatch(/data\?\.product\s*\?/)
+    expect(patch).toMatch(/if\s*\(\s*!product\s*\)/)
   })
 })

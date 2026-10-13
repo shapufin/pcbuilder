@@ -237,3 +237,48 @@ Session history (one line each, entries 1–24 in the progress log):
    PCIe); `platforms.ts` path — `?path=amd|intel` + `kit/PathSwitcher`
    (switch clears cpu/mobo/ram/cooling). Tests #436–#437 + plugin
    suites; gates trio, build 25/25, **e2e 20/20** green.
+
+64. **Entry 83** — **Product Edit Screen Overhaul & Custom Form Components**:
+   Reorganized product edit into WordPress/WooCommerce 70/30 split layout with dedicated sidebar meta-boxes for category, brand, and badges; grouped main area into General & Media, Hardware Specs, and Pricing & Inventory data tabs; replaced native checkboxes with custom Shadcn/Radix-style vector components; added high-contrast light theme controls and card borders; 234 unit tests pass, all gates green.
+65. **Entry 82** — **Admin CMS Polish & WordPress-Style Plugins View**:
+   Repaired product edit access-control mismatch & 404/blank screen in `plugin-shop`; fixed React-Select text clipping (`.rs__input`) and scoped form styling; added prominent "+ Add New" button styling, table polish, and elevated filter drawer; added navigation section dividers and active left indicator; created `/admin/plugins` Plugins & Extensions Manager view displaying all 7 active modules; 234 unit tests pass, all gates green.
+
+66. **Entry 85** � **Modular Commerce Plugins, Theme Sync Fix & Unified Attributes Manager**:
+   Extracted Discount Codes, Reviews, Reservations, and Tax Rates into toggleable modular plugins; fixed Admin CMS theme setting sync; unified Attribute Types & Values manager; 234 unit tests pass, typecheck 0, lint 0.
+67. **Entry 86** � **Dynamic Category Spec Templates & Spec Inheritance**:
+   Attached dynamic hardware category spec templates to products edit view via `ProductSpecFields` component; unified spec inheritance across products and builder components with `resolveProductSpecs` (238 unit tests pass, typecheck 0, lint 0, all gates green).
+68. **Entry 87** � **Backend Engineering Audit Hardening & Referential Integrity**:
+   Fixed Reviews status escalation and locked collection create to staff; corrected PDP verified buyer field mapping; unified free shipping tier at �150; added cascade delete to AttributeTypes and uniqueness to AttributeValues; hardened wishlist/check CSRF (241 unit tests pass, typecheck 0, lint 0).
+
+## Rotated 2026-10-12 (entries 107–116, verbatim)
+
+109. **Entry 116** — **Mockup parity: slide-over creates + Design System view + responsive fixes**: `CreateDocDrawerButton`/`Inner` (lazy `useDocumentDrawer` boundary) wired into all 7 list headers — verified live on 8 collections (open/Esc/X-close + real publish round-trip). `/admin/design-system` view + nav link. Fixed a stray-root-`node_modules` React-context split by declaring `@payloadcms/ui` in apps/web (gotcha #52); mobile overflow fixes (`.bmr-dash-header` wrap, header-actions ≤768px, `.collection-list .table` `overflow-x:auto`). Review: drawer `.catch` + `loading`/`loadFailed`; purged ~289-dir stray root `node_modules` npm dump (gotcha #53). #628–#633; tc/lint 0.
+107–108. **Entry 115** — **Review fixes**: `useDocumentInfo` empty in ALL `ui` fields → `BuilderRulesTabField` id from `usePathname()`; `withBuilderTab` merges `isComponent`/`component` (mock's 5 tabs); `RowActionsCell` checks DELETE status. #626–#627.
+105–106. **Entries 113–114** — **Crawl fixes + real-mockup parity**: entry 113 fixed variants edit 500 (orphan drafts, patch hunk, pin #236), `/api/reviews` 405 (REST delegation), brands `_status` 400. Entry 114: products table mock layout (`_bmr*` ui-field cells — id/entity/taxonomy-stack/price-margin/stock/status-pill/row-actions; list depth:0 → module-cache id resolution), live `RuleSandbox` (real `createRuleEngine` over `/api/builder/index`), Builder Rules tab + sidebar SERP preview (`useSyncExternalStore` over `#field-*` — sidebar ui fields have NO form/doc context). #601–#625.
+103–104. **Entries 111–112** — **List-table cells + registry headers**: `EntityListCell`/`CodeChipCell`/`PriceListCell` as `admin.components.Cell` (no `useConfig` — server render pass; `link:true` alone → build `/admin/collections/<slug>/<id>`), and `RegistryListHeader` (`LIST_HEADER_REGISTRY`, 12 slugs) on `beforeList` — both via `listCellElevationPlugin()`/`applyListHeaderElevation` in `lib/admin-list-cells.ts`. #582–#600, both skins.
+99–102. **Entries 107–110** — **Global views + 3 collection headers**: all 4 globals elevated via `elements.Description` (`*HeaderComponent` plugin options + `withDescription`); `ComponentCategories`/`ConfiguredBuilds`/`Templates` headers via `pcBuilderPlugin` — KPI ribbons, facet rails, `AlertBanner`s; e2e 22/22 on prod build. #540–#579.
+
+## Rotated 2026-10-13 (entries 117-118, verbatim)
+
+12. **Entry 117** - **Admin GUI audit fix round**: products/variants autosave
+   off (eager-draft pollution), slug autogen (`slugify` + `SlugField`),
+   fabricated KPIs removed (Orders/BuildStats/Dashboard/Plugins -> live or
+   `...` loading), rule-matrix numeric rel-ids + server error surfacing +
+   Escape on `Dialog`, `/api/inventory-reservations/sweep` + header warmup
+   (stale holds released live), nav/palette parity (variants, carts,
+   transactions, reservations, tax-rates, derived-power-rules; gated by
+   store-settings feature flags), viewport-aware rail (labeled mobile nav),
+   create drawer closes on save, styled delete `Dialog`+toast in
+   `RowActionsCell`/`AttributeTermsManager`/`RuleManagerView`, variants
+   UNLINKED/orphans facet. Gotcha: `next dev` does NOT regen importMap -
+   `pnpm payload generate:importmap` after adding admin components;
+   client components must not import `@buildmyrig/plugin-shop` (server
+   graph -> `fs` bundle break). Deleted 18 empty orphan drafts + test rows.
+   #634-#644; test/typecheck/lint 0, browser-verified.
+13. **Entry 118** - **E2E crawl green**: `PLAYWRIGHT_BASE_URL` override in
+   playwright.config (run against any port when :3000 is taken by another
+   project); admin-crawl spec credentials aligned to seed env names
+   (`SEED_ADMIN_*` / `admin@buildmyrig.test`). Prod `next build` clean;
+   crawl 59 routes passed on `next start -p 3001` (~61s). Non-fatal: 401
+   console noise on pages create/edit + 403 on the reservations list-data
+   fetch in prod mode.

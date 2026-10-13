@@ -1,7 +1,6 @@
-const eur = new Intl.NumberFormat('en-IE', {
-  style: 'currency',
-  currency: 'EUR',
-})
+import { formatEUR } from '@buildmyrig/lib'
+
+export { formatEUR }
 
 /**
  * Single money formatter — replaces the hand-rolled `€{(x/100).toFixed(2)}`
@@ -11,12 +10,7 @@ const eur = new Intl.NumberFormat('en-IE', {
 export function Price({ cents, className }: { cents: number; className?: string }) {
   return (
     <span className={className ? `price ${className}` : 'price'}>
-      {eur.format(cents / 100)}
+      {formatEUR(cents)}
     </span>
   )
-}
-
-/** String form for places that need the formatted value, not markup. */
-export function formatEUR(cents: number): string {
-  return eur.format(cents / 100)
 }

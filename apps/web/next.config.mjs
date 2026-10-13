@@ -5,6 +5,10 @@ const nextConfig = {
   // Next 16 blocks cross-origin dev resources by default; allow the IP-based
   // URLs we browse with (127.0.0.1, LAN) so /_next HMR + chunks load.
   allowedDevOrigins: ['127.0.0.1', '192.168.0.63'],
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400,
+  },
   experimental: {
     // Opt-in worker cap for page-data collection — 15 workers OOM on
     // memory-constrained machines (entry-55 build gotcha). Guarded: NaN,
@@ -24,6 +28,7 @@ const nextConfig = {
   transpilePackages: [
     '@buildmyrig/lib',
     '@buildmyrig/ui',
+    '@buildmyrig/plugin-pages',
     '@buildmyrig/plugin-shop',
     '@buildmyrig/plugin-pc-builder',
   ],

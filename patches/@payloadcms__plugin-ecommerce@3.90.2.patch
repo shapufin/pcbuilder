@@ -115,3 +115,45 @@ diff --git a/dist/endpoints/confirmOrder.js b/dist/endpoints/confirmOrder.js
 +        }
          const hasVariant = item.variant !== null && item.variant !== undefined;
          const id = hasVariant ? item.variant : item.product;
+diff --git a/dist/ui/VariantOptionsSelector/index.js b/dist/ui/VariantOptionsSelector/index.js
+index 6fe96ce..a2eb7a2 100644
+--- a/dist/ui/VariantOptionsSelector/index.js
++++ b/dist/ui/VariantOptionsSelector/index.js
+@@ -9,7 +9,9 @@ export const VariantOptionsSelector = async (props)=>{
+     // Get collection slugs from field custom prop, with defaults for backwards compatibility
+     const productsSlug = field.custom?.productsSlug || 'products';
+     const variantTypesSlug = field.custom?.variantTypesSlug || 'variantTypes';
+-    const product = await req.payload.findByID({
++    // BuildMyRig: autosave-created draft variants carry product:null —
++    // findByID(null) throws NotFound and 500s the whole variant edit view.
++    const product = data?.product ? await req.payload.findByID({
+         id: data.product,
+         collection: productsSlug,
+         depth: 0,
+@@ -19,7 +21,25 @@ export const VariantOptionsSelector = async (props)=>{
+             variantTypes: true
+         },
+         user
+-    });
++    }) : null;
++    if (!product) {
++        return /*#__PURE__*/ _jsxs("div", {
++            className: "variantOptionsSelector",
++            children: [
++                /*#__PURE__*/ _jsx("div", {
++                    className: "variantOptionsSelectorHeading",
++                    children: /*#__PURE__*/ _jsx(FieldLabel, {
++                        as: "span",
++                        label: label
++                    })
++                }),
++                /*#__PURE__*/ _jsx("p", {
++                    className: "field-description",
++                    children: "Variant options unlock once this variant is linked to a product."
++                })
++            ]
++        });
++    }
+     // @ts-expect-error - TODO: Fix types
+     const existingVariantOptions = product.variants?.docs?.map((variant)=>variant.options) ?? [];
+     const variantTypeIDs = product.variantTypes;

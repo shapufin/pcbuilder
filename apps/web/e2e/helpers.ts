@@ -56,7 +56,14 @@ export const withClassicChrome = () => {
     const auth = await adminAuth(request)
     if (!auth) return
     prior = await getThemePreset(request, auth)
-    if (prior !== 'rig-dark') await setThemePreset(request, auth, 'rig-dark')
+    // Always write, even when already rig-dark — a same-value save still fires
+    // the theme afterChange → layout revalidate, purging ISR pages prerendered
+    // under another preset. Next ISR is stale-while-revalidate: the first hit
+    // after a purge still serves the stale HTML, so warm / twice to flush it
+    // before the spec asserts on chrome.
+    await setThemePreset(request, auth, 'rig-dark')
+    await request.get('/')
+    await request.get('/')
   })
   test.afterAll(async ({ request }) => {
     if (!prior || prior === 'rig-dark') return

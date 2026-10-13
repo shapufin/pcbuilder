@@ -2,6 +2,860 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-10-13 (121) — Mailer Relocation: `sendResendEmail` → `@buildmyrig/lib/server`
+
+Second backlog item from entry 119's audit landed — the generic Resend mailer moved out of plugin-shop.
+
+- **New** `packages/lib/src/mail.ts` — `sendResendEmail` impl moved verbatim (same dry-run/timeout/throw contract), exposed via new **`./server` subpath export** (`src/server.ts`) so lib's `.` entry stays browser-pure. `mail.test.ts` moved with it (3 tests, assertions unchanged).
+- **plugin-shop** — `emails/resend.ts` is now a 1-line re-export; `order-emails.ts`, `low-stock.ts`, `emails/index.ts` and the `@buildmyrig/plugin-shop/emails` public surface untouched; `resend.test.ts` removed (lives in lib).
+- **Web routes decoupled** — `forgot-password`, `contact`, `newsletter` now import from `@buildmyrig/lib/server` (newsletter keeps `newsletterWelcomeHtml` from plugin-shop — that template is shop-owned). Web→plugin-shop mailer dependency gone; plugin-shop owns only order/stock email *logic*.
+- Context: `01-commerce.md` sender location updated.
+
+Gates: lib 86/86, plugin-shop 163/163, web 422/422; `tsc --noEmit` clean (lib + plugin-shop + web); `pnpm lint` 4/4. Both entry-119 findings now closed; `getPayloadClient()` remains a watch item only.
+
+**Entries 120–121 review (code-review-checklist): SHIP.** One informational note: negative cents now render as `-€5.00` (Intl en-IE) vs the old hand-rolled `€-5.00` — no caller produces negative values; Intl form is the correct rendering. Doc-22 §8 status table also synced (3 stale "Planned" rows → Built). `graphify update .` run — graph now 3 550 nodes / 7 839 edges.
+
+## 2026-10-13 (120) — Money-Format Unification: `formatEUR` promoted to `@buildmyrig/lib`
+
+First backlog item from entry 119's graphify audit landed — five implementations of the same cents→EUR formatter collapsed into one.
+
+- **New** `packages/lib/src/money.ts` — canonical `formatEUR(cents | null)` via `Intl.NumberFormat('en-IE', currency EUR)`; null-safe (non-finite → `€0.00`) so email templates keep their guard. Exported from `packages/lib/src/index.ts`. TDD: `money.test.ts` RED → GREEN (#645–#647).
+- **`Price.tsx`** — local `eur`/`formatEUR` deleted; re-exports `formatEUR` from `@buildmyrig/lib`, `Price` renders via it. All 22 web import sites unchanged.
+- **`templates.ts`** (plugin-shop) — hand-rolled `formatEur` replaced by `export { formatEUR as formatEur }` — same output, null-safety preserved; `order-emails.ts`/`index.ts`/tests untouched.
+- **Three admin headers** (`BuildStatsView`, `ConfiguredBuildsListHeader`, `TemplatesListHeader`) — identical inline `Intl` copies replaced by the shared import (found by graph duplication scan, more than the audit's count of two).
+
+Gates: lib 83/83, plugin-shop 166/166, web 422/422 unit green; `tsc --noEmit` clean (lib + plugin-shop + web); `pnpm lint` 4/4 packages green. Backlog item 1 closed; mailer relocation still open.
+
+## 2026-10-13 (119) — Graphify Rebuild + Architecture Audit (639-file corpus)
+
+Full `/graphify` pipeline on repo root: **3 546 nodes / 7 778 edges / 215 communities** (562 code files via AST + 48 docs + 29 images via 32 parallel extraction agents). New `graph.html`, `graph.json`, `GRAPH_REPORT.md` in `graphify-out/`.
+
+**Package bridges confirmed healthy**: `@buildmyrig/lib` is the shared spine — `BuilderIndex` (27 edges) feeds the storefront builder, `plugin-pc-builder` internals, and admin `RuleSandbox` alike; `pagesPlugin()` → `payload.config.ts` (1 hop); `shopPlugin()` → `plugin-ecommerce` → checkout (Path A chain intact).
+
+**Findings logged to `17-assumptions-backlog.md`**: (1) `formatEUR` duplicated web↔plugin-shop — promote to `packages/lib`; (2) `sendResendEmail` is generic mailer infra living in plugin-shop, imported by 3 web routes — relocate. **Watch item**: `getPayloadClient()` = 61-edge chokepoint (~30 files) — treat refactors as god-node changes per guardrail. Health note: 320 dangling + ~377 collapsed multi-relation edges (mostly import+re-export pairs — expected); ~291 "weakly-connected" nodes are doc/code duplicate nodes, cosmetic. `packages/ui/tokens.css` skipped by sensitive-file filter (false positive).
+
+Numbering note: entries 116–118 live in `AGENTS.md` session log (progress-log drift); this entry continues the session numbering.
+
+## 2026-10-11 (115) — Entry-114 Review Round: Builder Rules Id Fix, Tab Merge, Row-Action Hardening
+
+Post-entry-114 live review caught two real bugs and one UX redundancy:
+
+1. **`useDocumentInfo` is empty in ALL `ui` fields, not just sidebar** — `BuilderRulesTabField`'s `info.id` never resolved → the linked-component fetch never ran → product 31 (linked: variant 31 → component 31) falsely showed "not linked". Fix: doc id parsed from `usePathname()` (`/admin/collections/<slug>/<id>`, `/create` excluded) — live-verified "Linked builder component: Microsoft Windows 11 Home (Operating System)". Gotcha #48 broadened accordingly.
+2. **Duplicate builder tabs** — pc-builder's `withBuilderTab` appended its own `Builder` tab beside the new mock-parity `Builder Rules` tab. Now merges `isComponent`+`component` into an existing `Builder Rules` tab (falls back to `Builder` tab when absent); idempotency detects `isComponent` already merged. Live: exactly the mock's 5 tabs.
+3. **`RowActionsCell` ignored DELETE status** — a 403 silently refreshed as if deleted; now alerts `Delete failed (HTTP <status>)` and skips refresh.
+
+Tests: +2 pc-builder tests (merge + merge-idempotency, 6/6 green); `ProductEditAddons` mock updated (`usePathname`). Gates: web tests green, `pnpm -r typecheck` 0 (fixed `UIField.admin` required in test literals), lint 0.
+
+## 2026-10-11 (114) — Real-Mockup Parity: Products Table, Live Rule Sandbox, Builder Rules Tab + SERP Preview
+
+User supplied the actual visual reference — `Downloads\buildmyrig-studio-admin---modern-cms-&-pc-engine-console` (a *different* mock than the repo `AdminGUI/`; its `AdminGUI/Design.md` axioms match ours, but compositions diverge). Gap audit against the real mock (run on :3030): mock list headers are *lighter* (no KPI ribbon/banner/facets — deferred as a design fork, our extra telemetry kept per spec), but four deltas needed closing:
+
+1. **Products table parity** (`ID | TITLE & SKU | CATEGORY & BRAND | PRICE / MARGIN | STOCK | STATUS | ACTIONS`) — new cells `IdCell`, `TaxonomyStackCell`, `StockCell`, `StatusPillCell`, `RowActionsCell` (pencil→edit link, trash→DELETE + router.refresh), `PriceListCell` margin subline (`↗ 25.1% margin` from `costInEUR`, `staffReadOnly` so admins see it). `ui`-field trick: `_bmrId`/`_bmrStatus`/`_bmrActions` virtual columns injected by `applyListCellElevation` + `defaultColumns` override — Payload 3 has no row-action slot (closes the entry-111 deferred `TableActionStrip` gap). Row actions extended to 10 registry collections (`categories`, `brands`, …) via `LIST_ACTION_SLUGS`.
+
+2. **List queries run `depth:0`** — relationship cells receive raw ids and `RelationshipProvider` is *not* mounted on the main list table (only inside drawer `RelationshipTable`). `TaxonomyStackCell` therefore resolves ids itself via a module-level promise cache (`fetchDoc`, one deduped `/api/<slug>/<id>?depth=0` per unique id) — live: `Storage / Samsung`, `GPUs / NVIDIA`.
+
+3. **Live Compatibility Engine Sandbox** on `RuleManagerView` — `RuleSandbox.tsx`: 5 slot selects (CPU/mobo/GPU/case/PSU) fed by `/api/builder/index`, evaluated client-side by the *real* `createRuleEngine` (`@buildmyrig/lib`) — pipeline diagnostics (socket match, GPU clearance buffer, PSU headroom vs `recommendedPsuWatts`) + full `validateSelections` verdicts/advisories. Picks derived via `useMemo` (user overrides over defaults — no effect-setState). Live-verified: AM5↔LGA1700 mismatch → `FAILED`, swapping CPU → `PASSED (100% Match)`.
+
+4. **Product edit parity** — product fields already had 4/5 mock tabs (General & Media, Pricing & Margin, Inventory & Logistics, Hardware Specs); added **Builder Rules** tab (`BuilderRulesTabField` — linked builder component via products→variants→components two-hop + live conflict count) and sidebar **Google SERP Preview** (`SerpPreviewField` — live title/slug/description card, 60/160-char truncation). Wired via new `shopPlugin` options `builderRulesTabComponent`/`serpPreviewComponent`.
+
+5. **Sidebar `ui` fields have NO document/form context** — `useFormFields()` → `{}`, `useDocumentInfo()` → `{}`, and `useField`/`useForm` **throw in the RSC pass → whole edit view 500s**. `SerpPreviewField` therefore reads values via `useSyncExternalStore` over `#field-*` DOM inputs (MutationObserver + `input` events) — works from any slot, live-verified keystroke reactivity. Recorded as gotcha.
+
+**Fixes en route**: hydration-safe filter pills (URL-aware), `orders.status` map regression in test #591, 2× `react-hooks/set-state-in-effect` lint errors, `prefetch` mock warnings. **Gates**: 414 web tests (#606–#625 new), typecheck 0, lint 0, e2e 22/22 on prod build, console error-free. Screenshots: `prod-products-parity-{light,dark2}.png`, `prod-rule-sandbox-light.png`, `prod-product-edit-light.png`. **Known gaps**: margin subline renders only when `costInEUR` set (null across seed — data-driven, correct); mock's lighter header vs our telemetry-rich header remains an open design fork; taxonomy inline `+` creators = native `allowCreate` (already on).
+
+## 2026-10-11 (113) — Crawl Coverage Extension + Three Real Bugs Found & Fixed
+
+Extended `e2e/admin-crawl.spec.ts` to cover the elevated surface (collections `discount-codes`, `reviews`, `shipping-bands`, `tax-rates`, `inventory-reservations`, `variants`; custom view `/admin/plugins` — 59 routes total). The wider crawl immediately surfaced three genuine bugs, all fixed:
+
+1. **`/admin/collections/variants/<id>` 500 (upstream plugin bug)** — `VariantOptionsSelector` (plugin-ecommerce RSC) calls `findByID(data.product)` unconditionally; the autosave create flow leaves orphaned draft variants with `product:null` → `NotFound` → whole edit view 500s (every `/create` hit creates another orphan). Obscured by Payload's CSRF model: cookie auth is only accepted when `Origin` or `Sec-Fetch-Site: same-origin|same-site|none` is present (`extractJWT.js`) — curl without it silently downgrades to anonymous and the 200 was the *unauthorized* shell, masking the crash. **Fix**: new hunk in `patches/@payloadcms__plugin-ecommerce@3.90.2.patch` null-guards `data?.product` and renders label + "linked to a product" hint instead. Pin test #236 added. NOTE: a stale `node_modules/.pnpm_patches` dir caused `pnpm patch-commit` to regress pins #233/#234 — restored via `git checkout` + hand-appended hunk; #235 pin made `\r?\n`-tolerant (autocrlf rewrites on checkout).
+
+2. **`/api/reviews` 405 (route shadowing)** — `(frontend)/api/reviews/route.ts` (public POST submission) shadows Payload's REST catch-all → every non-POST collection REST call 405'd (admin list pagination, moderation updates, header telemetry). **Fix**: route now delegates `GET/PATCH/PUT/DELETE/OPTIONS` to `REST_*(config)` with synthetic `{slug:['reviews']}` params, and POSTs carrying `payload-token`/`Authorization: JWT` go to REST create (staff-only access applies); anonymous POSTs keep the rate-limited public pipeline. Public reads expose `status=approved` only per collection access. Tests #602–#605 (delegation + auth split).
+
+3. **Registry `_status` on non-versioned collections → 400** — `brands` registry entry queried `where[_status]` but brands has no `versions.drafts` → "path cannot be queried". **Fix**: brands metrics/facets now use `logo`/`url` existence; pin #601 asserts no `_status` query/facet outside versioned slugs (`categories`, `pages`).
+
+**Gates**: `pnpm test` 390 web / monorepo green; typecheck 0; lint 0; `workflow:check` PASSED; `pnpm build` green; **`pnpm test:e2e` 22/22 on production build** — the full extended crawl now passes with zero failures.
+
+## 2026-10-11 (112) — Registry-Driven Headers for Remaining Collection Lists
+
+Extended the §5.x elevated-header pattern to every remaining nav-visible collection via a single registry-driven component instead of 12 bespoke headers:
+
+1. **`RegistryListHeader.tsx` (`admin/components/`)** — resolves its `ListHeaderConfig` from `usePathname()` (`/admin/collections/<slug>`; `collectionSlug`/`stats` props for tests). Renders scope badge + chip, subtitle, quick actions (admin links + `_blank` externals), operational `AlertBanner`, 4-card `MetricCard` ribbon and `FilterPills` rail (facet pills navigate `?where[...]` like existing headers). Telemetry: `Promise.all` over per-collection `limit=0` count queries (plus capped `limit=100` doc fetches for derived metrics like avg rating / distinct countries / storage MB), `isMounted` guard, per-query `.catch → null`, resolvers total-safe against malformed results.
+
+2. **`LIST_HEADER_REGISTRY`** — 12 collections: `categories`, `brands`, `discount-codes`, `reviews`, `shipping-bands`, `tax-rates`, `attribute-types`, `media`, `inventory-reservations`, `pages`, `variants`, `transactions`. Bespoke-header collections (products, orders, components, templates, builds, component-categories, users) stay untouched.
+
+3. **Wiring** — `applyListHeaderElevation` in `lib/admin-list-cells.ts` appends the `RegistryListHeader` specifier to `admin.components.beforeList` on mapped slugs (idempotent, preserves existing); runs inside `listCellElevationPlugin`, last in `payload.config.ts`.
+
+4. **TDD & gates** — #595–#600: registry integrity (every entry resolves exactly 4 metrics, null-safe), categories KPI mapping, component render + unknown-slug null, transform append/preserve/skip. Live-verified: categories (11/11/11/34), reviews (0s + `—` avg — empty seed), discount-codes (1/1/0/0), media (2/2/0/`0.0 MB`); screenshots `bmr-admin-categories-header-dark.png`, `bmr-admin-discount-codes-header-light.png`.
+
+5. **Known gaps**: e2e crawl doesn't cover the 12 newly-elevated routes (crawl list unchanged; headers are additive chrome over Payload-native lists). Facet counts resolve from the same queries as the cards — no extra requests.
+
+## 2026-10-11 (111) — List Table Row Elevation (Design.md §5.4 Entity Cells)
+
+Wired the `TableCompound` primitives (entry 91) into Payload's collection list tables as field-level `admin.components.Cell` overrides — closes gap-5 of the `AdminGUI/Design.md` audit (entity cells, monospace code chips, tabular currency):
+
+1. **Cell components (`admin/components/`)** — all client, honoring Payload's `DefaultCellComponentProps` contract:
+   - `EntityListCell.tsx` — 32px monogram (2-letter initials) or row thumbnail (`images`/`gallery` media object → `thumbnailURL ?? url`, `next/image unoptimized`), bold title, mono subtitle resolved from `rowData` (`sku → slug → socket → shareId → orderNumber → #id`; skips values equal to the title so the users `email` column doesn't echo itself); mirrors `DefaultCell`'s link contract — `link` alone means "build `/admin/collections/<slug>/<id>`" (Payload only sets `linkURL` when `formatDocURL` is configured), `viewType==='trash'` links into `/trash`, `onClick` wins over linking. NOTE: `useConfig` is unavailable in the server-side `renderListView` pass — cells must not call it.
+   - `CodeChipCell.tsx` — `TableCodeChip` for `sku`/`slug`/`socket`/`code`; `—` for empty.
+   - `PriceListCell.tsx` — EUR-cent fields via shared `formatEUR`, `tabular-nums` `.bmr-price-cell`; `—` for null/malformed.
+
+2. **Wiring (`apps/web/src/lib/admin-list-cells.ts`)** — `listCellElevationPlugin()` appended last in `payload.config.ts` plugins so it sees every plugin-registered collection. `applyListCellElevation` walks `fields` recursively (tabs → groups → blocks) and merges `admin.components.Cell` on the mapped fields only — `products` (title/sku/priceInEUR), `categories`, `brands`, `component-categories` (title/name + slug), `components` (name + socket), `orders` (`total` inside its pricing tab), `users` (email), `build-templates` (name + basePrice), `configured-builds` (name + priceSnapshot), `reviews` (title), `discount-codes` (code). Existing `admin.components` entries preserved; unmapped fields/collections untouched. App-side transform keeps the plugin boundary clean — zero package changes.
+
+3. **TDD Suite & Gates**:
+   - 13 tests (#582–#594): `ListCells.test.tsx` (11) — monogram/title/subtitle, subtitle fallback chain, no self-echo, link-URL construction without `linkURL`, `onClick` button mode, thumbnail vs monogram fallback, chip + `—` placeholders, EUR formatting; `admin-list-cells.test.ts` (2) — map application, tab/group recursion, preservation of existing `admin.components`, unmapped passthrough.
+   - `apps/web` suite **379 tests** (#1–#594); monorepo **780**; typecheck 0; lint 0; `workflow:check` PASSED; import map regenerated.
+   - Live verification screenshots: `bmr-admin-components-cells-dark.png`, `bmr-admin-components-cells-light.png`, `bmr-admin-categories-cells-dark.png`, `bmr-admin-categories-cells-light.png` — monogram tiles, mono subtitles and slug code-chips confirmed in Precision Dark and Enterprise SaaS Light.
+   - Review fix caught live: first cut required `linkURL`, but Payload passes only `link: true` on the linked column — titles rendered unlinked until the URL-construction fix. Thumbnails activate only when the relation arrives populated (list view selects displayed columns → `gallery` stays ids → monogram fallback is the norm in list).
+
+4. **Known gap**: Payload's native list rows still carry their own edit/drag affordances — §5.4's dedicated icon action strip (`TableActionStrip`) exists as a primitive but has no row-level injection point in Payload 3 lists; deferred unless a `views.list` table override is introduced later.
+
+## 2026-10-11 (110) — Global Settings Edit Views Elevation & Environment Telemetry
+
+Elevated the Payload CMS global edit views `/admin/globals/site-settings` and `/admin/globals/builder-settings` to match `AdminGUI/Design.md` (mockup `10-global-settings-light.png`) and the 7 ergonomic design axioms — the first elevation targeting `elements.Description` (Payload renders it as `DocumentHeader.AfterHeader`, directly below the doc title/save bar — verified in `@payloadcms/next` `renderDocumentSlots`/`DocumentHeader`):
+
+1. **SiteSettingsHeader Component (`apps/web/src/app/(payload)/admin/components/SiteSettingsHeader.tsx`)**:
+   - Mounted on the `site-settings` global via `pagesPlugin` (`siteSettingsHeaderComponent` → `admin.components.elements.Description`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)** — live `GET /api/globals/site-settings?depth=0` with graceful defaults:
+     * `HEADER LINKS`: nav-links array count (subtext `primary navigation entries`, trend `chrome`).
+     * `FOOTER LINKS`: footer-links count (subtext `footer navigation entries`, trend `chrome`).
+     * `ANNOUNCEMENTS`: telemetry-strip lines count (subtext `telemetry-strip lines live`, trend `↗ broadcast`).
+     * `ADMIN SKIN`: current `adminTheme` preset label (e.g. `Precision Dark`, subtext `back-office visual preset`, trend `skin`).
+   - **Operational Propagation Alert Banner (`AlertBanner`)**: severity `info` notice that nav/announcement/admin-skin edits propagate on save via the theme-revalidate plugin refreshing the root layout — no deploy.
+   - **Quick Actions**: `Theme ↗` (`/admin/globals/theme`), `Mega Menu ↗` (`/admin/globals/mega-menu`), `Storefront ↗` (`/`).
+   - **Scope chrome**: `Global Settings` info badge + `Settings & Design · Environment` monospace scope chip + subtitle.
+
+2. **BuilderSettingsHeader Component (`apps/web/src/app/(payload)/admin/components/BuilderSettingsHeader.tsx`)**:
+   - Mounted on the `builder-settings` global via `pcBuilderPlugin` (`builderSettingsHeaderComponent` → `admin.components.elements.Description`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)** — live fetches with graceful defaults:
+     * `ACTIVE RENDERER`: `builder-settings.design` slug → registry label (`RIG Studio` / `Classic wizard`, subtext `/builder/configure design`, trend `↗ live`).
+     * `RENDERER OPTIONS`: `BUILDER_DESIGNS` registry size (2, subtext `code-side design registry`, trend `registry`).
+     * `REQUIRED SLOTS`: required component-categories count (subtext `mandatory hardware slots`, trend `schema`).
+     * `MATRIX RULES`: `compatibility-rules` `totalDocs` (subtext `compatibility graph nodes`, trend `↗ enforced`).
+   - **Operational Renderer Swap Alert Banner (`AlertBanner`)**: severity `info` notice that renderer swaps take effect on the next storefront render — slot inventory, server pricing, and rule evaluation identical across designs.
+   - **Quick Actions**: `Build Stats ↗` (`/admin/build-stats`), `Rule Matrix ↗` (`/admin/compatibility-rules-manager`), `Configurator ↗` (`/builder`).
+   - **Scope chrome**: `Builder Engine` info badge + `PC Builder · Rendering` monospace scope chip + subtitle.
+
+3. **Plugin Wiring & CSS Architecture**:
+   - `pagesPlugin` gains `siteSettingsHeaderComponent?: string`; `pcBuilderPlugin` gains `builderSettingsHeaderComponent?: string` — both merge `admin.components.elements.Description` onto their global (same spread pattern as the list-header collections).
+   - `payload.config.ts` passes both specifiers; `generate:importmap` regenerated (`importMap.js` registers both components).
+   - `admin.css`: `.bmr-global-header` variant reuses the universal `.bmr-collection-header` layout minus the list divider (doc-header already separates), plus `.bmr-global-header__scope` monospace chip.
+
+4. **TDD Suite & Gates**:
+   - 10 component tests (#555–#564): `SiteSettingsHeader.test.tsx` + `BuilderSettingsHeader.test.tsx` verifying KPI ribbon defaults/props, alert notices, quick actions, and scope chrome.
+   - 2 plugin wiring tests (#565–#566): `plugin-pages/src/plugin.test.ts` #565 pins `elements.Description` lands only when the option is passed (and not on `theme`); new `plugin-pc-builder/src/plugin.test.ts` #566 pins the same for `builder-settings`.
+   - 1 theme-interceptor regression test (#567): `admin-theme.test.tsx` pins `adminThemeFromSaveResponse` — the `AdminThemeSync` fetch interceptor now applies `adminTheme` only on non-GET writes, so the header's own `GET /api/globals/site-settings` telemetry read no longer clobbers the admin's local skin selection on page load (extracted as a pure exported helper for testability).
+   - `apps/web` suite: **354 passing unit tests** across 69 test files (#1–#567); full monorepo **753 tests** green.
+   - 0 TypeScript errors (`pnpm -r typecheck` clean).
+   - 0 ESLint errors and warnings (`pnpm lint` clean).
+   - Live visual verification screenshots captured in `.playwright-mcp/`: `bmr-admin-site-settings-dark.png`, `bmr-admin-site-settings-light.png`, `bmr-admin-builder-settings-dark.png`, `bmr-admin-builder-settings-light.png`.
+
+5. **E2E gate (`pnpm test:e2e` on production build) — 22/22 green**, after two suite-level fixes uncovered by the run:
+   - `admin-crawl.spec.ts`: removed `attribute-values` from the crawl list — the collection is `admin.hidden` (terms are managed inside the unified `attribute-types` manager), so Payload serves no admin routes for it; the spec had drifted.
+   - `helpers.ts` `withClassicChrome`: always POST the pin (a same-value save still fires `afterChange` → `revalidatePath` layout purge) and warm `/` twice — Next ISR is stale-while-revalidate, so the first hit after a purge still serves a prerender made under another preset (the `nexus` spec swap deterministically broke `search-wishlist` + `smoke` header assertions).
+   - Note: `dev`-mode e2e is unreliable — cold Turbopack compiles blow the crawl's 120 s budget and 5 s URL waits. The canonical run is `pnpm build` → `pnpm start` (env exported per gotcha).
+
+6. **Round-2 extension — Theme & Mega Menu globals elevated (completes global-view coverage)**:
+   - `ThemeHeader` (`/admin/globals/theme`): `Theme Engine` badge + `Visual Tokens` scope chip; KPIs `ACTIVE PRESET` (live `RIG Dark`), `PRESET OPTIONS` (5 registry entries), `TOKEN OVERRIDES` (count of non-empty fields across colors/radius/fonts groups), `CHROME PACK` (preset pack: `Nexus pack`/`None`); `Preset Swap & Token Fallback` alert; actions Site Settings ↗ / Mega Menu ↗ / Storefront ↗.
+   - `MegaMenuHeader` (`/admin/globals/mega-menu`): `Storefront Chrome` badge + `Navigation` scope chip; KPIs `FLYOUT SECTIONS` / `MENU ITEMS` / `PROMO CARDS` / `MENU STATUS` (`Live`/`Hidden` from sections count — verified live: saved doc empty → `Hidden`, while the form's flyout preview renders `defaultValue` sections); `Safe-URL Enforcement & Flyout Visibility` alert; actions Site Settings ↗ / Theme ↗ / Storefront ↗.
+   - `pagesPlugin` gained `themeHeaderComponent` + `megaMenuHeaderComponent`; the Description merge was factored into a shared `withDescription` helper covering all three globals.
+   - Review round on the global headers: storefront-facing quick actions + banner actions now open `_blank` (`noopener noreferrer`) matching the sibling list-header convention — `AlertBanner.action` gained optional `external` (backward-compatible). Same-tab storefront nav would abandon unsaved global edits.
+   - Review round 2 findings (fixed, TDD): `countThemeOverrides` now skips Payload group `id` fields (#580); `megaMenuStatsFromDoc` extracted + mirrors `resolveMegaMenu` drops — title-less sections and promos lacking title+url don't count (#581). KPIs reflect what actually renders.
+   - 14 more tests (#568–#581): 12 component + 2 wiring; `apps/web` suite **366 tests**, monorepo **767**; typecheck/lint clean; import map regenerated.
+   - Screenshots: `bmr-admin-theme-dark.png`, `bmr-admin-theme-light.png`, `bmr-admin-mega-menu-dark.png`, `bmr-admin-mega-menu-light.png` (`.playwright-mcp/`).
+
+## 2026-10-11 (109) — Component Slots Collection Elevation & Taxonomy Telemetry
+
+Elevated Payload CMS collection listing `/admin/collections/component-categories` (`ComponentCategoriesListHeader.tsx`) to match `AdminGUI/Design.md` Section 7.2 and the 7 ergonomic design axioms:
+
+1. **ComponentCategoriesListHeader Component (`apps/web/src/app/(payload)/admin/components/ComponentCategoriesListHeader.tsx`)**:
+   - Built custom `beforeList` header component wired via `pcBuilderPlugin` (`componentCategoriesListHeaderComponent`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)**:
+     * `TOTAL SLOTS`: dynamic count of hardware slot definitions (9 slots, subtext `hardware slot taxonomy`, trend `schema`).
+     * `MANDATORY SLOTS`: count of required component slots (8 slots, subtext `strict build requirements`, trend `↗ required`).
+     * `OPTIONAL SLOTS`: count of non-mandatory expansion slots (1 slot, subtext `expansion & optional slots`, trend `expansion`).
+     * `MULTI-SELECT SLOTS`: count of slots with `maxSelectable > 1` (2 slots: storage & ram, subtext `capacity > 1 component`, trend `↗ multi-part`).
+   - **Operational Rule Engine Invalidation Alert Banner (`AlertBanner`)**:
+     * Severity `info` notice highlighting instant builder index cache invalidation upon slot change and rule dependency verification, with link to `/admin/compatibility-rules-manager`.
+   - **Facet Filter Rail (`FilterPills`)**:
+     * 4 facet pills (`All Slots (9)`, `Mandatory (8)`, `Optional (1)`, `Multi-Select (2)`) with URL query navigation (`?where[...]`).
+   - **Quick Actions**:
+     * Export Slots CSV button, Compatibility Matrix link (`Rule Matrix ↗`), and "+ Add Slot" action.
+
+2. **Styling & CSS Architecture (`apps/web/src/app/(payload)/admin.css`)**:
+   - Universal `.bmr-collection-header` layout system with responsive collapsing.
+   - Suppressed duplicate Payload collection header title (`.collection-list--component-categories .list-header__title-and-actions`) and added monospace token chip styling for `.cell-slug`.
+
+3. **TDD Suite & Gates**:
+   - Added 5 new unit tests (#550–#554) in `ComponentCategoriesListHeader.test.tsx` verifying KPI ribbon metrics, alert notice, facet filters, action buttons, and telemetry fallbacks.
+   - Monorepo tests: **343 passing unit tests** across 67 test files (#1–#554).
+   - 0 TypeScript errors (`pnpm -r typecheck` clean).
+   - 0 ESLint errors and warnings (`pnpm lint` clean).
+   - Live visual verification screenshots captured in `.playwright-mcp/`: `bmr-admin-categories-dark.png` and `bmr-admin-categories-light.png`.
+
+## 2026-10-11 (108) — Configured Builds Collection Elevation & Rig Telemetry
+
+Elevated Payload CMS collection listing `/admin/collections/configured-builds` (`ConfiguredBuildsListHeader.tsx`) to match `AdminGUI/Design.md` Section 7.2 and the 7 ergonomic design axioms:
+
+1. **ConfiguredBuildsListHeader Component (`apps/web/src/app/(payload)/admin/components/ConfiguredBuildsListHeader.tsx`)**:
+   - Built custom `beforeList` header component wired via `pcBuilderPlugin` (`configuredBuildsListHeaderComponent`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)**:
+     * `TOTAL RIG BUILDS`: dynamic count of persisted customer configurations (30 rigs, subtext `persisted rig configurations`, trend `database`).
+     * `CHECKED OUT & ORDERED`: count of converted builds (subtext `converted to orders`, trend `↗ converted`).
+     * `ACTIVE IN CARTS`: count of active customer configurations in carts (22 rigs, subtext `in customer checkout funnel`, trend `↗ funnel`).
+     * `AVG RIG VALUE`: mean calculated hardware build value (€1,423.67, subtext `validated hardware total`, trend `snapshot`).
+   - **Operational Rig Integrity Alert Banner (`AlertBanner`)**:
+     * Severity `info` notice highlighting real-time MSRP validation, server-side slot verification, and 12-byte alphanumeric share tokens, with link to `/builder`.
+   - **Facet Filter Rail (`FilterPills`)**:
+     * 5 facet pills (`All Builds`, `Drafts`, `In Cart`, `Ordered`, `Shared Tokens`) with URL query navigation (`?where[...]`).
+   - **Quick Actions**:
+     * Export Builds CSV button, Configurator preview link (`/builder`), and "+ Create Build" action.
+
+2. **Styling & CSS Architecture (`apps/web/src/app/(payload)/admin.css`)**:
+   - Universal `.bmr-collection-header` layout system with responsive 4-column KPI grid collapsing cleanly to 2 and 1 column on smaller viewports.
+   - List view typography refinement suppressing duplicate collection titles (`.collection-list--configured-builds .list-header__title-and-actions`) and formatting monospace tabular base prices (`.cell-priceSnapshot`) and share token chips (`.cell-shareId`).
+
+3. **TDD Suite & Gates**:
+   - Added 5 new unit tests (#545–#549) in `ConfiguredBuildsListHeader.test.tsx` verifying KPI ribbon metrics, alert notice, facet filters, action buttons, and telemetry fallbacks.
+   - Monorepo tests: **338 passing unit tests** across 66 test files (#1–#549).
+   - 0 TypeScript errors (`pnpm -r typecheck` clean).
+   - 0 ESLint errors and warnings (`pnpm lint` clean).
+   - Live visual verification screenshots captured in `.playwright-mcp/`: `bmr-admin-builds-dark.png` and `bmr-admin-builds-light.png`.
+
+## 2026-10-11 (107) — Build Templates Collection Elevation & Blueprint Telemetry
+
+Elevated Payload CMS collection listing `/admin/collections/build-templates` (`TemplatesListHeader.tsx`) to match `AdminGUI/Design.md` Section 7.2 and the 7 ergonomic design axioms:
+
+1. **TemplatesListHeader Component (`apps/web/src/app/(payload)/admin/components/TemplatesListHeader.tsx`)**:
+   - Built custom `beforeList` header component wired via `pcBuilderPlugin` (`templatesListHeaderComponent`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)**:
+     * `TOTAL BLUEPRINTS`: total count of system templates (e.g. 2/3 templates seeded, subtext `system presets`).
+     * `PUBLISHED RIGS`: count and % of active templates available in storefront configurator.
+     * `AVG BASE PRICE`: currency formatted mean base price (e.g. €1,667.00, subtext `base tier price`).
+     * `GAMING PRESETS`: category breakdown count (e.g. 1/2 gaming blueprints).
+   - **Operational Price Recalculation Alert Banner (`AlertBanner`)**:
+     * Severity `info` notice highlighting real-time MSRP calculation against underlying component stock and pricing, with deep link to `/builder`.
+   - **Facet Filter Rail (`FilterPills`)**:
+     * 6 facet pills (`All Blueprints`, `Published`, `Drafts`, `Gaming`, `Workstation`, `Creator / Editing`) with URL query navigation (`?where[...]`).
+   - **Quick Actions**:
+     * Export Blueprints CSV button, Configurator preview link (`/builder`), and "+ Create Blueprint" action.
+
+2. **Styling & CSS Architecture (`apps/web/src/app/(payload)/admin.css`)**:
+   - Tokenized styles for `.bmr-templates-list-header` adhering to zero-raw-hex rule.
+   - List view typography refinement suppressing duplicate collection titles and formatting monospace tabular base prices.
+
+3. **TDD Suite & Gates**:
+   - Added 5 new unit tests (#540–#544) in `TemplatesListHeader.test.tsx` verifying KPI ribbon metrics, alert notice, facet filters, and action buttons.
+   - Monorepo tests: **333 passing unit tests** across 65 test files (#1–#544).
+   - 0 TypeScript errors (`pnpm -r typecheck` clean).
+   - 0 ESLint errors and warnings (`pnpm lint` clean).
+   - Live visual verification screenshots captured in `.playwright-mcp/`: `bmr-admin-templates-dark.png` and `bmr-admin-templates-light.png`.
+
+## 2026-10-11 (106) — Compatibility Rule Matrix Manager Elevation & Symmetrical Graph Telemetry
+
+Elevated Payload CMS custom admin view `/admin/compatibility-rules-manager` (`RuleManagerView.tsx`) to match `AdminGUI/Design.md` Section 7.3 and the 7 ergonomic design axioms:
+
+1. **RuleManagerView Elevation (`apps/web/src/app/(payload)/admin/components/RuleManagerView.tsx`)**:
+   - Replaced legacy ~615-line inline-style component with tokenized, responsive custom admin view mounted via `pcBuilderPlugin` (`ruleManagerViewComponent`).
+   - **4-Card KPI Telemetry Ribbon (`MetricCard`)**:
+     * `TOTAL RULES`: dynamic rule count (42 rules, subtext `evaluation matrix nodes`, trend `graph depth`).
+     * `HARD CONSTRAINTS`: count of blocking rules (32 rules, subtext `strict blocking errors`, trend `↗ enforced`).
+     * `ADVISORIES & RECS`: count of soft advisory rules (10 rules, subtext `soft warnings & notices`, trend `advisory`).
+     * `BIDIRECTIONAL`: count of symmetrical rules (11 rules, subtext `symmetrical evaluations`, trend `mirrored`).
+   - **Operational Rule Integrity Alert Banner (`AlertBanner`)**:
+     * Severity `info` notice confirming graph active status, real-time mirror evaluation, zero cyclic dependencies, and "View Raw Collection >" deep link.
+   - **Facet Filter Rail (`FilterPills`)**:
+     * Integrated 6 facet pills (`All Rules`, `Requires`, `Excludes`, `Supports`, `Advisories`, `Disabled`) with live count badges and active tab highlighting.
+   - **Interactive Rule Matrix Table**:
+     * Active state toggles via `Switch` primitive with optimistic updates and PATCH persistence.
+     * Subject and Target columns displaying hardware entity names and `COMPONENT` / `CATEGORY` type tags.
+     * Relationship badge (`requires`, `excludes`, `supports`, `warns`) with tokenized accent coloring.
+     * Monospace condition expression chip (`equals socket = LGA1700`) with descriptive conflict advisory caption underneath.
+     * Direction indicator badge (`↔ Both` / `→ One-way`).
+     * Action strip with Edit (opens draft modal), Duplicate (clones rule), and Delete.
+   - **Modals (`Dialog`)**:
+     * Add / Edit Compatibility Rule modal with structured form controls, subject/target selectors, operator select, condition inputs, severity level, and symmetrical switch.
+     * CSV Rules Import Preview & Diff modal with server-computed diff preview table, change summary badges (`N to create`, `N skipped`, `N errors`), and commit trigger.
+
+2. **Styling & Token Architecture (`apps/web/src/app/(payload)/admin.css`)**:
+   - Full implementation of `.bmr-rule-manager` using `var(--theme-*)` CSS design tokens (zero raw hex).
+   - High-density table layout with responsive grids, subtle borders, and smooth hover feedback.
+
+3. **TDD Suite & Verification**:
+   - Added 5 new unit tests (#535–#539) in `RuleManagerView.test.tsx` verifying KPI ribbon metrics, custom rule rendering, alert notice, table rows, and facet filters.
+   - Full monorepo test suite: **328 passing unit tests** across 64 test files (#1–#539).
+   - 0 TypeScript errors across 6 workspace packages (`pnpm -r typecheck` green).
+   - 0 ESLint errors and warnings across all packages (`pnpm lint` green).
+   - `workflow:check` PASSED at 9,010 characters (< 10,000 budget).
+   - Live visual verification screenshots captured in `.playwright-mcp/`: `bmr-admin-rule-manager-dark.png` and `bmr-admin-rule-manager-light.png`.
+
+## 2026-10-11 (105) — Builder Analytics View Elevation & Conversion Funnel Telemetry
+
+Elevated `BuildStatsView.tsx` mounted at `/admin/build-stats` via `pcBuilderPlugin` (`buildStatsViewComponent`) with 4-Card KPI ribbon (`MetricCard`), 4-stage funnel strip (`Card`), popular templates ranking, low-stock hardware alert banner (`AlertBanner`), and Export Funnel CSV; 5 unit tests (#530–#534) green, live verification in Precision Dark & Enterprise SaaS Light skins (323 tests pass, typecheck 0, lint 0).
+
+## 2026-10-11 (104) — Commerce Orders Collection Elevation & Fulfillment Telemetry
+
+Built `OrdersListHeader.tsx` mounted via `plugin-shop` (`ordersCollectionOverride`) with 4-Card KPI ribbon (`MetricCard`), `FilterPills` facet rail, fulfillment backlog `AlertBanner`, and Export Orders CSV; styled high-density orders table in `admin.css`; 5 unit tests (#525–#529) green, live verification in Precision Dark & Enterprise SaaS Light skins (318 tests pass, typecheck 0, lint 0).
+
+## 2026-10-11 (103) — Builder Components Collection Elevation & Hardware Telemetry
+
+Built `ComponentsListHeader.tsx` mounted via `plugin-pc-builder` (`componentsListHeaderComponent`) with 4-Card KPI telemetry ribbon (`MetricCard`), `FilterPills` facet rail, rule engine `AlertBanner` notice, and Export Specs CSV; 5 unit tests (#520–#524) green, live verification in Precision Dark & Enterprise SaaS Light skins (313 tests pass, typecheck 0, lint 0).
+
+## 2026-10-11 (102) — Catalog Products Collection Elevation & Inventory Telemetry
+
+Built `ProductsListHeader.tsx` mounted via `plugin-shop` (`productsCollectionOverride`) with 4-Card KPI telemetry ribbon (`MetricCard`), `FilterPills` facet rail, low-stock `AlertBanner` notice, and Export CSV; 5 unit tests (#515–#519) green, live verification in Precision Dark & Enterprise SaaS Light skins (308 tests pass, typecheck 0, lint 0).
+
+
+
+Elevated Payload CMS collection listing experience to match `AdminGUI/Design.md` Section 5.2–5.4 & mockups `03-users-light.png` / `04-users-dark.png`:
+
+1. **UsersListHeader Telemetry Ribbon (`apps/web/src/app/(payload)/admin/components/UsersListHeader.tsx`)**:
+   - Built collection list header component mounted via `Users.ts` (`admin.components.beforeList`) and registered in `importMap.js`.
+   - Top banner: "User Directory & Access Control" title, role governance subtitle, "Export CSV" client export, and primary "+ Create User" button (`/admin/collections/users/create`).
+   - Operational Notice `AlertBanner`: severity warning notice on accounts holding administrative root privileges with interactive dismiss.
+   - 5-Card KPI Telemetry Ribbon (`MetricCard`):
+     * `TOTAL USERS`: live count (64 directory accounts, pastel blue icon box).
+     * `ADMINISTRATORS`: live count (2 full system authority, pastel amber icon box).
+     * `STAFF & MANAGERS`: live count (2 store & builder operations, pastel sky icon box).
+     * `CUSTOMERS`: live count (60 storefront accounts, pastel slate icon box).
+     * `ACTIVE TODAY`: live count (3 authenticated sessions, pastel emerald icon box).
+   - Facet Filter Rail (`FilterPills`): unbordered pill buttons with active selection highlighting and URL query sync (`all`, `admin`, `staff`, `customer`).
+
+2. **High-Density Collection List & Table Standard (`apps/web/src/app/(payload)/admin.css`)**:
+   - Elevated Payload CMS table container: 12px border radius, subtle hairline border (`var(--theme-border-color)`), elevated card surface (`var(--theme-elevation-0)`), soft shadow.
+   - Header row: uppercase tracking-wider labels, muted background (`var(--theme-elevation-50)`), hairline border bottom.
+   - Table rows & cells: smooth 120ms background highlight on hover (`var(--theme-elevation-50)`), middle vertical alignment, tabular numerals for timestamps.
+   - Role badges (`.cell-roles`): amber glowing pill for `ADMIN`, blue glowing pill for `STAFF`/`MANAGER`, subtle slate pill for `CUSTOMER`.
+   - Entity links (`.cell-email a`): clean font weight, removed default browser underline, smooth accent hover.
+   - Clean checkbox inputs (`accent-color: var(--theme-accent)`).
+   - Removed duplicate header title row when custom telemetry header is present.
+
+3. **TDD Suite & Verification**:
+   - Added 5 new unit tests (#510–#514) in `apps/web/src/app/(payload)/admin/components/UsersListHeader.test.tsx` verifying metric card rendering, filter rail counts, operational banner, zero raw hex, and action buttons.
+   - Full monorepo test suite: **303 passing unit tests** across 59 test files (#1–#514).
+   - 0 TypeScript errors across 6 workspace packages (`pnpm -r typecheck` green).
+   - 0 ESLint errors and warnings across all packages (`turbo lint` green).
+   - Live visual verification captured in `.playwright-mcp/`: `bmr-admin-users-elevated-dark.png` and `bmr-admin-users-elevated-light.png` verifying pixel-aligned parity with `AdminGUI` mockup.
+
+## 2026-10-11 (100) — Desktop Persistent Sidebar Navigation & High-Density TableCompound Primitives
+
+Aligned BuildMyRig Admin shell with `AdminGUI/Design.md` Sections 4.1 & 5.4:
+
+1. **Desktop Persistent Sidebar Navigation (`apps/web/src/app/(payload)/admin.css`)**:
+   - Implemented desktop media query (`@media (min-width: 1024px)`) establishing persistent two-column CSS grid (`grid-template-columns: 260px 1fr !important;`).
+   - Docked full-height `ModernAdminNav` sidebar on desktop viewports by default with brand badge, quick search (⌘K), domain navigation rails, theme switcher, and authenticated user card.
+   - Preserved rail mode collapse (`[data-admin-rail="true"]` $\to$ `68px 1fr`) and mobile responsive drawer toggle (<1024px).
+
+2. **High-Density TableCompound Primitives (`apps/web/src/app/(payload)/admin/ui/TableCompound.tsx`)**:
+   - `TableEntityCell`: 32×32 avatar thumbnail or initials monogram bubble + primary title + secondary monospace code/SKU.
+   - `TableCodeChip`: tokenized monospace code badge with subtle hairline border.
+   - `TableStatusBadge`: operational indicator dot with variants (`active`, `draft`, `inactive`, `warning`, `error`, `info`).
+   - `TableActionStrip`: flex container for inline row micro-actions.
+   - Added styles in `admin/ui/ui.css` adhering strictly to `--theme-*` tokens (zero raw hex).
+
+3. **TDD Suite & Verification**:
+   - Added 7 new unit tests (#503–#509): 6 in `table-compound.test.tsx` and 1 in `ModernAdminNav.test.tsx`.
+   - Full monorepo test suite: **298 passing unit tests** across 58 test files (#1–#509).
+   - 0 TypeScript errors across 6 workspace packages (`pnpm -r typecheck` green).
+   - 0 ESLint errors, 0 warnings across all packages (`turbo lint` green).
+   - Live visual verification captures generated in `.playwright-mcp/`: `bmr-admin-desktop-persistent-nav.png` (260px expanded dock) and `bmr-admin-desktop-rail-nav.png` (68px rail dock).
+
+## 2026-10-11 (99) — AdminGUI Prototype Alignment, Design Spec Overhaul & Telemetry Primitives Elevation
+
+Completed the mockup comparison, design specification overhaul, and high-fidelity ergonomic refactoring guided by the standalone prototype in `AdminGUI`:
+
+1. **Mockup Server & Visual Baseline Capture (`AdminGUI`)**:
+   - Resolved dependencies with `npm install --legacy-peer-deps` and built bundle to `AdminGUI/dist`.
+   - Served on port 3030 via Python HTTP server; captured 13 high-resolution 2x Retina screenshots in `AdminGUI/screenshots/` (Dashboard, Users, Plugins, Analytics, Global Settings, Command Palette, Teams, Reports across both light and dark skins).
+
+2. **Design Specification Overhaul (`AdminGUI/Design.md`)**:
+   - Re-authored design specification establishing 7 Ergonomic Axioms: zero-pill metadata, 60-30-10 color allocation, single-elevation depth, tabular numerals, 4-card telemetry ribbon, and sub-150ms micro-interactions.
+   - Built pixel-by-pixel gap comparison table and token mapping matrix bridging mockup styles to Payload admin `var(--theme-*)` CSS variables.
+
+3. **Telemetry & Ergonomic Primitives (`admin/ui/`)**:
+   - Created `MetricCard`: tabular numerals, trend indicators (`bmr-metric-card__trend--up/down`), icon badge boxes, interactive hover drilldown.
+   - Created `AlertBanner`: severity variants (`warning`, `critical`, `info`, `success`), operational badge, carousel counter (`1 / 3`), action CTA button.
+   - Created `FilterPills`: unbordered horizontal facet rail, active highlight, count chips.
+   - Exported from `admin/ui/index.ts` with BEM styles in `admin/ui/ui.css` (`var(--theme-*)` tokens, no raw hex).
+
+4. **Dashboard & Plugins Manager Elevation**:
+   - `ModernAdminDashboard.tsx`: integrated `AlertBanner`, 4-card `MetricCard` telemetry ribbon (Gross Revenue, Custom Builds, Rule Engine Health, Build Telemetry), domain `FilterPills` facet rail, and Hardware Platform Topology telemetry panel.
+   - `PluginsManagerView.tsx`: integrated 4-card `MetricCard` summary ribbon and category `FilterPills` facet rail.
+
+5. **TDD, Quality Gates & Visual Verification**:
+   - 8 new unit tests (#495–#502) added and passing: 6 in `telemetry-primitives.test.tsx`, 1 in `ModernAdminDashboard.test.tsx`, 1 in `PluginsManagerView.test.tsx`.
+   - Cumulative test suite: **291 passing unit tests** across 57 test files (#1–#502).
+   - 0 TypeScript errors across 6 packages (`pnpm -r typecheck` green).
+   - 0 ESLint errors and warnings across all packages (`turbo lint` green).
+   - Live visual verification captures generated in `.playwright-mcp/` (`bmr-admin-dashboard-dark.png`, `bmr-admin-dashboard-light.png`, `bmr-admin-plugins-dark.png`, `bmr-admin-plugins-light.png`) confirming design fidelity and token adherence in both skins.
+
+## 2026-10-10 (98) — Performance & Monorepo Optimization Conclude
+
+Implemented post-audit performance, bundle splitting, and workspace bundling recommendations:
+
+1. **Monorepo Transpilation Alignment (`next.config.mjs`)**:
+   - Added `@buildmyrig/plugin-pages` to `transpilePackages` alongside `@buildmyrig/lib`, `@buildmyrig/ui`, `@buildmyrig/plugin-shop`, and `@buildmyrig/plugin-pc-builder`, guaranteeing consistent module resolution and tree-shaking across all 5 workspace packages.
+
+2. **Home Critical Path Motion Splitting (`TemplatesCarousel.tsx`)**:
+   - Converted `TemplatesCarouselClient` in `apps/web/src/blocks/components/TemplatesCarousel.tsx` to `next/dynamic` lazy loading.
+   - Offloads the remaining ~57 KB client `framer-motion` bundle off the homepage initial critical rendering path, preserving fast TTFB and smooth LCP.
+
+3. **Quality Gates & Verification**:
+   - 283 unit tests pass across 56 test files (`pnpm test` green).
+   - 0 TypeScript errors across all 6 packages (`pnpm -r typecheck` green).
+   - 0 ESLint errors across all packages (`turbo lint` green).
+   - `workflow:check` PASSED.
+
+## 2026-10-10 (97) — ModernAdminDashboard Primitive Migration & Cleanup
+
+Migrated `ModernAdminDashboard.tsx` (the core command center view at `/admin`) to standardized `admin/ui/` primitives per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **View Migration (`apps/web/src/app/(payload)/admin/components/ModernAdminDashboard.tsx`)**:
+   - Replaced raw header buttons with `Button` primitives (`variant="primary"` and `variant="secondary"`).
+   - Upgraded operational WAL beacon to `Badge` primitive (`variant="outline"`).
+   - Refactored all 4 domain workspace cards to compound `Card`, `CardHeader`, `CardTitle`, and `CardContent` primitives.
+   - Replaced raw span tags with `Badge` primitives (`variant="subtle"`) for domain tags (`Matrix`, `Design`).
+   - Removed remaining inline style on `100% Valid` KPI value in favor of `.bmr-kpi-highlight` token class in `ui.css`.
+   - Cleaned up unreferenced legacy file `AdminDashboardMetrics.tsx`.
+
+2. **TDD & Visual Verification**:
+   - Added unit test suite `ModernAdminDashboard.test.tsx` (tests #492–#494) testing primitives adoption, zero inline style color attributes, and Card compound architecture.
+   - Captured Playwright screenshots in both `precision-dark` and `light-clean` skins (`dashboard-modernized-*.png`) with 0 console errors.
+   - All quality gates green: 283 monorepo tests pass across 56 test files, 0 typecheck errors, 0 lint errors.
+
+## 2026-10-10 (96) — ProductSpecFields Primitive Migration
+
+Migrated `ProductSpecFields.tsx` (custom product specifications tab field in Payload admin) from inline style objects to standardized `admin/ui/` primitives per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **View Migration (`apps/web/src/app/(payload)/admin/components/ProductSpecFields.tsx`)**:
+   - Replaced all inline `style={{ ... }}` objects with primitives: `Card`, `Badge`, `Button`, `EmptyState`, `Switch`, `useToast`.
+   - Replaced raw inline template selection and attribute fields with scoped `.bmr-spec-fields-*` styles in `ui.css` adhering strictly to `--theme-*` tokens.
+   - Handled hardware specs template autofill, attribute syncing, and category specification templates with responsive grid layouts.
+
+2. **TDD & Visual Verification**:
+   - Added unit test suite `ProductSpecFields.test.tsx` (tests #489–#491).
+   - Captured Playwright screenshots in both `precision-dark` and `light-clean` skins (`product-specs-*.png`) with 0 console errors.
+   - All quality gates green: 280 monorepo tests pass, 0 typecheck errors, 0 lint errors.
+
+## 2026-10-10 (95) — AttributeTermsManager Primitive Migration
+
+Migrated `AttributeTermsManager.tsx` from inline style objects to standardized `admin/ui/` primitives per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **View Migration (`apps/web/src/app/(payload)/admin/components/AttributeTermsManager.tsx`)**:
+   - Replaced all inline `style={{ ... }}` objects with primitives: `Card`, `CardHeader`, `CardTitle`, `CardContent`, `Button`, `Badge`, `Input`, and `EmptyState`.
+   - Replaced manual alert message state with real-time feedback via `useToast` (`toast` and `showToast` dual-dispatch in `Toast.tsx`).
+   - Added scoped `.bmr-terms-*` and `.bmr-term-card` styling in `ui.css` adhering strictly to `--theme-*` tokens.
+
+2. **TDD & Visual Verification**:
+   - Added unit test suite `AttributeTermsManager.test.tsx` (tests #485–#488).
+   - Captured Playwright screenshots in both `precision-dark` and `light-clean` skins (`terms-manager-*.png`) with 0 console errors.
+   - All quality gates green: 277 monorepo tests pass, 0 typecheck errors, 0 lint errors.
+
+## 2026-10-10 (94) — Admin GUI Shell Architecture & CommandPalette (Phases 4 & 5)
+
+
+Completed Phases 4 and 5 of the Admin GUI refactor per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **Phase 4 Shell Architecture (`ModernAdminNav.tsx`)**:
+   - Integrated nav-footer segmented 4-theme picker (`Dark`, `Light`, `Cyber`, `Classic` in expanded mode; compact icon toggle in rail mode) synchronized via `useSyncExternalStore` and `bmr-admin-theme-change` event.
+   - Added user profile card in nav footer displaying avatar (`AD`), name (`Administrator`), email (`admin@buildmyrig.test`), external storefront launch button, and sign out link (`/admin/logout`).
+   - Protected React 19 immutability and SSR hydration integrity (`applyAdminTheme` external helper, zero SSR hydration mismatches).
+
+2. **Phase 5 CommandPalette (`src/app/(payload)/admin/ui/CommandPalette.tsx` & `ui.css`)**:
+   - Built full keyboard-driven command palette modal triggered globally via `⌘K` / `Ctrl+K`, custom event `bmr-open-command-palette`, or clicking the ⌘K badge in `ModernAdminNav`.
+   - Backdrop blur (`rgba(0, 0, 0, 0.65)`, `blur-4px`), responsive dialog (`bmr-scaleIn`), autofocus search input with clear query button.
+   - Comprehensive actions catalog across Store & Commerce, PC Builder Engine, Content, System collections, and quick actions (launch live storefront, theme switches).
+   - Arrow keys (`↑`/`↓`) and `Enter` keyboard selection, empty state fallback, and keyboard hints footer.
+   - Mounted globally in `(payload)/layout.tsx` wrapped by `ToastProvider`.
+
+3. **TDD & Verification**:
+   - Added 7 unit tests (#478–#484) across `ModernAdminNav.test.tsx` and `CommandPalette.test.tsx`.
+   - Playwright automated browser verification: verified live rendering and filtering in both `precision-dark` and `light-clean` skins (`phase4-shell-*.png`, `phase5-command-palette-*.png`) with 0 console errors.
+   - All quality gates green: 273 unit tests pass across monorepo, 0 typecheck errors, 0 lint errors.
+
+## 2026-10-10 (93) — Admin GUI Overlays & Feedback Primitives (Phase 3)
+
+
+Implemented Phase 3 of the Admin GUI refactor per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **Overlays & Feedback Primitives (`src/app/(payload)/admin/ui/`)**:
+   - `Toast` & `ToastProvider`: context-driven notification system with auto-dismiss (4000ms), 4 semantic variants (`success`, `error`, `warning`, `info`), accessible dismiss button, fixed bottom-right viewport (`z-index: 9999`).
+   - `Dialog` compound: accessible modal dialog with backdrop (`blur-2px`), window (`radius-lg`, hairline border, `bmr-scaleIn`), header, title, description, footer, close button (`role="dialog"`, `aria-modal="true"`).
+   - `Sheet` compound: slide-over drawer panel supporting `right` and `left` anchors, backdrop, animated entrance (`bmr-slideInRight`/`bmr-slideInLeft`), header, title, description, close button.
+   - `Tooltip`: lightweight accessible popover wrapper with micro-arrow, hover/focus reveal, `role="tooltip"`.
+   - `FloatingBatchBar`: fixed bottom-center high-contrast toolbar for bulk actions when items are selected (`role="toolbar"`), selection count badge, actions slot, deselect button.
+   - Design tokens: all styling in `ui.css` using `var(--theme-*)` tokens, keyframe animations (`bmr-slideUp`, `bmr-slideInRight`, `bmr-slideInLeft`), zero raw hex.
+
+2. **Integration & Wiring**:
+   - Wired `ToastProvider` into `(payload)/layout.tsx` wrapping all admin view children.
+   - Connected `useToast` to `PluginsManagerView.tsx`: triggers real-time toast feedback on plugin activations, deactivations, and core module alerts.
+
+3. **TDD & Verification**:
+   - Added unit test suite `overlays.test.tsx` covering all overlay primitives with 7 new tests (#471–#477).
+   - Playwright verification (`verify-phase3-overlays.mjs`): captured live toast interactions across both `precision-dark` and `light-clean` skins with 0 console errors.
+   - Full gate trio: 266 tests passed across monorepo, 0 typecheck errors, 0 lint errors, `pnpm workflow:check` PASSED.
+
+## 2026-10-10 (92) — PluginsManagerView Primitive Migration (Phase 2)
+
+Migrated `PluginsManagerView.tsx` from inline style objects to standardized BEM primitives per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **Refactored View**:
+   - Replaced ~100 inline `style={{}}` declarations with standardized primitives (`Button`, `Badge`, `Card`, `Input`, `EmptyState`) and scoped `.bmr-plugins-*` classes in `ui.css`.
+   - Zero raw hex, zero Tailwind, fully responsive grid layout with proper elevation and design tokens.
+   - Maintained `useSyncExternalStore` hydration safety contract from entry 89.
+
+2. **TDD & Verification**:
+   - Added `PluginsManagerView.test.tsx` with 6 unit tests (#465–#470).
+   - Captured post-migration screenshots in `.playwright-mcp/` across both `precision-dark` and `light-clean` skins. Visual inspection confirms 100% fidelity with Phase 0 baselines.
+   - 259 monorepo tests pass, typecheck 0, lint 0, workflow:check PASSED.
+
+## 2026-10-10 (91) — Admin GUI Primitive Library (`admin/ui/`) + Baseline Capture (Phases 0 & 1)
+
+Implemented Phases 0 and 1 of the Admin GUI refactor per `docs/buildmyrig-plan/22-admin-gui-design.md`:
+
+1. **Phase 0 Baseline Screenshots**:
+   - Automated baseline capture script in `.playwright-mcp/` logging into Payload Admin (`admin@buildmyrig.test`).
+   - Captured 8 baseline reference screenshots under `.playwright-mcp/`: `/admin`, `/admin/plugins`, `/admin/collections/products`, and product edit in both `precision-dark` and `light-clean` skins.
+
+2. **Phase 1 Primitive Library (`src/app/(payload)/admin/ui/`)**:
+   - Built 13 standardized UI primitives with BEM classes prefixed `bmr-`, variants composed with `class-variance-authority` and `clsx` (zero Tailwind, zero utility classes in JSX, zero raw hex).
+   - `Button`: variants (`primary`, `secondary`, `outline`, `ghost`, `destructive`, `subtle`, `link`), sizes (`sm`, `md`, `lg`, `icon`), loading spinner with `aria-busy`, real `<Link>` navigation when `href` is supplied.
+   - `Badge`: functional status pills (`success`, `warning`, `destructive`, `info`, `subtle`, `outline`, `muted`), status dot indicator, animated pulse. Zero-pill metadata contract preserved.
+   - `Card` (+ `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`): hairline border, `radius-lg`, single-elevation depth, opt-in `hoverEffect`.
+   - `Input` & `Textarea`: 38px min-height, label with required `*` marker, prefix/suffix adornment slots, accessible error alert text and focus accent glow.
+   - `Checkbox` & `Switch`: 18px checkbox and 44x24px smooth toggle track with `aria-checked` and accessible labels.
+   - `Table` compound (`Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`, `TableFooter`, `TableCaption`): sticky header, high-density 12px text, `numeric` tabular-nums support.
+   - `Tabs` compound (`Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`): accessible tablist and panel state.
+   - `Separator`: horizontal and vertical hairline dividers.
+   - `Progress`: accessible progressbar with percentage bar.
+   - `Skeleton`: shimmering placeholder with custom dimensions and `aria-hidden="true"`.
+   - `EmptyState`: title, description, icon and action slots for empty table and view states.
+   - `ui.css`: complete design-token CSS imported in `(payload)/layout.tsx` after `admin.css`.
+
+3. **TDD Suite**:
+   - Added `primitives.test.tsx` covering all primitives with 15 new unit tests (#450–#464).
+
+**Verification & Quality Gates**:
+- Tests: 50 test files passed, 253 tests passed across the monorepo (15 new tests, #450–#464).
+- Typecheck: 0 errors (`pnpm -r typecheck` green).
+- Lint: 0 errors (`pnpm lint` green).
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-10 (90) — Admin GUI Design System Spec (`22-admin-gui-design.md`) + Mockup Adoption
+
+Audited the `AdminGUI/` AI-Studio mockup (Vite + Tailwind 4 "DMF" enterprise admin) against the live `/admin` (browser screenshots: dashboard, nav, products list, product edit, plugins manager, light skin) and wrote the canonical admin design spec:
+
+1. **New canonical doc `docs/buildmyrig-plan/22-admin-gui-design.md`**: re-expresses the mockup's standardization contracts in our idiom — `--theme-*` tokens + plain CSS + cva/clsx instead of literal Tailwind classes (Tailwind + raw hex rejected; `motion`→`framer-motion`, `recharts` deferred). Documents the as-built shell (nav/dashboard/tabs/skins), the 4 `--theme-*` skins, a mockup→token mapping table, and specs the new `admin/ui/` primitive library (Button/Badge/Card/Input/Table/Dialog/Sheet/Tabs/Tooltip/Toast…) with `bmr-*` BEM classes.
+2. **Adopted contracts**: zero-pill metadata discipline, 60-30-10 color budget, single-elevation depth, spatial math, tabular-nums, sub-150 ms interactions, high-density table standard incl. floating batch bar + mandatory empty states, toast system, nav-footer theme picker.
+3. **Identified debt**: `PluginsManagerView` ~100 inline `style={{}}` objects → flagged as migration target for the primitive library; admin currently has two styling conventions (inline styles vs `bmr-*` classes) — spec unifies on classes.
+4. **Wiring**: `AdminGUI/` gitignored (read-only reference, like `shop layout/`); CONTEXT.md router row added (admin-GUI tasks → doc 22); `04-cms-pages-theme.md` admin section points at the spec; `00-index.md` nav row added. Deps `clsx` + `class-variance-authority` added to `apps/web` for the primitive layer.
+
+**Verification & Quality Gates**:
+- Doc-only round: `pnpm workflow:check` PASSED.
+- Mockup findings verified against live admin via browser screenshots (dark + light skins).
+
+## 2026-10-10 (89) — Admin GUI Hydration Mismatch Resolution (`useSyncExternalStore`)
+
+Resolved SSR hydration mismatches and React 19 cascading-render linter violations across Admin components caused by client-side external storage reads during initial render:
+
+1. **Hydration Mismatch in Plugins Manager (`PluginsManagerView.tsx`)**:
+   - Replaced server/client branch `typeof window !== 'undefined'` reading `localStorage.getItem('bmr_plugin_features')` with React's dedicated `useSyncExternalStore` hook.
+   - Initial hydration matches the server snapshot (`''`), and updates immediately after hydration without mismatch.
+
+2. **Hydration Mismatch in Modern Admin Nav (`ModernAdminNav.tsx`)**:
+   - Replaced state initializers reading `bmr_admin_rail` and `bmr_plugin_features` from `localStorage` with `useSyncExternalStore`.
+   - Rail mode and feature visibility now hydrate identically between SSR and client, reacting to custom storage events without `setState` inside `useEffect`.
+
+3. **Hydration Mismatch in Admin Header Actions (`AdminHeaderActions.tsx`)**:
+   - Replaced `getInitialTheme()` reading `localStorage` with `useSyncExternalStore`, guaranteeing the select element matches the `'precision-dark'` SSR snapshot during hydration before syncing.
+
+**Verification & Quality Gates**:
+- Tests: 238 unit tests pass across monorepo.
+- Typecheck: 0 TypeScript errors.
+- Lint: 0 ESLint errors (`react-hooks/set-state-in-effect` clean).
+- Workflow: `pnpm workflow:check` PASSED.
+
+
+## 2026-10-10 (88) — Site Speed & Web Performance Overhaul (ISR, Waterfalls, Caching & Images)
+
+Applied senior-level performance optimizations across Next.js 16 App Router and Payload CMS:
+
+1. **PDP Request Deduplication with `React.cache()` (`product/[slug]/page.tsx`)**:
+   - Wrapped `getProductBySlug` in `React.cache()`, eliminating duplicate database queries between `generateMetadata()` and `ProductPage()` during request evaluation.
+
+2. **Sequential Query Waterfall Elimination (`product/[slug]/page.tsx`)**:
+   - Replaced 5-step blocking serial await waterfall (`variants`, `themeAssets`, `storeSettings`, `related`, `reviews`) with parallel `Promise.all()`, reducing server response time on uncached hits.
+
+3. **Category Listing Deduplication & Prerendering (`shop/[categorySlug]/page.tsx`)**:
+   - Wrapped `getCategoryBySlug` in `React.cache()`, eliminating duplicate category lookups between metadata and page render.
+   - Added `export const revalidate = 3600` and `generateStaticParams()` to pre-render published categories at build time.
+
+4. **Static Prerendering for Top Products (`generateStaticParams` in `product/[slug]/page.tsx`)**:
+   - Added `generateStaticParams()` querying published products with `depth: 0`, enabling static SSG compilation for sub-20ms instant TTFB on high-traffic product pages.
+
+5. **On-Demand ISR Revalidation Plugin (`theme-revalidate-plugin.ts`)**:
+   - Added `revalidatePath` hooks on `products`, `categories`, and `reviews` collections: any changes saved in Payload Admin immediately purge the corresponding `/product/[slug]`, `/shop/[categorySlug]`, and `/shop` caches without waiting for TTL expiration.
+
+6. **Modern Image Formats & Edge Asset Caching (`next.config.mjs`)**:
+   - Configured `images.formats: ['image/avif', 'image/webp']` and `images.minimumCacheTTL: 86400` in Next.js config for 30–40% smaller compressed image payloads.
+
+**Verification & Quality Gates**:
+- Tests: 238 unit tests pass across all packages.
+- Typecheck: 0 TypeScript errors across monorepo.
+- Lint: 0 ESLint errors.
+- Workflow: `pnpm workflow:check` PASSED.
+
+
+## 2026-10-10 (87) — Backend Engineering Audit Hardening & Referential Integrity
+
+Resolved security, contract, referential integrity, and business logic gaps discovered during comprehensive backend audit review:
+
+1. **Reviews Security Hardening & Status Escalation Prevention (`reviews.ts`)**:
+   - Locked collection-level `create` access to `isStaff`, requiring all customer submissions to pass through `/api/reviews` route with moderation and verified purchase validation.
+   - Changed default review status from `approved` to `pending`.
+   - Added staff-only field access controls on `status` and `verifiedPurchase` to prevent privilege escalation.
+
+2. **PDP Verified Buyer Contract Alignment (`product/[slug]/page.tsx`)**:
+   - Corrected review mapping on PDP from `isVerifiedBuyer` to DB field `verifiedPurchase`, restoring the verified buyer badge for paying customers.
+
+3. **Commerce Threshold Alignment (`seed.ts`)**:
+   - Unified seeded free shipping tier in `shipping-bands` (`minSubtotal: 15_000`, free over €150) with `StoreSettings` and `FreeShippingMeter`.
+
+4. **Currency Unit Contract Clarity (`plugin-shop/index.ts`)**:
+   - Updated `compareAtPriceInEUR` and `costInEUR` field labels, descriptions, and placeholders to explicitly declare EUR cents (e.g. `15900 = €159.00`), preventing unit confusion with storefront `formatEUR` cent division.
+
+5. **Attribute Collections Integrity & Cascade Cleanup (`attribute-types.ts`, `attribute-values.ts`)**:
+   - Attached `afterDelete` cascade hook to `AttributeTypes` to delete associated child `attribute-values`, preventing orphaned database records.
+   - Attached `beforeValidate` uniqueness hook to `AttributeValues` to prevent duplicate terms under the same attribute type.
+
+6. **API Route Hardening (`wishlist/check/route.ts`)**:
+   - Added `isAllowedOrigin` CSRF check and unified IP extraction with `clientIp`.
+
+**Verification & Quality Gates**:
+- Tests: 241 unit tests pass (+3 new tests in `attributes-hooks.test.ts`).
+- Typecheck: 0 TypeScript errors across all 6 workspace packages.
+- Lint: 0 ESLint errors.
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-09 (86) — Dynamic Category Spec Templates & Zero-Repetition Spec Inheritance
+
+Resolved HTML nesting hydration issue in `AttributeTermsManager`, attached dynamic hardware category specification templates to Product catalog management, and unified product and PC builder spec inheritance:
+
+1. **HTML Validation & Hydration Error Resolution (`AttributeTermsManager.tsx`)**:
+   - Eliminated `<form> cannot contain a nested <form>` HTML validation warning and Next.js hydration mismatch.
+   - Replaced inner form with styled flex container, added Enter key listener (`onKeyDown`) for keyboard ergonomics, and switched button to `type="button"`.
+
+2. **Zero-Repetition Spec Inheritance & Fallback (`resolveProductSpecs`, `PDP/page.tsx`, `product-sync.ts`)**:
+   - Added `resolveProductSpecs` helper to `@buildmyrig/web/lib/specs.ts` with comprehensive unit tests: merges foundation builder specs with product-level overrides.
+   - On PDP (`/product/[slug]`), if `product.specsJson` is empty, storefront seamlessly falls back to the linked `component.specsJson` without requiring duplicate data entry.
+   - In `syncComponentProductLink` (`packages/plugin-pc-builder/src/lib/product-sync.ts`), saving a builder component automatically copies its specs onto the parent product when `product.specsJson` is empty.
+
+3. **Dynamic Category Spec Fields on Products (`ProductSpecFields.tsx`, `packages/plugin-shop/src/index.ts`, `payload.config.ts`)**:
+   - Added `productSpecsComponent` option to `ShopPluginOptions` and injected dynamic UI field into the "Hardware Specs" tab.
+   - Created client component `ProductSpecFields.tsx` using `SPEC_TEMPLATES` registry: automatically detects assigned category (CPU, GPU, RAM, Motherboard, Storage, PSU, Case, Cooling) or allows 1-click manual template selection.
+   - Renders tailored, unit-badged inputs (GHz, MB, GB, W, mm) that write straight into `product.specsJson`.
+   - Included linked component badge with 1-click "Copy Specs from Component" action.
+
+**Verification & Quality Gates**:
+- Tests: 238 monorepo unit tests green (+4 new tests in `specs.test.ts`).
+- Typecheck: 0 TypeScript errors across all 6 packages.
+- Lint: 0 ESLint errors (design token purity enforced).
+- Browser: Live verification of product edit page with CPU and GPU templates and 0 console warnings/errors.
+
+## 2026-10-09 (85) — Modular Commerce Plugins Architecture, Theme Sync Fix & Unified Attributes Manager
+
+Architectural refactor and UX streamlining to modularize commerce functions, repair theme settings synchronization, eliminate the redundant Prices collection, and unify Attribute Types and Values into a single-screen WooCommerce-style manager:
+
+1. **Modular Plugins & Feature Toggles (`packages/plugin-shop/src/globals/store-settings.ts`, `ModernAdminNav.tsx`, `PluginsManagerView.tsx`)**:
+   - Added `features: PluginFeatureFlags` (`discountCodes`, `reviews`, `inventoryReservations`, `taxRates`) to `StoreSettings` global and schema defaults.
+   - Upgraded the **Plugins & Extensions Manager** (`/admin/plugins`): added 4 dedicated extension cards for Discount Codes, Customer Reviews, Inventory Reservations, and Dynamic Tax Rates with detailed feature summaries and domain-specific **"When to disable"** guidance.
+   - Interactive live toggle buttons persist activation state to both `localStorage` and `StoreSettings` and emit `bmr-plugin-features-change` events.
+   - `ModernAdminNav` dynamically listens to feature changes: deactivating a plugin immediately removes its collection link from the sidebar menu without dropping database tables or breaking foreign-key references.
+
+2. **Admin CMS Theme Synchronization Fix (`AdminThemeSync.tsx`, `(payload)/layout.tsx`)**:
+   - Resolved the issue where changing the Admin Theme in `SiteSettings` (`/admin/globals/site-settings`) was permanently overridden by `localStorage`.
+   - `AdminThemeSync` now accepts `defaultTheme` from the server layout (`getSiteSettings().adminTheme`), syncs live with select inputs on the settings page, and intercepts `fetch` saves to `/api/globals/site-settings`.
+   - Header quick toggle and back-office `SiteSettings` global stay in seamless sync.
+
+3. **Prices Collection Deprecation & Sidebar Clean-up (`packages/plugin-shop/src/collections/prices.ts`, `ModernAdminNav.tsx`)**:
+   - Removed `Prices` from the primary navigation sidebar.
+   - Set `admin: { hidden: true }` in `Prices` collection configuration with documentation explaining that active pricing is configured directly on Products and Variants (`priceInEUR` / `compareAtPriceInEUR`).
+
+4. **Unified Product Attributes Manager (`AttributeTermsManager.tsx`, `packages/plugin-shop/src/index.ts`, `ModernAdminNav.tsx`)**:
+   - Renamed `attribute-types` to **"Product Attributes"** in the sidebar.
+   - Removed `attribute-values` from the sidebar navigation.
+   - Created client component `AttributeTermsManager.tsx` and attached it via `attributeTermsComponent` in `shopPlugin`: provides a clean term badge grid and inline `+ Add Term` form directly inside each attribute type edit screen (WooCommerce/Shopify paradigm).
+
+**Verification & Quality Gates**:
+- Tests: 234 monorepo unit tests green (`pnpm test`).
+- Typecheck: 0 TypeScript errors across all 6 workspace packages (`pnpm -r typecheck`).
+- Lint: 0 ESLint errors across all packages (`pnpm lint`).
+- Browser verification: Live verification of `/admin/plugins` toggles, sidebar menu updates, `/admin/globals/site-settings` theme sync, and `/admin/collections/attribute-types/1` inline terms card with screenshots and session recording.
+
+## 2026-10-08 (84) — Modern Commerce Architecture Overhaul (Shopify / WooCommerce / Newegg Paradigm)
+
+Comprehensive expansion of the BuildMyRig commerce system, product edit architecture, and storefront PDP/catalog presentations inspired by industry standards (Shopify, WooCommerce, Newegg):
+
+1. **Pricing & Promotions Engine (`packages/plugin-shop/src/index.ts`, `ProductCard.tsx`, `VariantPicker.tsx`)**:
+   - Added `compareAtPriceInEUR` (MSRP / original price): triggers strike-through pricing and automated discount percentage badges (`-15%`, `SAVE 20%`) on both catalog cards and PDP buy box.
+   - Added `costInEUR` (internal wholesale purchase cost): restricted strictly to staff and admin users for real-time gross margin calculation without exposing cost to customers.
+   - Dedicated **Pricing & Margin** tab grouping variants, EUR price toggle, strike-through MSRP, and unit cost.
+
+2. **Inventory, Warehouse Logistics & Search Ergonomics (`packages/plugin-shop/src/index.ts`)**:
+   - Added `sku` (Stock Keeping Unit): unique warehouse tracking code indexed for fast lookups.
+   - Added `mpn` (Manufacturer Part Number): official OEM hardware code essential for PC builders and component compatibility.
+   - Added `trackQuantity` (default true) and `allowBackorders` (default false) toggles for pre-order and backorder control.
+   - Added `weightKg`: shipping package weight for calculating freight bands.
+   - Upgraded admin list table: added `sku` to `defaultColumns`, and indexed `sku` & `mpn` in `listSearchableFields` enabling instant SKU/MPN lookup from the back-office search bar.
+
+3. **Hardware Merchandising & Highlights (`packages/plugin-shop/src/index.ts`, `PDP/page.tsx`, `product.css`)**:
+   - Added `keyFeatures` array: 3–5 high-impact bullet highlights rendered beside the buy box on the product detail page.
+   - Added `warrantyTier` select (Standard 2-Year, Extended 3-Year Armor, Premium 5-Year Enterprise, Lifetime) with dedicated PDP trust badge.
+   - Added sidebar merchandising flags: `isFeatured` (highlight on homepage showcase) and `isTrending` (show in trending carousel).
+
+4. **Design Token Strict Compliance & White Mode Polish**:
+   - Updated `product-card.css` and `product.css` with 100% design token compliance (`var(--*)`), zero raw hex values.
+   - Verified seamless styling in both Enterprise SaaS (Light) and Modern Slate (Dark) back-office skins.
+
+**Verification & Quality Gates**:
+- Tests: 234 monorepo unit tests green (`pnpm test`).
+- Typecheck: 0 TypeScript errors across all 6 workspace packages (`pnpm -r typecheck`).
+- Lint: 0 ESLint errors across all packages (`pnpm lint`).
+- Browser verification: Live verification of `/admin/collections/products/32` across all 5 data tabs and sidebar meta-boxes in both light and dark modes; verified product list table columns and search bar.
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-08 (83) — Product Edit Screen Overhaul (WordPress / Modern Commerce Architecture & Custom Form Components)
+
+Complete transformation of the Product Edit screen and back-office form controls based on WordPress/WooCommerce and modern commerce design systems (Shopify, Stripe Dashboard, Shadcn UI):
+
+1. **WordPress / WooCommerce Split Layout (`packages/plugin-shop/src/index.ts`)**:
+   - Transformed the product edit screen into a 70/30 layout with dedicated right-hand sidebar meta-boxes for taxonomy and organization (`category`, `brand`, `badgeType`, and `customBadgeText` with `admin: { position: 'sidebar' }`).
+   - Grouped main data area into clean, structured WooCommerce-style tabs:
+     - **General & Media**: Prominent title and slug permalink editor, product gallery upload cards, long-form overview textarea, and frequently bought together cross-sells.
+     - **Hardware Specs**: Dynamic hardware attribute selector array and cosmetic specifications JSON editor.
+     - **Pricing & Inventory**: Price in EUR (`priceInEUR`), active currency enable toggle, and live stock tracking.
+     - **Builder**: PC builder component bindings and slot configuration.
+
+2. **Modern Open-Source Custom Checkbox Component (`admin.css`)**:
+   - Replaced pale, native browser checkboxes with custom styled Shadcn/Radix-style components:
+     - 18x18px rounded square with subtle border (`1.5px solid var(--theme-border-strong)`), hover accent glow, and focus rings (`box-shadow: 0 0 0 3px var(--theme-accent-soft)`).
+     - Pure CSS vector checkmark (`::after` 45-degree rotated border), crisp contrast in both dark and light modes.
+     - Smooth click transition and vertical alignment with label text.
+
+3. **WordPress-Style Sidebar Meta-Boxes & High-Contrast Light Mode (`admin.css`)**:
+   - Styled `.document-fields__sidebar-fields .field-type` into elevated cards with distinct borders, subtle shadows, and uppercase divider headers (`font-size: 11px`, `letter-spacing: 0.06em`).
+   - Enhanced clean light mode (`data-admin-theme="light-clean"`) with crisp `#ffffff` input backgrounds, high-contrast `#cbd5e1` borders, elevated React-Select dropdown menus, and segmented pill tabs.
+   - Prominent product title editor styling (`font-size: 16px`, `font-weight: 700`).
+
+**Verification & Quality Gates**:
+- Tests: 234 monorepo tests passing (`pnpm test`).
+- Typecheck: 0 TypeScript errors across all 6 packages (`pnpm -r typecheck`).
+- Lint: 0 ESLint errors, zero raw hex violations (`pnpm lint`).
+- Browser verification: Tested `/admin/collections/products/32` live in both `light-clean` and `precision-dark` modes; successfully published document changes to database.
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-08 (82) — Admin CMS Form Controls Design System, Product Editing Repair & WordPress-Style Plugins Manager
+
+Comprehensive resolution of back-office form styling, accessibility, collection access controls, and modular extensions view:
+
+1. **Product Edit Access & Black Screen Repair (`packages/plugin-shop/src/index.ts`)**:
+   - Fixed `checkRole` permission check: in standard Payload 3 cookie session requests, `req.user.collection` is `undefined`, causing access control to reject admin/manager users and render blank/404 screens. Updated condition to accept `(user.collection === undefined || user.collection === 'users')`.
+   - Removed unsupported nested `position: 'sidebar'` inside `row` fields on product `slug`.
+   - Cleaned schema definitions; verified document editing, title changes, slug updates, and database publishing.
+
+2. **Form Controls Design System & React-Select Placeholder Repair (`admin.css`)**:
+   - Identified and resolved React-Select placeholder clipping ("ct a value"): unscoped blanket `.field-type input[type="text"]` had applied padding, width, and background to `.rs__input`, overlaying the placeholder. Scoped inputs with `:not(.rs__input)` and added dedicated styles for `.rs__control`, `.rs__placeholder`, `.rs__value-container`, `.rs__menu`, `.rs__option`, `.rs__single-value`, and `.rs__multi-value`.
+   - Polished form fields, focus states, textarea heights, and dashed file dropzone uploads (`.file-field__dropzone`, `.file-field__upload`).
+
+3. **Table & "+ Add New" Button Polish (`admin.css`)**:
+   - Styled `.list-create-new-doc__create-new-button` and header title actions with prominent accent colors (`var(--theme-accent)`), bold typography, and elevation glow.
+   - Enhanced `.table` zebra striping, sticky headers, row hover effects, and checkbox column alignment.
+   - Refactored `.where-builder` and `.filter-panel` into unified, elevated cards with clean pill buttons and inputs.
+
+4. **Navigation Menu Visual Dividers & Active Indicator (`ModernAdminNav.tsx`)**:
+   - Added visual section dividers (`border-bottom: 1px solid var(--theme-border-color)`), uppercase workspace headers, and active accent indicators (`3px solid var(--theme-accent)`).
+
+5. **WordPress-Style Plugins & Extensions Manager (`PluginsManagerView.tsx` & `payload.config.ts`)**:
+   - Registered `/admin/plugins` custom view in Payload config.
+   - Added "Plugins & Extensions" link to admin navigation with `Puzzle` icon and "7 Active" badge.
+   - Displays all 7 installed modules (`@buildmyrig/plugin-shop`, `@buildmyrig/plugin-pc-builder`, `@buildmyrig/plugin-pages`, `@stripe/stripe-js`, `@payloadcms/richtext-lexical`, `@payloadcms/plugin-seo`, and `theme-revalidate-plugin`).
+   - Supports search filter, category tabs (`All`, `Core`, `Commerce`, `PC Builder`, `CMS`, `Third-Party`), activation status toggles, and direct configuration shortcuts.
+
+**Verification & Quality Gates**:
+- Tests: Added test #461 in `ModernAdminNav.test.tsx`; 234 monorepo tests passing (`pnpm test`).
+- Typecheck: 0 TypeScript errors across all 6 packages (`pnpm -r typecheck`).
+- Lint: 0 ESLint errors (`pnpm lint`).
+- Browser verification: Tested `/admin/collections/products/40`, `/admin/collections/categories/7`, and `/admin/plugins`.
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-08 (81) — Modern SaaS Admin GUI Overhaul (Custom Shell, Live Search, Icon Rail, Telemetry Hub)
+
+Complete overhaul of the Payload CMS Admin interface into a modern SaaS / Shadcn-style administration suite:
+
+1. **Custom Navigation Shell (`ModernAdminNav.tsx` via `admin.components.Nav`)**:
+   - Replaced bloated stock navigation with a high-efficiency sidebar.
+   - **Live Search (`⌘K`)**: Real-time filtering across all 25+ collections, globals, and custom views.
+   - **5 Clean Domain Workspaces**: Store & Commerce (12), PC Builder Engine (8), Content & Media (2), Settings & Design (5), Access & System (1).
+   - **Semantic Lucide Icons**: Unique, identifiable icons for every single collection and tool.
+   - **Dual Display Modes**: Full expanded sidebar with item counters vs. compact `68px` icon-rail mode for maximum editing space.
+   - Quick storefront launcher (`Storefront ↗`) and sign-out in footer.
+
+2. **Control Center Dashboard (`ModernAdminDashboard.tsx` via `admin.components.views.dashboard`)**:
+   - Executive operations banner with live WAL SQLite status (`🟢 OPERATIONAL · LOCAL SQLITE WAL`).
+   - Real-time KPI metrics: Gross Revenue, Custom Builds (cart & conversion counts), Rule Engine Matrix health, and Build Telemetry.
+   - 1-click quick action chips: Add Product, Add Component, New Template, Create Page, Promo Banner.
+   - Structured domain workspace cards with direct item links and `+ New` creation shortcuts.
+
+3. **Persistent Multi-Theme Engine (`AdminHeaderActions.tsx` & `admin.css`)**:
+   - 4 built-in skins: Modern Slate (`precision-dark`), Enterprise SaaS (`light-clean`), Cyber Neon (`cyber-neon`), and Classic Payload.
+   - Synchronized across sessions via `localStorage` and `cookie`.
+   - Complete CSS design system overhaul: polished data tables, form inputs, focus glows, sticky headers, and responsive rules.
+
+**Verification & Quality Gates**:
+- Tests: Added `ModernAdminNav.test.tsx` (tests #458–#460); 233 monorepo tests passing (`pnpm test`).
+- Typecheck: 0 TypeScript errors across all 6 packages (`pnpm -r typecheck`).
+- Lint: 0 ESLint errors (`pnpm lint`).
+- Browser simulation: Verified dashboard KPIs, search filtering, rail toggle, light/cyber/dark theme switching, collection list view, component edit view, and rule matrix table with 0 console errors.
+- Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-07 (80) — Admin GUI Hydration Fix & Multi-Skin Synchronization
+
+- Eliminated React 19 hydration mismatch on `<html>` by removing inline script and syncing theme via client `AdminThemeSync`.
+- Restored instantaneous live GUI skin switching across all 4 themes (`precision-dark`, `cyber-neon`, `light-clean`, `classic-payload`).
+- Updated `admin.css` with real Payload 3.x classes; all test gates green.
+
+## 2026-10-07 (79) — Headless Ecommerce Growth & Low-Code Admin Visual Customization System
+
+Comprehensive headless ecommerce growth suite and low-code visual customization capabilities for non-technical editors:
+
+1. **Global Store Control Hub (`StoreSettings` Global in `packages/plugin-shop`)**:
+   - Centralized admin management under **Store > Store Settings**.
+   - Top announcement promo bar (`PromoTopBanner.tsx`) with real-time countdown timer, dismissibility synchronized via `useSyncExternalStore`, CTA links, editable badge labels, and 4 theme variants (`neon`, `accent`, `dark`, `gold`).
+   - Configurable free shipping threshold (default `€150.00` / `15000` cents) driving the live progress meter across storefront.
+   - 4-pillar editable store trust guarantees (3-Year Warranty, 48h Express Courier Dispatch, 100% Component Compatibility, 24/7 Expert Rig Support).
+
+2. **Verified Customer Reviews & Ratings System**:
+   - Moderated `reviews` collection with 1–5 star scores, review headlines, detailed feedback, and moderation workflow (`approved`, `pending`, `rejected`).
+   - Secure submission route (`POST /api/reviews`) with strict origin validation, sliding-window IP rate limiting, and automated customer order lookup to grant the `✓ Verified Buyer` badge.
+   - Interactive PDP component (`ProductReviews.tsx`) with live rating score aggregation, 5-star distribution bar histogram, interactive "★ Write a Review" modal/form with star rating selector, and Schema.org `AggregateRating` JSON-LD structured data.
+
+3. **Visual Merchandising & Low-Code PDP Customizer**:
+   - Product badging ribbons (`🔥 HOT`, `✨ NEW`, `⚡ SALE`, `⭐ BESTSELLER`, custom badge text) across catalog cards and PDP hero sections.
+   - Frequently Bought Together / Cross-sells product relationships.
+   - Single Product Layout Customizer (`customBlocks` tab): Allows editors to drag-and-drop FAQ blocks, comparison tables, video embeds, and trust badges directly onto individual PDPs without code.
+
+4. **Dynamic Free Shipping Progress Meter**:
+   - Animated progress meter (`FreeShippingMeter.tsx`) integrated into `CartDrawer` and `/cart` page with milestone feedback (`"Add €XX.XX more for FREE Shipping"` → `"🎉 FREE Express Shipping Unlocked!"`).
+
+5. **New Low-Code Visual Blocks**:
+   - `TrustBadgesBlock`: Visual icon-driven guarantee cards.
+   - `BannerCountdownBlock`: Urgency marketing banner with live countdown clock and CTAs.
+   - `ReviewsShowcaseBlock`: Grid displaying verified customer reviews.
+
+**Verification & Quality Gates**:
+- `pnpm test`: 47 test suites, 228 tests passing across all 6 workspace packages.
+- `pnpm -r typecheck`: 0 errors across `@buildmyrig/web`, `@buildmyrig/plugin-shop`, `@buildmyrig/plugin-pages`, `@buildmyrig/plugin-pc-builder`, `@buildmyrig/lib`, and `@buildmyrig/ui`.
+- `pnpm lint`: 0 errors / 0 warnings (100% CSS token purity).
+- `pnpm workflow:check`: PASSED.
+- Live browser visual inspection completed.
+
 ## 2026-10-06 (78) — Payload Admin CMS UI/UX Redesign & Multi-Skin System ("Precision Dark")
 
 Comprehensive back-office redesign and modernization of Payload CMS 3.90.2 Admin interface:

@@ -11,6 +11,7 @@ import { shopPlugin } from '@buildmyrig/plugin-shop'
 import { pcBuilderPlugin } from '@buildmyrig/plugin-pc-builder'
 import { pagesPlugin } from '@buildmyrig/plugin-pages'
 import { themeRevalidatePlugin } from './lib/theme-revalidate-plugin.ts'
+import { listCellElevationPlugin } from './lib/admin-list-cells.ts'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -31,16 +32,32 @@ export default buildConfig({
   sharp,
   admin: {
     user: Users.slug,
+    suppressHydrationWarning: true,
     importMap: {
       baseDir: path.resolve(dirname),
     },
     components: {
+      Nav: './app/(payload)/admin/components/ModernAdminNav#ModernAdminNav',
       graphics: {
         Logo: './app/(payload)/admin/components/AdminLogo#AdminLogo',
         Icon: './app/(payload)/admin/components/AdminIcon#AdminIcon',
       },
       actions: ['./app/(payload)/admin/components/AdminHeaderActions#AdminHeaderActions'],
-      beforeDashboard: ['./app/(payload)/admin/components/AdminDashboardMetrics#AdminDashboardMetrics'],
+      views: {
+        dashboard: {
+          Component: './app/(payload)/admin/components/ModernAdminDashboard#ModernAdminDashboard',
+        },
+        plugins: {
+          type: 'custom',
+          path: '/plugins',
+          Component: './app/(payload)/admin/components/PluginsManagerView#PluginsManagerView',
+        } as never,
+        designSystem: {
+          type: 'custom',
+          path: '/design-system',
+          Component: './app/(payload)/admin/components/DesignSystemView#DesignSystemView',
+        } as never,
+      },
     },
   },
   collections: [Users, Pages],
@@ -80,13 +97,39 @@ export default buildConfig({
       }),
   plugins: [
     // Phase 1+: shop + builder plugins. Skeletons are config-identity no-ops for now.
-    shopPlugin({ enabled: true }),
-    pcBuilderPlugin({ enabled: true }),
+    shopPlugin({
+      enabled: true,
+      attributeTermsComponent: './app/(payload)/admin/components/AttributeTermsManager#AttributeTermsManager',
+      productSpecsComponent: './app/(payload)/admin/components/ProductSpecFields#ProductSpecFields',
+      productsListHeaderComponent: './app/(payload)/admin/components/ProductsListHeader#ProductsListHeader',
+      ordersListHeaderComponent: './app/(payload)/admin/components/OrdersListHeader#OrdersListHeader',
+      builderRulesTabComponent: './app/(payload)/admin/components/BuilderRulesTabField#BuilderRulesTabField',
+      serpPreviewComponent: './app/(payload)/admin/components/SerpPreviewField#SerpPreviewField',
+      slugFieldComponent: './app/(payload)/admin/components/SlugField#SlugField',
+    }),
+    pcBuilderPlugin({
+      enabled: true,
+      componentsListHeaderComponent: './app/(payload)/admin/components/ComponentsListHeader#ComponentsListHeader',
+      buildStatsViewComponent: './app/(payload)/admin/components/BuildStatsView#BuildStatsView',
+      ruleManagerViewComponent: './app/(payload)/admin/components/RuleManagerView#RuleManagerView',
+      templatesListHeaderComponent: './app/(payload)/admin/components/TemplatesListHeader#TemplatesListHeader',
+      configuredBuildsListHeaderComponent: './app/(payload)/admin/components/ConfiguredBuildsListHeader#ConfiguredBuildsListHeader',
+      componentCategoriesListHeaderComponent: './app/(payload)/admin/components/ComponentCategoriesListHeader#ComponentCategoriesListHeader',
+      builderSettingsHeaderComponent: './app/(payload)/admin/components/BuilderSettingsHeader#BuilderSettingsHeader',
+    }),
     // Phase 3 → entry 19 (Step B): SEO fields, category top-block zone and the
     // site-settings global now live in @buildmyrig/plugin-pages.
-    pagesPlugin({ enabled: true }),
+    pagesPlugin({
+      enabled: true,
+      siteSettingsHeaderComponent: './app/(payload)/admin/components/SiteSettingsHeader#SiteSettingsHeader',
+      themeHeaderComponent: './app/(payload)/admin/components/ThemeHeader#ThemeHeader',
+      megaMenuHeaderComponent: './app/(payload)/admin/components/MegaMenuHeader#MegaMenuHeader',
+    }),
     // Entry 71: chrome globals (theme/site-settings/mega-menu) revalidate the
     // layout on save — must run after pagesPlugin to see those globals.
     themeRevalidatePlugin(),
+    // Entry 111: §5.4 list-table elevation — entity/code-chip/price Cell
+    // overrides; runs last so it sees every collection the plugins registered.
+    listCellElevationPlugin(),
   ],
 })

@@ -69,4 +69,39 @@ describe('withBuilderTab', () => {
     if (tabsField?.type !== 'tabs') throw new Error('unreachable')
     expect(tabsField.tabs.filter((t) => 'label' in t && t.label === BUILDER_TAB_LABEL)).toHaveLength(1)
   })
+
+  it('merges fields into an existing "Builder Rules" tab instead of adding a second tab', () => {
+    const withRules = baseProducts()
+    const tabsField = withRules.fields.find((f) => f.type === 'tabs')
+    if (tabsField?.type !== 'tabs') throw new Error('unreachable')
+    tabsField.tabs.push({ label: 'Builder Rules', fields: [{ name: 'builderRulesTab', type: 'ui', admin: {} }] })
+
+    const out = withBuilderTab(withRules)
+    const outTabs = out.fields.find((f) => f.type === 'tabs')
+    if (outTabs?.type !== 'tabs') throw new Error('unreachable')
+    expect(outTabs.tabs.map((t) => ('label' in t ? t.label : ''))).toEqual([
+      'Catalog',
+      'Commerce',
+      'Builder Rules',
+    ])
+    const rules = outTabs.tabs.find((t) => 'label' in t && t.label === 'Builder Rules')
+    expect(rules?.fields.map((f) => ('name' in f ? f.name : ''))).toEqual([
+      'builderRulesTab',
+      'isComponent',
+      'component',
+    ])
+  })
+
+  it('is idempotent after a Builder Rules merge', () => {
+    const withRules = baseProducts()
+    const tabsField = withRules.fields.find((f) => f.type === 'tabs')
+    if (tabsField?.type !== 'tabs') throw new Error('unreachable')
+    tabsField.tabs.push({ label: 'Builder Rules', fields: [{ name: 'builderRulesTab', type: 'ui', admin: {} }] })
+
+    const twice = withBuilderTab(withBuilderTab(withRules))
+    const outTabs = twice.fields.find((f) => f.type === 'tabs')
+    if (outTabs?.type !== 'tabs') throw new Error('unreachable')
+    const rules = outTabs.tabs.find((t) => 'label' in t && t.label === 'Builder Rules')
+    expect(rules?.fields.filter((f) => 'name' in f && f.name === 'isComponent')).toHaveLength(1)
+  })
 })

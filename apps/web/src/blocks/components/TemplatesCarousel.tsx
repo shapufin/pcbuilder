@@ -1,5 +1,12 @@
+import dynamic from 'next/dynamic'
 import { getPayloadClient } from '@/lib/shop'
-import { TemplatesCarouselClient } from './TemplatesCarouselClient'
+
+const TemplatesCarouselClient = dynamic(
+  () => import('./TemplatesCarouselClient').then((m) => m.TemplatesCarouselClient),
+  {
+    loading: () => <div className="blk" style={{ minHeight: 280 }} />,
+  },
+)
 
 type TemplateDoc = {
   id: string | number

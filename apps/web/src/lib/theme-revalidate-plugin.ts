@@ -19,6 +19,49 @@ const revalidateLayout = (): void => {
 
 const CHROME_GLOBALS = new Set(['theme', 'site-settings', 'mega-menu'])
 
+const revalidateProductDoc = ({ doc }: { doc?: { slug?: string } }): void => {
+  try {
+    if (doc?.slug) {
+      revalidatePath(`/product/${doc.slug}`)
+    }
+    revalidatePath('/shop')
+  } catch {
+    // no request scope
+  }
+}
+
+const revalidateCategoryDoc = ({ doc }: { doc?: { slug?: string } }): void => {
+  try {
+    if (doc?.slug) {
+      revalidatePath(`/shop/${doc.slug}`)
+    }
+    revalidatePath('/shop')
+  } catch {
+    // no request scope
+  }
+}
+
+const revalidateReviewDoc = async ({
+  doc,
+  req,
+}: {
+  doc?: { product?: number | { slug?: string } }
+  req?: { payload?: { findByID: (args: { collection: 'products'; id: number; depth: number }) => Promise<{ slug?: string }> } }
+}): Promise<void> => {
+  try {
+    if (typeof doc?.product === 'object' && doc.product?.slug) {
+      revalidatePath(`/product/${doc.product.slug}`)
+    } else if (typeof doc?.product === 'number' && req?.payload) {
+      const prod = await req.payload.findByID({ collection: 'products', id: doc.product, depth: 0 })
+      if (prod?.slug) {
+        revalidatePath(`/product/${prod.slug}`)
+      }
+    }
+  } catch {
+    // no request scope
+  }
+}
+
 export const themeRevalidatePlugin = (): Plugin =>
   (incomingConfig: Config): Config => ({
     ...incomingConfig,
@@ -33,4 +76,35 @@ export const themeRevalidatePlugin = (): Plugin =>
           }
         : g,
     ),
+    collections: (incomingConfig.collections ?? []).map((c) => {
+      if (c.slug === 'products') {
+        return {
+          ...c,
+          hooks: {
+            ...(c.hooks ?? {}),
+            afterChange: [...(c.hooks?.afterChange ?? []), revalidateProductDoc],
+          },
+        }
+      }
+      if (c.slug === 'categories') {
+        return {
+          ...c,
+          hooks: {
+            ...(c.hooks ?? {}),
+            afterChange: [...(c.hooks?.afterChange ?? []), revalidateCategoryDoc],
+          },
+        }
+      }
+      if (c.slug === 'reviews') {
+        return {
+          ...c,
+          hooks: {
+            ...(c.hooks ?? {}),
+            afterChange: [...(c.hooks?.afterChange ?? []), revalidateReviewDoc],
+          },
+        }
+      }
+      return c
+    }),
   })
+

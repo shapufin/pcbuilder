@@ -15,6 +15,9 @@ import { VideoEmbed } from './components/VideoEmbed'
 import { Section } from './components/Section'
 import { ContactForm } from './components/ContactForm'
 import { Columns } from './components/Columns'
+import { TrustBadges } from './components/TrustBadges'
+import { BannerCountdown } from './components/BannerCountdown'
+import { ReviewsShowcase } from './components/ReviewsShowcase'
 import { NexusHero } from '../themes/nexus/blocks/NexusHero'
 import { NexusCategoryMatrix } from '../themes/nexus/blocks/NexusCategoryMatrix'
 import { NexusProductRail } from '../themes/nexus/blocks/NexusProductRail'
@@ -50,4 +53,7 @@ export const blockRegistry: Record<string, BlockComponent> = {
   nexusSlotExplorer: NexusSlotExplorer,
   // Entry 74 — horizontal container primitive.
   columns: Columns,
+  trustBadges: TrustBadges,
+  bannerCountdown: BannerCountdown,
+  reviewsShowcase: ReviewsShowcase,
 }

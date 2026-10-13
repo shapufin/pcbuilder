@@ -29,6 +29,7 @@ Modern e-commerce site for pre-built and custom-configured gaming/creator PCs, b
 | [19-feature-audit.md](19-feature-audit.md) | 5-pass feature audit register (entries 26–29) |
 | [20-spec-templates-auto-compat-design.md](20-spec-templates-auto-compat-design.md) | Spec templates + auto-derived compat + platform path design (entry 68) |
 | [21-nexus-theme-design.md](21-nexus-theme-design.md) | Nexus theme pack design — AI Studio "shop layout" port (entry 71) |
+| [22-admin-gui-design.md](22-admin-gui-design.md) | Admin GUI design system + primitive library spec — AdminGUI mockup adoption (entry 90) |
 | [../admin-training.md](../admin-training.md) | Admin training & operations handbook (roles, workflows, troubleshooting) |
 
 ## Self-review checklist (all items covered)
