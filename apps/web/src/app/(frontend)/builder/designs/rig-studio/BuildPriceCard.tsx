@@ -31,7 +31,7 @@ export function BuildPriceCard({ onOpenDeploy }: { onOpenDeploy: () => void }) {
     actionStatus.saveState === 'saving'
       ? 'Saving…'
       : actionStatus.saveView === 'saved'
-        ? 'Saved ✓'
+        ? 'Saved'
         : actionStatus.saveView === 'error'
           ? 'Save failed — retry'
           : savedBuild

@@ -217,6 +217,21 @@ body[data-theme-pack='nexus'] { --header-h: 65px; }
   .nx-actions > a { display: none; }
   .nx-cart-btn__text { display: none; }
 }
+/* Narrow phones (<=420px): the wordmark plus four controls cannot share one
+   row — measured 60px of horizontal overflow at 280px (audit 2026-10-22, item 672).
+   Drop the wordmark (the mark stays), tighten the cluster and the bar gutters. */
+@media (max-width: 420px) {
+  .nx-bar {
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+  }
+  .nx-brand__text { display: none; }
+  .nx-actions { gap: 6px; }
+  .nx-actions .nx-icon-btn,
+  .nx-actions .nx-cart-btn {
+    min-width: 32px;
+  }
+}
 
 .nx-icon-btn {
   width: 32px;
@@ -314,7 +329,7 @@ body[data-theme-pack='nexus'] { --header-h: 65px; }
   right: 0;
   top: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 1.5rem;
   padding: 1.5rem 2rem;
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
@@ -528,6 +543,12 @@ body[data-theme-pack='nexus'] { --header-h: 65px; }
   text-transform: uppercase;
   color: var(--nx-muted);
   text-decoration: none;
+  /* WCAG 2.5.8: a 13px-tall text link is not a usable touch target
+     (audit 2026-10-22, item 676). Padding lifts the hit area to 24px. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 2px;
 }
 .nx-footer__link:hover { color: var(--nx-accent); }
 .nx-footer__legal {
@@ -904,7 +925,7 @@ body[data-theme-pack='nexus'] { --header-h: 65px; }
 }
 .nx-rig__badge-name { color: var(--nx-accent); font-weight: 700; }
 .nx-rig__badge-sep { color: var(--nx-line-strong); }
-.nx-rig__tools { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
+.nx-rig__tools { display: flex; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; align-items: center; gap: 6px; pointer-events: auto; }
 .nx-rig__dots {
   display: flex;
   align-items: center;
@@ -1038,3 +1059,6 @@ body[data-theme-pack='nexus'] { --header-h: 65px; }
   .nx-modal-backdrop { animation: none; }
   .nx-card:hover { transform: none; }
 }
+
+/* Extracted from NexusSlotExplorerClient.tsx inline styles (audit 2026-11-18 M7). */
+.nx-slot-x-1 { display: inline-flex; gap: 8px; align-items: center; }

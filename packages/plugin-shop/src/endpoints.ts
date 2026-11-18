@@ -1,7 +1,7 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 import { z } from 'zod'
 import { addItem } from '@payloadcms/plugin-ecommerce'
-import { rateLimit } from '@buildmyrig/lib'
+import { rateLimit, rateLimitedResponse } from '@buildmyrig/lib'
 import { cartItemMatcher, collectBuildIssues } from './lib/line-item-hooks.ts'
 import { findEnabledPackagingTier } from './lib/packaging.ts'
 import { validateDiscount, type DiscountCodeDoc } from './lib/pricing.ts'
@@ -17,8 +17,8 @@ import { claimSettlement, settleClaimedTransaction } from './lib/settle-transact
  * the ecommerce confirmOrder endpoint catches ALL errors into a generic 500,
  * so per-slot reasons must reach the client before payment starts (06-rule-engine.md).
  *
- * POST /api/discounts/validate — stateless code pre-check for the checkout
- * form (audit gap P2-C3): answers "would this code work?" without a cart.
+ * (POST /api/discounts/validate was removed in audit 2026-11-18 M2: it was an
+ * anonymous code-validity oracle with no storefront caller.)
  *
  * POST /api/carts/:id/apply-discount — owner-or-secret gated cart mutation;
  * the cart beforeChange hook recomputes the four totals from the same
@@ -28,8 +28,6 @@ import { claimSettlement, settleClaimedTransaction } from './lib/settle-transact
 
 const addBuildLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 const validateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
-// Separate buckets: validate is a pre-cart probe, apply is a cart mutation.
-const discountValidateLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const discountApplyLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const shippingLimiter = rateLimit({ windowMs: 60_000, max: 20 })
 const packagingLimiter = rateLimit({ windowMs: 60_000, max: 20 })
@@ -57,24 +55,35 @@ const ok = (data: unknown): Response => Response.json(data)
 const bad = (status: number, message: string, extra?: unknown, headers?: HeadersInit): Response =>
   Response.json({ error: message, ...(extra ? { details: extra } : {}) }, { status, headers })
 
-const clientIp = (req: PayloadRequest): string =>
-  req.headers?.get?.('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-
 const limitByIp = (
   limiter: ReturnType<typeof rateLimit>,
   req: PayloadRequest,
-): Response | null => {
-  const result = limiter.check(clientIp(req))
-  if (result.ok) return null
-  return bad(429, 'rate limit exceeded', { retryAfterMs: result.retryAfterMs }, {
-    'Retry-After': String(Math.ceil(result.retryAfterMs / 1000)),
-  })
-}
+): Response | null => rateLimitedResponse(limiter, req.headers)
 
 /** Route ids are numeric on SQLite but may be uuid strings on other adapters. */
 const coerceDocId = (id: unknown): string | number => {
   const raw = String(id)
   return /^\d+$/.test(raw) ? Number(raw) : raw
+}
+
+/** Owner-or-secret gate shared by every cart mutation below (was 5 copies). */
+const authorizeCart = (
+  cart: { customer?: unknown; secret?: string | null },
+  req: PayloadRequest,
+  secret: string | undefined,
+): boolean => {
+  const customer =
+    cart.customer && typeof cart.customer === 'object'
+      ? (cart.customer as { id: unknown }).id
+      : cart.customer
+  const isOwner = Boolean(
+    req.user &&
+      customer !== undefined &&
+      customer !== null &&
+      String(customer) === String(req.user.id),
+  )
+  const hasSecret = Boolean(secret && cart.secret && secret === cart.secret)
+  return isOwner || hasSecret
 }
 
 export const cartAddBuildEndpoint: Endpoint = {
@@ -163,10 +172,7 @@ export const cartValidateBuildsEndpoint: Endpoint = {
       cart = null
     }
     if (!cart) return bad(404, 'cart not found')
-    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
-    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
-    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
-    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+    if (!authorizeCart(cart, req, parsed.data.secret)) return bad(404, 'cart not found')
 
     const items = Array.isArray(cart.items) ? cart.items : []
     const reasons = await collectBuildIssues(items, req)
@@ -201,37 +207,6 @@ const findDiscountByCode = async (req: PayloadRequest, code: string) => {
   return (result.docs[0] as Record<string, unknown> | undefined) ?? null
 }
 
-export const discountValidateEndpoint: Endpoint = {
-  path: '/discounts/validate',
-  method: 'post',
-  handler: async (req: PayloadRequest) => {
-    const limited = limitByIp(discountValidateLimiter, req)
-    if (limited) return limited
-    let body: unknown
-    try {
-      body = await req.json?.()
-    } catch {
-      return bad(400, 'invalid JSON body')
-    }
-    const parsed = discountBodySchema.safeParse(body)
-    if (!parsed.success) return bad(400, 'invalid body', parsed.error.flatten())
-    let doc: Record<string, unknown> | null = null
-    try {
-      doc = await findDiscountByCode(req, parsed.data.code.trim())
-    } catch {
-      doc = null
-    }
-    // Same math the cart hook applies — one source of truth for the answer.
-    const check = validateDiscount(doc as never, parsed.data.subtotal ?? 0)
-    return ok({
-      valid: check.valid,
-      ...(check.reason ? { reason: check.reason } : {}),
-      discountTotal: check.discountTotal,
-      freeShipping: check.freeShipping,
-    })
-  },
-}
-
 export const cartApplyDiscountEndpoint: Endpoint = {
   path: '/:id/apply-discount',
   method: 'post',
@@ -263,10 +238,7 @@ export const cartApplyDiscountEndpoint: Endpoint = {
       cart = null
     }
     if (!cart) return bad(404, 'cart not found')
-    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
-    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
-    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
-    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+    if (!authorizeCart(cart, req, parsed.data.secret)) return bad(404, 'cart not found')
 
     let doc: Record<string, unknown> | null = null
     try {
@@ -342,10 +314,7 @@ export const cartShippingCountryEndpoint: Endpoint = {
       cart = null
     }
     if (!cart) return bad(404, 'cart not found')
-    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
-    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
-    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
-    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+    if (!authorizeCart(cart, req, parsed.data.secret)) return bad(404, 'cart not found')
 
     const updated = (await req.payload.update({
       collection: 'carts',
@@ -416,10 +385,7 @@ export const cartPackagingEndpoint: Endpoint = {
       cart = null
     }
     if (!cart) return bad(404, 'cart not found')
-    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
-    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
-    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
-    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+    if (!authorizeCart(cart, req, parsed.data.secret)) return bad(404, 'cart not found')
 
     const items = Array.isArray(cart.items) ? cart.items : []
     const nonPackaging = items.filter(
@@ -463,7 +429,7 @@ export const cartPackagingEndpoint: Endpoint = {
 
 const confirmFreeSchema = z.object({
   secret: z.string().optional(),
-  customerEmail: z.string().min(3).max(320),
+  customerEmail: z.string().trim().email().max(320),
   shippingAddress: z.record(z.string(), z.unknown()).optional(),
 })
 
@@ -484,6 +450,27 @@ const orderIdOf = (v: unknown): unknown =>
  * its order (replay); pending → resume settling it (crash recovery). A
  * settled Stripe payment on the same cart also surfaces here as a replay.
  */
+/**
+ * Audit 2026-11-18 M4: a stored cart total is only as fresh as the cart's last
+ * write — an admin may have lowered the discount or added shipping/tax since.
+ * Writing the cart's own items re-runs the beforeChange hook, which recomputes
+ * subtotal + the four totals from live state. Never called on replay (a
+ * purchased cart is never re-priced). Returns null when the write fails.
+ */
+const repriceCart = async <C extends { id: string | number; items?: Record<string, unknown>[] }>(
+  req: PayloadRequest,
+  cart: C,
+): Promise<C | null> => {
+  const repriced = (await req.payload.update({
+    collection: 'carts',
+    id: cart.id,
+    data: { items: cart.items ?? [] } as never,
+    overrideAccess: true,
+    req,
+  })) as unknown as Partial<C> | null
+  return repriced ? { ...cart, ...repriced } : null
+}
+
 export const cartConfirmFreeEndpoint: Endpoint = {
   path: '/:id/confirm-free',
   method: 'post',
@@ -524,13 +511,18 @@ export const cartConfirmFreeEndpoint: Endpoint = {
       cart = null
     }
     if (!cart) return bad(404, 'cart not found')
-    const customer = cart.customer && typeof cart.customer === 'object' ? (cart.customer as { id: unknown }).id : cart.customer
-    const isOwner = Boolean(req.user && customer !== undefined && customer !== null && String(customer) === String(req.user.id))
-    const hasSecret = Boolean(parsed.data.secret && cart.secret && parsed.data.secret === cart.secret)
-    if (!isOwner && !hasSecret) return bad(404, 'cart not found')
+    if (!authorizeCart(cart, req, parsed.data.secret)) return bad(404, 'cart not found')
 
-    const items = Array.isArray(cart.items) ? cart.items : []
+    let items = Array.isArray(cart.items) ? cart.items : []
     if (items.length === 0) return bad(422, 'cart is empty')
+    // Audit 2026-11-18 M4: re-price before trusting "free" (see repriceCart).
+    if (!cart.purchasedAt) {
+      const repriced = await repriceCart(req, cart)
+      if (!repriced) return bad(500, 'could not confirm the order — retry shortly')
+      cart = repriced
+      items = Array.isArray(cart.items) ? cart.items : []
+      if (items.length === 0) return bad(422, 'cart is empty')
+    }
     // The client never sets this number — the cart beforeChange hook does.
     if (!(typeof cart.total === 'number' && cart.total <= 0)) {
       return bad(422, 'cart total is not free — use the payment flow')

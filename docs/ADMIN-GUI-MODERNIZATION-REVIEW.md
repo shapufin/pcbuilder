@@ -197,6 +197,31 @@ pnpm test:e2e        # playwright (prod server; reuseExistingServer :3000)
 pnpm workflow:check  # AGENTS.md ≤10k chars + pointer/context budgets
 ```
 
+## Standardized Table Design & PC Builder Admin Surfaces (Entries 134–135)
+
+### 1. High-Density Table Architecture (`admin.css`)
+- **Gutter Collapse & Container Expansion**: Payload's nested `.collection-list__wrap.gutter` padding (60px per side) discarded 184px of horizontal space. Setting `.collection-list .collection-list__wrap.gutter { padding-inline: 0 !important; width: 100% !important; }` and expanding container width from 836px to 972px reclaimed 136px+ across all collection tables.
+- **Unsetting Blanket 150px Minimum Width**: Overrode `@payloadcms/ui`'s hardcoded `.table th, .table td { min-width: 150px; }` with `min-width: unset !important` on `.collection-list thead th, .collection-list tbody td`, allowing compact columns to size appropriately.
+- **Compact Column Matrix**:
+  - `_select` checkbox: 44px
+  - `_bmrId` / `id`: 64px monospace tabular-nums
+  - `_bmrStatus` / `_status`: 116px nowrap badge
+  - Currency & Inventory (`priceInEUR`, `total`, `inventory`): 110px tabular-nums
+  - Row actions (`_bmrActions`): 84px right-aligned
+  - Secondary relations / taxonomy (`categories`, `brand`): 130px
+  - Primary text / titles: auto with 200px minimum
+  - Compatibility rules collection (`compatibility-rules`): `subjectType` (100px), `type` (85px), `operator` (90px), `field`/`value` (90px monospace), `severity` (85px), `enabled` (75px) — eliminated horizontal scrolling on standard viewports (reduced scroll width from 1048px to 839px).
+
+### 2. PC Builder Admin Surfaces & Backend Options
+- **Builder Rules Tab (`.bmr-builder-rules`)**: High-contrast card grid displaying automated PC Builder engine validations (Socket & Platform Interlock, GPU Clearance, PSU Continuous Headroom), linked component telemetry badge with live conflict count, and empty state guidance.
+- **Hardware Specs Tab (`.bmr-spec-fields`)**: Dynamic hardware specification inputs driven by category templates (`cpu`, `motherboard`, `ram`, `gpu`, `storage`, `psu`, `case`, `cooling`, `case-fan`), unit indicators, and live sync footer.
+- **Custom Views & Global Headers**:
+  - `BuilderSettingsHeader`: Telemetry stats (active renderer, available designs, required slots, active matrix rules) and quick-action navigation.
+  - `RuleManagerView` & `RuleSandbox`: Live engine simulation sandbox evaluating real slot interlocks client-side.
+  - `BuildStatsView`: Performance analytics, conversion funnel, inventory telemetry.
+  - Strict design token alignment (`var(--theme-*)`), 100% theme parity across Slate, Foundry, Frost, and Enterprise skins with zero visual clipping or horizontal overflow.
+
+
 ## Known gaps / deferred
 
 - `TableActionStrip` — no row-action slot in Payload 3 lists.

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import {
   Layers,
   Tag,
@@ -493,6 +492,39 @@ export const LIST_HEADER_REGISTRY: Record<string, ListHeaderConfig> = {
     ],
     actions: [{ label: 'Orders ↗', href: '/admin/collections/orders' }],
   },
+
+  'compatibility-rules': {
+    badge: 'PC Builder Logic',
+    scope: 'Builder · Rules',
+    title: 'Compatibility Rules Registry',
+    subtitle: 'Direct hardware compatibility rules, socket matching, and slot constraint definitions.',
+    queries: [
+      { key: 'total', url: api('compatibility-rules') },
+      { key: 'enabled', url: api('compatibility-rules', 'where[enabled][equals]=true') },
+      { key: 'errors', url: api('compatibility-rules', 'where[severity][equals]=error') },
+      { key: 'warnings', url: api('compatibility-rules', 'where[severity][equals]=warning') },
+    ],
+    resolve: (r) => [
+      { label: 'TOTAL RULES', value: total(r.total), subtext: 'defined rules', trend: trend('rules'), icon: Sliders },
+      { label: 'ENABLED', value: total(r.enabled), subtext: 'evaluating in builder', trend: up('live'), icon: Tag },
+      { label: 'BLOCKING ERRORS', value: total(r.errors), subtext: 'hard rule violations', trend: trend('blocking'), icon: Layers },
+      { label: 'WARNINGS', value: total(r.warnings), subtext: 'advisory notifications', trend: trend('advisory'), icon: Star },
+    ],
+    alert: {
+      severity: 'info',
+      title: 'Visual Rule Matrix Available',
+      description: 'Manage, visualize, and import rules visually in the dedicated Rule Manager matrix with live diagnostics.',
+      action: { label: 'Open Rule Manager', href: '/admin/compatibility-rules-manager' },
+    },
+    facets: [
+      { id: 'all', label: 'All Rules', countQuery: 'total' },
+      { id: 'enabled', label: 'Enabled', where: 'where[enabled][equals]=true', countQuery: 'enabled' },
+      { id: 'disabled', label: 'Disabled', where: 'where[enabled][equals]=false' },
+      { id: 'errors', label: 'Errors', where: 'where[severity][equals]=error', countQuery: 'errors' },
+    ],
+    actions: [{ label: 'Visual Rule Matrix ↗', href: '/admin/compatibility-rules-manager' }],
+    createLabel: 'Add Rule',
+  },
 }
 
 export interface RegistryListHeaderProps {
@@ -597,21 +629,19 @@ export const RegistryListHeader: React.FC<RegistryListHeaderProps> = ({
         </div>
 
         <div className="bmr-collection-header__actions">
-          {entry.actions?.map((action) =>
-            action.external ? (
-              <a key={action.href} href={action.href} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" aria-label={action.label}>
-                  {action.label}
-                </Button>
-              </a>
-            ) : (
-              <Link key={action.href} href={action.href}>
-                <Button variant="outline" size="sm" aria-label={action.label}>
-                  {action.label}
-                </Button>
-              </Link>
-            ),
-          )}
+          {entry.actions?.map((action) => (
+            <Button
+              key={action.href}
+              variant="outline"
+              size="sm"
+              href={action.href}
+              target={action.external ? '_blank' : undefined}
+              rel={action.external ? 'noopener noreferrer' : undefined}
+              aria-label={action.label}
+            >
+              {action.label}
+            </Button>
+          ))}
           <CreateDocDrawerButton collectionSlug={slug} label={entry.createLabel ?? 'Create New'} />
         </div>
       </div>

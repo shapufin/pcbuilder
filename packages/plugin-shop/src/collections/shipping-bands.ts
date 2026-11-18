@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isManager, isStaff } from '../lib/access.ts'
+import { invalidatePricingConfig } from '../lib/pricing-config.ts'
 
 /**
  * Flat shipping bands (A18): first enabled band whose
@@ -20,6 +21,12 @@ export const ShippingBands: CollectionConfig = {
     defaultColumns: ['label', 'minSubtotal', 'maxSubtotal', 'price', 'enabled'],
     listSearchableFields: ['label'],
     group: 'Store',
+  },
+  // Cart totals cache these reads — admin edits must invalidate immediately
+  // (the TTL only covers out-of-band writes).
+  hooks: {
+    afterChange: [() => invalidatePricingConfig()],
+    afterDelete: [() => invalidatePricingConfig()],
   },
   fields: [
     { name: 'label', type: 'text', required: true },

@@ -8,6 +8,10 @@ import type { Block } from 'payload'
 export const NexusCategoryMatrixBlock: Block = {
   slug: 'nexusCategoryMatrix',
   interfaceName: 'NexusCategoryMatrixBlock',
+  labels: {
+    singular: 'Nexus Category Matrix',
+    plural: 'Nexus Category Matrices',
+  },
   admin: { group: 'Nexus' },
   fields: [
     { name: 'eyebrow', type: 'text', maxLength: 120 },
@@ -15,6 +19,11 @@ export const NexusCategoryMatrixBlock: Block = {
     {
       name: 'items',
       type: 'array',
+      labels: {
+        singular: 'Category Card',
+        plural: 'Category Cards',
+      },
+      admin: { initCollapsed: true },
       required: true,
       fields: [
         { name: 'category', type: 'relationship', relationTo: 'categories', required: true },

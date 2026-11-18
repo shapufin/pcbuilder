@@ -40,6 +40,13 @@ describe('block registry coverage', () => {
       'nexusCategoryMatrix:NexusCategoryMatrix',
       'nexusProductRail:NexusProductRail',
       'nexusSlotExplorer:NexusSlotExplorer',
+      // Entry 124 & 125 Aether pack blocks.
+      'aetherHero:AetherHero',
+      'aetherProductLab:AetherProductLab',
+      'aetherLookbook:AetherLookbook',
+      'aetherTelemetryGrid:AetherTelemetryGrid',
+      'aetherCalculator:AetherCalculator',
+      'aetherLoopVisualizer:AetherLoopVisualizer',
       'columns:Columns',
       'trustBadges:TrustBadges',
       'bannerCountdown:BannerCountdown',

@@ -9,7 +9,7 @@ test.describe('Admin Route Crawl & Error Detection', () => {
     page,
     request,
   }) => {
-    test.setTimeout(120_000)
+    test.setTimeout(300_000)
 
     const pageErrors: Array<{ url: string; error: string }> = []
     const consoleErrors: Array<{ url: string; text: string }> = []
@@ -68,6 +68,8 @@ test.describe('Admin Route Crawl & Error Detection', () => {
       'theme',
       'mega-menu',
       'builder-settings',
+      'store-settings',
+      'packaging-tiers',
     ]
 
     const customViews = [

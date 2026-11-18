@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { ShieldCheck } from 'lucide-react'
 import { getPayloadClient, formatPrice } from '@/lib/shop'
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { mediaDoc, pickMedia } from '@/lib/media'
@@ -15,6 +16,8 @@ import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
 import { PageRenderer } from '@/blocks/PageRenderer'
 import { ProductReviews, type ReviewItem } from './ProductReviews'
 import { getStoreSettings } from '@/lib/store-settings.server'
+import { resolveComponentSpecs } from '@/lib/component-specs.server'
+import { aggregateRating as averageRating, crossSellIds as crossSellIdsOf, pickerVariants as toPickerVariants, productBadge, reviewItems as toReviewItems, variantsInStock } from '@/lib/pdp'
 import './product.css'
 
 type Props = {
@@ -65,12 +68,7 @@ export default async function ProductPage({ params }: Props) {
 
   const payload = await getPayloadClient()
 
-  // Pre-calculate cross-sell IDs from product relation
-  const crossSellIds = Array.isArray((product as { crossSells?: unknown[] }).crossSells)
-    ? (product as { crossSells?: Array<{ id?: number } | number> }).crossSells
-        ?.map((cs) => (typeof cs === 'object' && cs ? cs.id : cs))
-        .filter((id): id is number => typeof id === 'number')
-    : []
+  const crossSellIds = crossSellIdsOf(product as unknown as Record<string, unknown>)
 
   // Parallelize independent data fetches to eliminate serial waterfalls
   const variantsPromise = payload.find({
@@ -134,53 +132,16 @@ export default async function ProductPage({ params }: Props) {
   ])
   const related = relatedRes.docs
 
-  // Inherit / fallback specs from linked builder component if available (entry 86)
-  let componentSpecs: Record<string, unknown> | null = null
-  if ((product as { isComponent?: boolean | null }).isComponent) {
-    try {
-      if (variants.docs.length > 0) {
-        const compRes = await payload.find({
-          collection: 'components',
-          where: { productVariant: { in: variants.docs.map((v) => v.id) } },
-          limit: 1,
-          depth: 0,
-          overrideAccess: true,
-        })
-        if (compRes.docs[0]) {
-          componentSpecs =
-            (compRes.docs[0] as { specsJson?: Record<string, unknown> | null }).specsJson ?? null
-        }
-      }
-      if (!componentSpecs) {
-        const fullProd = (await payload.findByID({
-          collection: 'products',
-          id: product.id,
-          depth: 1,
-          overrideAccess: true,
-        })) as { component?: { specsJson?: Record<string, unknown> | null } | number | null }
-        if (
-          fullProd?.component &&
-          typeof fullProd.component === 'object' &&
-          'specsJson' in fullProd.component
-        ) {
-          componentSpecs = fullProd.component.specsJson ?? null
-        } else if (
-          typeof fullProd?.component === 'number' ||
-          typeof fullProd?.component === 'string'
-        ) {
-          const compDoc = (await payload.findByID({
-            collection: 'components',
-            id: Number(fullProd.component),
-            depth: 0,
-            overrideAccess: true,
-          })) as { specsJson?: Record<string, unknown> | null }
-          componentSpecs = compDoc?.specsJson ?? null
-        }
-      }
-    } catch {
-      // Best-effort fallback
-    }
-  }
+  // Inherit / fallback specs from linked builder component if available (entry 86).
+  // product.component is already populated at depth 2 — the resolver reads it
+  // for free instead of re-fetching the product (audit 2026-10-24).
+  const componentSpecs = (product as { isComponent?: boolean | null }).isComponent
+    ? await resolveComponentSpecs(
+        product as { component?: unknown },
+        variants.docs.map((v) => v.id),
+        payload,
+      )
+    : null
 
   const specs = resolveProductSpecs(
     (product as { specsJson?: Record<string, unknown> | null }).specsJson,
@@ -191,12 +152,7 @@ export default async function ProductPage({ params }: Props) {
   const compat = compatRows((product as { attributeValues?: unknown }).attributeValues)
   // plugin-ecommerce `inventory: true` adds `inventory` to variants; null =
   // untracked = treat as in stock (don't lie to buyers or schema.org).
-  const inStock =
-    variants.docs.length === 0 ||
-    variants.docs.some((v) => {
-      const inv = (v as { inventory?: number | null }).inventory
-      return inv == null || inv > 0
-    })
+  const inStock = variantsInStock(variants.docs as Array<{ inventory?: number | null }>)
 
   // Entry 71: pack-aware — Nexus PDP shows the meta chip strip and drops those
   // keys from the spec table. getThemeAssets is React.cache'd (shared w/ layout).
@@ -207,56 +163,17 @@ export default async function ProductPage({ params }: Props) {
     .map((m) => pickMedia(mediaDoc(m), 'gallery', product.title))
     .filter((m): m is NonNullable<typeof m> => m !== null)
 
-  const pickerVariants = variants.docs.map((v) => {
-    const options = Array.isArray((v as { options?: unknown[] }).options)
-      ? ((v as { options: unknown[] }).options
-          .map((o) => (typeof o === 'object' && o !== null ? (o as { label?: string }).label : null))
-          .filter(Boolean) as string[])
-      : []
-    return {
-      id: v.id,
-      label: options.length > 0 ? options.join(' / ') : (v as { title?: string | null }).title || 'Standard',
-      priceInEUR: (v as { priceInEUR?: number | null }).priceInEUR,
-      inventory: (v as { inventory?: number | null }).inventory,
-    }
-  })
+  const pickerVariants = toPickerVariants(variants.docs as unknown as Record<string, unknown>[])
 
   const reviewsEnabled = storeSettings.features.reviews !== false
 
-  const reviewItems: ReviewItem[] = reviewsEnabled
-    ? reviewsRes.docs.map((r) => ({
-        id: r.id,
-        rating: (r as { rating?: number }).rating ?? 5,
-        title: (r as { title?: string }).title ?? '',
-        comment: (r as { comment?: string }).comment ?? '',
-        authorName: (r as { authorName?: string }).authorName ?? 'Verified Builder',
-        isVerifiedBuyer: (r as { verifiedPurchase?: boolean }).verifiedPurchase ?? false,
-        createdAt: (r as { createdAt?: string }).createdAt ?? new Date().toISOString(),
-      }))
-    : []
-
-  const aggregateRating =
-    reviewsEnabled && reviewItems.length > 0
-      ? {
-          ratingValue: reviewItems.reduce((acc, r) => acc + r.rating, 0) / reviewItems.length,
-          reviewCount: reviewItems.length,
-        }
-      : null
-
-  // Resolve Badge
-  const rawBadgeType = (product as { badgeType?: string }).badgeType
-  const rawCustomBadge = (product as { customBadgeText?: string }).customBadgeText
-  const badge = (() => {
-    if (!rawBadgeType || rawBadgeType === 'none') return null
-    if (rawBadgeType === 'hot') return { label: '🔥 HOT', type: 'hot' }
-    if (rawBadgeType === 'new') return { label: '✨ NEW', type: 'new' }
-    if (rawBadgeType === 'sale') return { label: '⚡ SALE', type: 'sale' }
-    if (rawBadgeType === 'bestseller') return { label: '⭐ BESTSELLER', type: 'bestseller' }
-    if (rawBadgeType === 'custom' && rawCustomBadge?.trim()) {
-      return { label: rawCustomBadge.trim(), type: 'custom' }
-    }
-    return null
-  })()
+  const reviewViews = toReviewItems(reviewsRes.docs as unknown as Record<string, unknown>[], reviewsEnabled)
+  const reviewItems: ReviewItem[] = reviewViews
+  const aggregateRating = reviewsEnabled ? averageRating(reviewViews) : null
+  const badge = productBadge(
+    (product as { badgeType?: string }).badgeType,
+    (product as { customBadgeText?: string }).customBadgeText,
+  )
 
   const customBlocks = (product as { customBlocks?: unknown[] }).customBlocks
 
@@ -282,12 +199,13 @@ export default async function ProductPage({ params }: Props) {
               </span>
             ) : null}
             <span className="pdp__warranty-badge">
+              <ShieldCheck size={12} aria-hidden />
               {(() => {
                 const tier = (product as { warrantyTier?: string | null }).warrantyTier
-                if (tier === 'extended') return '🛡️ 3-Year Armor Warranty'
-                if (tier === 'premium') return '🛡️ 5-Year Enterprise Coverage'
-                if (tier === 'lifetime') return '🛡️ Lifetime Manufacturer Warranty'
-                return '🛡️ 2-Year Manufacturer Warranty'
+                if (tier === 'extended') return '3-Year Armor Warranty'
+                if (tier === 'premium') return '5-Year Enterprise Coverage'
+                if (tier === 'lifetime') return 'Lifetime Manufacturer Warranty'
+                return '2-Year Manufacturer Warranty'
               })()}
             </span>
           </div>
@@ -365,7 +283,7 @@ export default async function ProductPage({ params }: Props) {
           <VariantPicker
             productId={product.id}
             productTitle={product.title}
-            fallbackPriceCents={(product as { priceInEUR?: number | null }).priceInEUR ?? 0}
+            fallbackPriceCents={(product as { priceInEUR?: number | null }).priceInEUR ?? null}
             compareAtPriceCents={(product as { compareAtPriceInEUR?: number | null }).compareAtPriceInEUR}
             variants={pickerVariants}
           />

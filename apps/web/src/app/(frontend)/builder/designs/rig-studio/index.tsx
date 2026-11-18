@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useState, type CSSProperties } from 'react'
+import { builderPaletteVars } from '@buildmyrig/lib'
 import { useBuilder } from '../../builder-provider'
+import type { BuilderDesignProps } from '../../designs'
 import { BuilderToasts, useToast } from '../../kit/BuilderToasts'
 import { StudioHeader } from './StudioHeader'
 import { StudioBay } from './StudioBay'
@@ -15,6 +17,7 @@ import { CompactMatrixView } from './CompactMatrixView'
 import { DeployModal } from './DeployModal'
 import { SavedBuildsModal } from './SavedBuildsModal'
 import type { StudioView, StudioZone } from './studio-lib'
+import '../../kit/modal.css'
 import './rig-studio.css'
 
 /**
@@ -27,8 +30,12 @@ import './rig-studio.css'
  * (not a literal) set on the design root, not documentElement. hoverZone is
  * lifted here because it highlights both the SVG zone and the matching slot
  * card in the bay ([data-zone] → .is-hot).
+ *
+ * Entry 131: `palette` comes from the registry via BuilderShell — 'accent'
+ * mounts the --bd-* contrast ramp (packages/lib builder-palette), 'inherit'
+ * leaves the design on the raw --color-* tokens.
  */
-export function RigStudioDesign() {
+export function RigStudioDesign({ palette = 'accent' }: BuilderDesignProps) {
   const { state } = useBuilder()
   const { toasts, add, dismiss } = useToast()
   const [view, setView] = useState<StudioView>('studio')
@@ -52,8 +59,14 @@ export function RigStudioDesign() {
   return (
     <main
       className="bdesign-rig-studio builder-page"
-      style={{ '--rgb-accent': state.rgbColor } as CSSProperties}
+      style={
+        {
+          ...builderPaletteVars(palette),
+          '--rgb-accent': state.rgbColor,
+        } as CSSProperties
+      }
     >
+      <h1 className="sr-only">Configure your build</h1>
       <StudioHeader
         view={view}
         onViewChange={setView}

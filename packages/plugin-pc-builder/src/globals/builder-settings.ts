@@ -26,8 +26,13 @@ export const BuilderSettings: GlobalConfig = {
       defaultValue: DEFAULT_BUILDER_DESIGN,
       options: builderDesignOptions(),
       admin: {
-        description:
-          'Storefront renderer for /builder/configure. Options come from the code-side BUILDER_DESIGNS registry — swap takes effect on next render, no deploy.',
+        // Generated from the registry so the admin never lists a stale set
+        // (entry 131). A clickable gallery needs a ui-field with its own
+        // FieldProvider — useField/useFormFields have no context on this
+        // global's field (see the builder-themes audit, round 1c).
+        description: `Storefront renderer for /builder/configure — swap takes effect on next render, no deploy. Available: ${builderDesignOptions()
+          .map((o) => o.label)
+          .join(' · ')}.`,
       },
     },
   ],

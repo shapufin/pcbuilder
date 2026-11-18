@@ -10,6 +10,7 @@ export {
   escapeHtml,
   formatEur,
   lowStockAlertHtml,
+  newsletterConfirmHtml,
   newsletterWelcomeHtml,
   orderConfirmationHtml,
   orderShippedHtml,

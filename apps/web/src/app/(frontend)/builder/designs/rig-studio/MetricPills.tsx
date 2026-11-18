@@ -98,6 +98,18 @@ export function MetricPills({ onOpenSwap }: { onOpenSwap: (categoryId: string) =
     })
   }
 
+  // Entry 131: a fresh build has no specs, so every pill hides — the empty
+  // wrapper rendered as a blank band. Say what will appear instead.
+  if (pills.length === 0) {
+    return (
+      <div className="studio-pills studio-pills--empty">
+        <span className="studio-pills__empty">
+          Clearance metrics appear as you install parts — GPU fit, M.2 bus, radiator and PSU headroom.
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className="studio-pills">
       {pills.map((pill) => {

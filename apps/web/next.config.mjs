@@ -1,7 +1,10 @@
 import { withPayload } from '@payloadcms/next/withPayload'
+import { securityHeaders } from './src/lib/security-headers.mjs'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Audit 2026-11-18 M1: don't advertise the stack.
+  poweredByHeader: false,
   // Next 16 blocks cross-origin dev resources by default; allow the IP-based
   // URLs we browse with (127.0.0.1, LAN) so /_next HMR + chunks load.
   allowedDevOrigins: ['127.0.0.1', '192.168.0.63'],
@@ -34,6 +37,10 @@ const nextConfig = {
   ],
   // Convenience alias (audit minor P5-X1): search lives at /shop/search, but
   // a bare /search is the URL people type and link.
+  // Audit 2026-11-18 M1: framing/sniffing/referrer baseline on every route.
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders(process.env) }]
+  },
   async redirects() {
     return [{ source: '/search', destination: '/shop/search', permanent: true }]
   },

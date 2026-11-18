@@ -35,7 +35,9 @@ describe('getThemeCss - server theme injection', () => {
     expect(findGlobal).toHaveBeenCalledWith({ slug: 'theme' })
     expect(css.startsWith(':root{')).toBe(true)
     expect(css).toContain('--color-bg: #112233;')
-    expect(css).toContain('--color-primary: #6468f2;')
+    // Entry 131: Precision Dark's primary darkened #6468f2 → #5f63ee so the
+    // white on-primary pair clears 4.5:1 (it was 4.37:1).
+    expect(css).toContain('--color-primary: #5f63ee;')
   })
 
   it('#139b payload failure falls back to default theme CSS, never throws', async () => {

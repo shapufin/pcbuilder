@@ -53,3 +53,42 @@ export const rateLimit = (options: { windowMs: number; max: number; maxKeys?: nu
     stats: () => ({ keys: hits.size }),
   }
 }
+
+/** Minimal header shape — works for PayloadRequest.headers and Headers. */
+type HeaderLike = { get?: (name: string) => string | null } | null | undefined
+
+/**
+ * Rate-limit key for a request (audit 2026-11-18 C1). The LEFTMOST
+ * X-Forwarded-For entry is whatever the client typed, so keying on it let
+ * one caller rotate unlimited identities. Order of trust instead:
+ * 1. `x-real-ip` — set by the edge proxy, never forwarded from the client;
+ * 2. the RIGHTMOST XFF hop — appended by the nearest proxy;
+ * 3. 'unknown' (direct local access — one shared bucket).
+ * Production must still sit behind a proxy that sets one of these
+ * (11-access-security.md).
+ */
+export const clientIpFromHeaders = (headers: HeaderLike): string => {
+  const real = headers?.get?.('x-real-ip')?.trim()
+  if (real) return real
+  const hops = headers?.get?.('x-forwarded-for')?.split(',').map((h) => h.trim()).filter(Boolean) ?? []
+  return hops[hops.length - 1] || 'unknown'
+}
+
+/**
+ * IP-keyed rate-limit gate shared by the plugin endpoints: returns the 429
+ * Response to short-circuit with, or null when the request may proceed.
+ */
+export const rateLimitedResponse = (
+  limiter: RateLimiter,
+  headers: HeaderLike,
+): Response | null => {
+  const result = limiter.check(clientIpFromHeaders(headers))
+  if (result.ok) return null
+  return Response.json(
+    { error: 'rate limit exceeded', retryAfterMs: result.retryAfterMs },
+    {
+      status: 429,
+      headers: { 'Retry-After': String(Math.ceil(result.retryAfterMs / 1000)) },
+    },
+  )
+}

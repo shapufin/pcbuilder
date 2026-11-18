@@ -116,6 +116,12 @@ describe('RuleManagerView (#535 - #539)', () => {
     expect(html).toContain('Add Rule')
     expect(html).toContain('Search rules by subject, field, value')
   })
+
+  it('#661 renders empty state when initialRules is empty', () => {
+    const html = renderToStaticMarkup(<RuleManagerView initialRules={[]} />)
+    expect(html).toContain('No compatibility rules match your criteria')
+    expect(html).toContain('Try adjusting your facet filter or search query.')
+  })
 })
 
 describe('RuleManagerView write helpers (#640 - #642)', () => {

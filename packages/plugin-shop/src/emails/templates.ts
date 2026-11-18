@@ -80,6 +80,18 @@ export const newsletterWelcomeHtml = (): string =>
      <p style="margin:8px 0;font-size:12px;color:#71717a">If you didn't sign up you can ignore this email.</p>`,
   )
 
+/**
+ * Double opt-in confirmation (audit 2026-11-18 M3). The URL is server-built,
+ * but it still goes through escapeHtml like every interpolation here.
+ */
+export const newsletterConfirmHtml = (confirmUrl: string): string =>
+  shell(
+    'Confirm your subscription',
+    `<p style="margin:8px 0">Someone (hopefully you) asked to receive BuildMyRig build deals and restock alerts at this address.</p>
+     <p style="margin:16px 0"><a href="${escapeHtml(confirmUrl)}" style="display:inline-block;padding:10px 16px;border-radius:6px;background:#18181b;color:#fafafa;text-decoration:none">Confirm subscription</a></p>
+     <p style="margin:8px 0;font-size:12px;color:#71717a">If you didn't sign up, ignore this email — you won't be subscribed.</p>`,
+  )
+
 export type ContactFormInput = { name: string; email: string; message: string }
 
 /** Contact-form staff email (07-ux-plan.md: /contact form → Resend). */

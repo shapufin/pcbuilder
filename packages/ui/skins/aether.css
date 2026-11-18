@@ -1,0 +1,114 @@
+/* Aether skin — shared-surface overrides (entry 124, SHOP_THEME_2.tsx port).
+   `ae-*` component styles live in apps/web/src/themes/aether/aether.css so a
+   visitor alt-toggle (which disables #theme-skin) never unstyles the aether
+   chrome; this file only re-skins surfaces that exist under EVERY preset:
+   PDP, shop grid/sidebar, cart drawer, checkout, product-card, buttons,
+   inputs. Injected into <style id="theme-skin"> by the root layout after
+   every app stylesheet. Token references keep it drift-free. */
+
+/* Obsidian scrollbars + amber selection, matching the luxury hardware engineering contract. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}
+* {
+  scrollbar-color: var(--color-surface-hover) var(--color-bg);
+}
+::selection {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Cards: rounded-xl, tactile hairline borders, amber hover glow. */
+.product-card,
+.category-card,
+.order-summary,
+.buy-box {
+  border-radius: var(--radius-md);
+  border-color: var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.product-card {
+  transition: transform var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.product-card:hover,
+.category-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px var(--color-primary-soft), 0 0 0 1px var(--color-primary);
+}
+
+.product-card__brand,
+.buy-box__stock,
+.order-summary__line-qty {
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+}
+
+/* Buttons: aether reads as bold, luxury gold/amber accent. */
+.btn {
+  border-radius: var(--radius-md);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.02em;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: 0 2px 10px var(--color-primary-soft);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 4px 16px var(--color-primary-glow);
+  transform: translateY(-1px);
+}
+
+/* Inputs & Form controls */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+select,
+textarea {
+  border-radius: var(--radius-md);
+  border-color: var(--color-border);
+  background-color: var(--color-surface-raised);
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary), 0 0 12px var(--color-primary-soft);
+  outline: none;
+}
+
+/* Badges & Telemetry chips */
+.badge,
+.spec-chip,
+.tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}

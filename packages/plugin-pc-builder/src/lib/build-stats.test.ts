@@ -13,7 +13,19 @@ const fakePayload = (overrides: Record<string, unknown> = {}): Payload => {
     ...overrides,
   }
   return {
-    find: async ({ collection }: { collection: string }) => store[collection] ?? { docs: [] },
+    ...overrides,
+    find: async ({ collection, page = 1, limit = 10 }: { collection: string; page?: number; limit?: number }) => {
+      const allDocs = store[collection]?.docs ?? []
+      const startIndex = (page - 1) * limit
+      const docs = allDocs.slice(startIndex, startIndex + limit)
+      return {
+        docs,
+        totalDocs: allDocs.length,
+        page,
+        limit,
+        hasNextPage: startIndex + limit < allDocs.length,
+      }
+    },
     count: async ({ collection, where }: { collection: string; where?: { status?: { equals?: string } } }) => {
       if (collection === 'orders' && where?.status?.equals) {
         const statuses: Record<string, number> = {
@@ -76,5 +88,25 @@ describe('Build Stats aggregation (entry 14, 07-ux-plan §8)', () => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5 * 60_000 + 1)
     await getBuildStats(payload)
     expect(calls).toBeGreaterThan(afterFirst)
+  })
+
+  it('#72 direct DB aggregation: uses db.execute when available', async () => {
+    const execute = vi.fn(async () => [{ total: 450000 }])
+    const payload = fakePayload({ db: { execute } })
+    const stats = await computeBuildStats(payload)
+    expect(execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        raw: expect.stringContaining("SUM(amount)"),
+      }),
+    )
+    expect(stats.revenueCents).toBe(450000)
+  })
+
+  it('#73 regression: aggregates revenue across 1,100 completed orders without truncation', async () => {
+    const elevenHundredOrders = Array.from({ length: 1100 }, () => order(1000, 'completed'))
+    const payload = fakePayload({ orders: { docs: elevenHundredOrders, totalDocs: 1100 } })
+    const stats = await computeBuildStats(payload)
+    expect(stats.revenueCents).toBe(1100 * 1000)
+    expect(stats.revenueCents).toBe(1_100_000)
   })
 })

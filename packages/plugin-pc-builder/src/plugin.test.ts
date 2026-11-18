@@ -23,3 +23,20 @@ describe('pcBuilderPlugin — builder-settings admin header (entry 110)', () => 
     expect(builderSettingsGlobal(bare).admin?.components?.elements?.Description).toBeUndefined()
   })
 })
+
+describe('pcBuilderPlugin — admin views are host-provided (audit 2026-11-18 M5)', () => {
+  const views = (out: Config) => (out.admin?.components?.views ?? {}) as Record<string, { Component?: string } | undefined>
+
+  it('#759 registers the rule-manager/stats views from the host specifier only — no shadowed duplicate copies', async () => {
+    const out = (await pcBuilderPlugin({
+      ruleManagerViewComponent: './app/x/RuleManagerView#RuleManagerView',
+      buildStatsViewComponent: './app/x/BuildStatsView#BuildStatsView',
+    })(cfg())) as Config
+    expect(views(out).ruleManager?.Component).toBe('./app/x/RuleManagerView#RuleManagerView')
+    expect(views(out).buildStats?.Component).toBe('./app/x/BuildStatsView#BuildStatsView')
+
+    const bare = (await pcBuilderPlugin()(cfg())) as Config
+    expect(views(bare).ruleManager).toBeUndefined()
+    expect(views(bare).buildStats).toBeUndefined()
+  })
+})

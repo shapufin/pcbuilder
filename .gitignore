@@ -57,7 +57,7 @@ RIG_model1/
 shop layout/
 
 # AI Studio admin-GUI mockup (entry 90 design-doc source — read-only reference)
-AdminGUI/
+ADMIN_GUI/
 buildmyrig-studio-admin---modern-cms-&-pc-engine-console/
 
 # Graphify knowledge-graph artifacts + config backups (generated, per-machine)
@@ -72,3 +72,12 @@ graphify-out/
 
 # Stray screenshot captures at repo root (legit assets live nested, e.g. seed-assets/)
 /*.png
+
+# Playwright/MCP probe scripts + audit screenshot artifacts (local evidence)
+apps/web/e2e/.tmp-*
+/screenshots/
+
+# Supplied design mockups — local reference material, not source
+PC_BUILDER_ARCHITECT_DESIGN/
+PC_BUILDER_ATELIER_DESIGN/
+SHOP_THEME_2.tsx

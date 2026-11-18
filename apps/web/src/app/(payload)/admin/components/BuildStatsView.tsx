@@ -13,6 +13,7 @@ import {
   Flame,
   PackageX,
   ExternalLink,
+  Zap,
 } from 'lucide-react'
 import { formatEUR } from '@buildmyrig/lib'
 import {
@@ -112,11 +113,11 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
   const conversionRate =
     stats && stats.builds.total > 0
       ? ((stats.builds.ordered / stats.builds.total) * 100).toFixed(1)
-      : '—'
+      : '-'
 
   const kpiValue = (v: string | number | null | undefined): string | number => {
-    if (loading && !stats) return '…'
-    if (v == null) return '—'
+    if (loading && !stats) return '-'
+    if (v == null) return '-'
     return v
   }
 
@@ -125,7 +126,10 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
       {/* Top Title & Quick Actions Row */}
       <div className="bmr-build-stats__header">
         <div className="bmr-build-stats__info">
-          <h1 className="bmr-build-stats__title">⚡ RIG Studio Build Analytics</h1>
+          <h1 className="bmr-build-stats__title">
+            <Zap className="bmr-icon-md bmr-build-stats__title-icon" />
+            RIG Studio Build Analytics
+          </h1>
           <p className="bmr-build-stats__desc">
             Storefront conversion funnel, inventory telemetry, and configured PC templates
           </p>
@@ -151,7 +155,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
             className="bmr-build-stats__refresh-btn"
           >
             <RefreshCw className={`bmr-icon-sm ${loading ? 'bmr-spin' : ''}`} />
-            <span>{loading ? 'Refreshing…' : 'Refresh Telemetry'}</span>
+            <span>{loading ? 'Refreshing...' : 'Refresh Telemetry'}</span>
           </Button>
         </div>
       </div>
@@ -160,11 +164,19 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
       {error && (
         <div className="bmr-build-stats__banner">
           <AlertBanner
-            severity="warning"
+            severity="critical"
             badge="TELEMETRY"
-            title="Build Analytics Unavailable"
-            description={`The builder stats endpoint could not be reached (${error}) — values show as unavailable rather than estimated figures.`}
+            title={error.includes('401') ? 'Authentication Required' : 'Build Analytics Unavailable'}
+            description={
+              error.includes('401')
+                ? 'Your session may have expired or requires staff role permissions. Re-authenticate or retry connection.'
+                : `The builder stats endpoint could not be reached (${error}) - values show as unavailable rather than estimated figures.`
+            }
             icon={AlertTriangle}
+            action={{
+              label: 'Retry Connection',
+              onClick: () => void refresh(),
+            }}
           />
         </div>
       )}
@@ -176,7 +188,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
             severity="warning"
             badge="INVENTORY RISK"
             title="Critical Hardware Inventory Notice"
-            description={`${stats.lowStock.length} components have low inventory levels (≤ 5 units). Reorder stock to prevent custom rig assembly bottlenecks.`}
+            description={`${stats.lowStock.length} components have low inventory levels (<= 5 units). Reorder stock to prevent custom rig assembly bottlenecks.`}
             icon={AlertTriangle}
             onDismiss={() => setBannerDismissed(true)}
           />
@@ -190,6 +202,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
           value={kpiValue(stats ? formatEUR(stats.revenueCents) : null)}
           subtext="Processing & completed orders"
           icon={TrendingUp}
+          loading={loading && !stats}
         />
 
         <MetricCard
@@ -197,6 +210,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
           value={kpiValue(stats?.orderCount)}
           subtext={stats ? `${processingCount} processing · ${completedCount} fulfilled` : 'Awaiting telemetry'}
           icon={ShoppingBag}
+          loading={loading && !stats}
         />
 
         <MetricCard
@@ -204,6 +218,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
           value={kpiValue(stats?.builds.total)}
           subtext={stats ? `${stats.builds.draft} drafts · ${stats.builds.addedToCart} in cart · ${stats.builds.ordered} ordered` : 'Awaiting telemetry'}
           icon={Cpu}
+          loading={loading && !stats}
         />
 
         <MetricCard
@@ -211,6 +226,7 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
           value={kpiValue(stats?.topTemplates.length)}
           subtext="Catalog architectures"
           icon={Layers}
+          loading={loading && !stats}
         />
       </div>
 
@@ -225,25 +241,25 @@ export const BuildStatsView: React.FC<BuildStatsViewProps> = ({ stats: propStats
         <CardContent>
           <div className="bmr-funnel-stages">
             <div className="bmr-funnel-step">
-              <span className="bmr-funnel-step__count">{stats?.builds.total ?? '—'}</span>
+              <span className="bmr-funnel-step__count">{stats?.builds.total ?? '-'}</span>
               <span className="bmr-funnel-step__label">Configurations Started</span>
               <div className="bmr-funnel-step__bar bmr-funnel-step__bar--1" />
             </div>
 
             <div className="bmr-funnel-step">
-              <span className="bmr-funnel-step__count">{stats?.builds.draft ?? '—'}</span>
+              <span className="bmr-funnel-step__count">{stats?.builds.draft ?? '-'}</span>
               <span className="bmr-funnel-step__label">Saved Drafts</span>
               <div className="bmr-funnel-step__bar bmr-funnel-step__bar--2" />
             </div>
 
             <div className="bmr-funnel-step">
-              <span className="bmr-funnel-step__count">{stats?.builds.addedToCart ?? '—'}</span>
+              <span className="bmr-funnel-step__count">{stats?.builds.addedToCart ?? '-'}</span>
               <span className="bmr-funnel-step__label">Moved to Cart</span>
               <div className="bmr-funnel-step__bar bmr-funnel-step__bar--3" />
             </div>
 
             <div className="bmr-funnel-step">
-              <span className="bmr-funnel-step__count">{stats?.builds.ordered ?? '—'}</span>
+              <span className="bmr-funnel-step__count">{stats?.builds.ordered ?? '-'}</span>
               <span className="bmr-funnel-step__label">Purchased / Ordered</span>
               <div className="bmr-funnel-step__bar bmr-funnel-step__bar--4" />
             </div>

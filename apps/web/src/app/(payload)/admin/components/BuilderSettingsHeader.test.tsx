@@ -1,7 +1,12 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { BuilderSettingsHeader } from './BuilderSettingsHeader.tsx'
+import { BUILDER_DESIGNS } from '@buildmyrig/plugin-pc-builder/designs'
+import {
+  BuilderSettingsHeader,
+  RENDERER_LABELS,
+  RENDERER_OPTIONS_COUNT,
+} from './BuilderSettingsHeader.tsx'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -62,5 +67,15 @@ describe('BuilderSettingsHeader (#560 - #564)', () => {
     expect(html).toContain('Builder Engine')
     expect(html).toContain('PC Builder · Rendering')
     expect(html).toContain('Storefront configurator renderer')
+  })
+
+  it('#685 admin renderer labels are the plugin registry, not a hand-kept copy', () => {
+    // Entry 131: the old hardcoded map silently drifted whenever a design was
+    // added — RENDERER OPTIONS would keep counting the stale map.
+    const expected = Object.fromEntries(
+      Object.entries(BUILDER_DESIGNS).map(([slug, def]) => [slug, def.label]),
+    )
+    expect(RENDERER_LABELS).toEqual(expected)
+    expect(RENDERER_OPTIONS_COUNT).toBe(Object.keys(BUILDER_DESIGNS).length)
   })
 })

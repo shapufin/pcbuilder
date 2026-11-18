@@ -71,6 +71,8 @@ describe('site settings - link resolution', () => {
     expect(resolveSiteSettings(null).adminTheme).toBe('precision-dark')
     expect(resolveSiteSettings({ adminTheme: 'cyber-neon' }).adminTheme).toBe('cyber-neon')
     expect(resolveSiteSettings({ adminTheme: 'light-clean' }).adminTheme).toBe('light-clean')
+    expect(resolveSiteSettings({ adminTheme: 'aether-foundry' }).adminTheme).toBe('aether-foundry')
+    expect(resolveSiteSettings({ adminTheme: 'aether-frost' }).adminTheme).toBe('aether-frost')
     expect(resolveSiteSettings({ adminTheme: 'invalid-theme' }).adminTheme).toBe('precision-dark')
   })
 })

@@ -2,6 +2,29 @@
    besides primitives.css/shell.css (imported by the root layout).
    Token values live in @buildmyrig/ui/tokens.css; never use raw hex here. */
 
+/* Border-box everywhere (audit 2026-10-22, item 672). Without this reset every
+   `width: 100%` block with horizontal padding overflowed its container by the
+   padding — a 32px horizontal scrollbar at 1440 and 62px at 280. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Screen-reader-only heading for pages whose blocks render no <h1>
+   (WCAG 1.3.1 — audit 2026-10-22, item 675). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 html {
   /* Dark scrollbars/scrollbars+native controls on a dark theme. */
   color-scheme: dark;
@@ -100,6 +123,27 @@ summary:focus-visible,
 }
 .skip-link:focus {
   left: var(--space-4);
+}
+
+/* Immersive builder chrome (entry 131) — /builder/configure renders the
+   builder design as the page's ONLY header, exactly like the mockups. The
+   body attribute is set pre-paint by CHROME_BOOT_SCRIPT (lib/chrome.ts), so
+   the site chrome never flashes. --header-h collapses to 0 so sticky
+   offsets (design header, skip link, :target) line up with the new top.
+   The [data-theme-pack] twin beats the pack skins' own --header-h rules. */
+body[data-chrome='immersive'],
+body[data-chrome='immersive'][data-theme-pack] {
+  --header-h: 0px;
+}
+
+body[data-chrome='immersive'] .promo-banner,
+body[data-chrome='immersive'] .site-header,
+body[data-chrome='immersive'] .site-footer,
+body[data-chrome='immersive'] .nx-shell,
+body[data-chrome='immersive'] .nx-footer,
+body[data-chrome='immersive'] .ae-header,
+body[data-chrome='immersive'] .ae-footer {
+  display: none;
 }
 
 /* Motion safety — last so it wins. */

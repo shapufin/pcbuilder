@@ -201,6 +201,14 @@ describe('applyListCellElevation — mock-parity transform (#615 - #617)', () =>
       ],
     }) as never as CollectionConfig
 
+  const cellPath = (col: CollectionConfig, name: string): unknown => {
+    const field = (col.fields as { name?: string; admin?: { components?: { Cell?: unknown } } }[]).find(
+      (f) => f.name === name,
+    )
+    const cell = field?.admin?.components?.Cell
+    return typeof cell === 'object' && cell !== null ? (cell as { path?: string }).path : cell
+  }
+
   it('#615 injects _bmrActions/_bmrId/_bmrStatus ui fields with the parity cells', () => {
     const col = productsCollection()
     applyListCellElevation([col])
@@ -208,15 +216,32 @@ describe('applyListCellElevation — mock-parity transform (#615 - #617)', () =>
     for (const name of ['_bmrActions', '_bmrId', '_bmrStatus']) {
       expect(names).toContain(name)
     }
-    const cellFor = (name: string) =>
-      (
-        (col.fields as { name?: string; admin?: { components?: { Cell?: string } } }[]).find(
-          (f) => f.name === name,
-        ) as { admin?: { components?: { Cell?: string } } }
-      )?.admin?.components?.Cell
-    expect(cellFor('_bmrActions')).toContain('RowActionsCell')
-    expect(cellFor('_bmrId')).toContain('IdCell')
-    expect(cellFor('_bmrStatus')).toContain('StatusPillCell')
+    expect(cellPath(col, '_bmrActions')).toContain('RowActionsCell')
+    expect(cellPath(col, '_bmrId')).toContain('IdCell')
+    expect(cellPath(col, '_bmrStatus')).toContain('StatusPillCell')
+  })
+
+  it('#705 passes the trash capability to the row actions cell as a client prop', () => {
+    // Payload strips `trash` from the client config (`ClientCollectionConfig`),
+    // so the cell cannot look it up at runtime — it has to be handed over at
+    // config time. Without this the row action hard-deletes on a trash-enabled
+    // collection and bypasses recovery.
+    const trashed = { ...productsCollection(), trash: true } as CollectionConfig
+    const plain = productsCollection()
+    applyListCellElevation([trashed, plain])
+
+    const clientPropsFor = (col: CollectionConfig): Record<string, unknown> | undefined => {
+      const field = (col.fields as { name?: string; admin?: { components?: { Cell?: unknown } } }[]).find(
+        (f) => f.name === '_bmrActions',
+      )
+      const cell = field?.admin?.components?.Cell
+      return typeof cell === 'object' && cell !== null
+        ? (cell as { clientProps?: Record<string, unknown> }).clientProps
+        : undefined
+    }
+
+    expect(clientPropsFor(trashed)).toEqual({ trash: true })
+    expect(clientPropsFor(plain)).toEqual({ trash: false })
   })
 
   it('#616 reorders products defaultColumns to the mock layout', () => {

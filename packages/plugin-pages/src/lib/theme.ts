@@ -48,7 +48,7 @@ const DARK_COLORS: ThemeColors = {
   borderStrong: '#d7deed',
   text: '#f2f5fb',
   textMuted: '#93a0bd',
-  primary: '#6468f2',
+  primary: '#5f63ee',
   primaryStrong: '#5550ec',
   primaryHover: '#8a8ef8',
   primaryHoverStrong: '#4a41d6',
@@ -84,8 +84,8 @@ export const LIGHT_COLORS: ThemeColors = {
 const DARK_EXTRAS: Record<string, string> = {
   accent: '#22d3ee',
   scrim: 'rgba(4, 7, 16, 0.72)',
-  'primary-glow': 'rgba(100, 104, 242, 0.4)',
-  'primary-soft': 'rgba(100, 104, 242, 0.14)',
+  'primary-glow': 'rgba(95, 99, 238, 0.4)',
+  'primary-soft': 'rgba(95, 99, 238, 0.14)',
   'warning-soft': 'rgba(251, 191, 36, 0.08)',
   'danger-soft': 'rgba(248, 113, 113, 0.08)',
   'info-soft': 'rgba(56, 189, 248, 0.08)',
@@ -216,6 +216,83 @@ const NEXUS_EXTRAS: Record<string, string> = {
 }
 
 /**
+ * Aether design tokens — high-compute PC hardware engineering house aesthetic
+ * ported from SHOP_THEME_2.tsx. Obsidian surfaces, Amber-400 primary,
+ * telemetry Cyan accents, and 24h thermal certification cues.
+ */
+const AETHER_COLORS: ThemeColors = {
+  bg: '#09090b',
+  surface: '#121215',
+  surfaceRaised: '#18181b',
+  surfaceHover: '#27272a',
+  border: '#27272a',
+  borderStrong: '#3f3f46',
+  text: '#fafafa',
+  textMuted: '#a1a1aa',
+  primary: '#fbbf24',
+  primaryStrong: '#f59e0b',
+  primaryHover: '#fcd34d',
+  primaryHoverStrong: '#d97706',
+  onPrimary: '#09090b',
+  success: '#34d399',
+  successStrong: '#10b981',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#22d3ee',
+}
+
+const AETHER_EXTRAS: Record<string, string> = {
+  accent: '#22d3ee',
+  scrim: 'rgba(5, 5, 7, 0.85)',
+  'primary-glow': 'rgba(251, 191, 36, 0.4)',
+  'primary-soft': 'rgba(251, 191, 36, 0.14)',
+  'warning-soft': 'rgba(251, 191, 36, 0.08)',
+  'danger-soft': 'rgba(248, 113, 113, 0.1)',
+  'info-soft': 'rgba(34, 211, 238, 0.08)',
+  'success-soft': 'rgba(52, 211, 153, 0.1)',
+  focus: '#fbbf24',
+}
+
+/**
+ * Aether Titanium Frost — luxury clean-room / cryo white hardware laboratory
+ * palette. Crisp metallic white backgrounds, brushed titanium surfaces,
+ * amber-gold highlights, precision cyan telemetry accents.
+ */
+const AETHER_FROST_COLORS: ThemeColors = {
+  bg: '#f8fafc',
+  surface: '#ffffff',
+  surfaceRaised: '#f1f5f9',
+  surfaceHover: '#e2e8f0',
+  border: '#e2e8f0',
+  borderStrong: '#cbd5e1',
+  text: '#09090b',
+  textMuted: '#64748b',
+  primary: '#d97706',
+  primaryStrong: '#b45309',
+  primaryHover: '#f59e0b',
+  primaryHoverStrong: '#92400e',
+  // Amber primary needs dark text: white on #d97706 is 3.19:1 (AA fail).
+  onPrimary: '#09090b',
+  success: '#10b981',
+  successStrong: '#059669',
+  warning: '#d97706',
+  danger: '#ef4444',
+  info: '#0284c7',
+}
+
+const AETHER_FROST_EXTRAS: Record<string, string> = {
+  accent: '#0284c7',
+  scrim: 'rgba(15, 23, 42, 0.45)',
+  'primary-glow': 'rgba(217, 119, 6, 0.25)',
+  'primary-soft': 'rgba(217, 119, 6, 0.1)',
+  'warning-soft': 'rgba(217, 119, 6, 0.08)',
+  'danger-soft': 'rgba(239, 68, 68, 0.08)',
+  'info-soft': 'rgba(2, 132, 199, 0.08)',
+  'success-soft': 'rgba(16, 185, 129, 0.08)',
+  focus: '#d97706',
+}
+
+/**
  * Design presets — the admin GUI "theme swap". Each entry is a shipped
  * design: a token set the admin selects in the Theme global. `skin` names an
  * optional CSS overlay in @buildmyrig/ui/skins/ that the root layout injects
@@ -268,6 +345,29 @@ export const THEME_PRESETS = {
     skin: 'nexus.css',
     pack: 'nexus',
   },
+  /**
+   * Aether Engineering — luxury workstation & high-compute PC laboratory theme
+   * ported from SHOP_THEME_2.tsx. Obsidian surfaces, amber accents, telemetry
+   * ticker, hardware megamenu, and 3D product lab.
+   */
+  aether: {
+    label: 'Aether Engineering',
+    colors: AETHER_COLORS,
+    extras: AETHER_EXTRAS,
+    skin: 'aether.css',
+    pack: 'aether',
+  },
+  /**
+   * Aether Titanium Frost — luxury clean-room / cryo white hardware laboratory.
+   * Metallic white surfaces, brushed titanium styling, and crisp cryo cyan accents.
+   */
+  'aether-frost': {
+    label: 'Aether Titanium Frost',
+    colors: AETHER_FROST_COLORS,
+    extras: AETHER_FROST_EXTRAS,
+    skin: 'aether-frost.css',
+    pack: 'aether',
+  },
 } satisfies Record<string, ThemePresetDef>
 
 export type ThemePreset = keyof typeof THEME_PRESETS
@@ -279,7 +379,7 @@ export type ThemePreset = keyof typeof THEME_PRESETS
  * admin's own preset.
  */
 export const altThemePreset = (preset: ThemePreset): ThemePreset =>
-  preset === 'light' ? 'dark' : 'light'
+  preset === 'light' || preset === 'aether-frost' ? 'dark' : 'light'
 
 export const themePresetOptions = (): Array<{ label: string; value: ThemePreset }> =>
   (Object.entries(THEME_PRESETS) as Array<[ThemePreset, ThemePresetDef]>).map(([value, def]) => ({

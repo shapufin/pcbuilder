@@ -50,10 +50,19 @@ const matches = (doc: Doc, where: Record<string, unknown> | undefined): boolean 
   return true
 }
 
-const makePayload = (existing: Doc[] = []) => {
+const makePayload = (
+  existing: Doc[] = [],
+  dbOpts?: {
+    beginTransaction?: ReturnType<typeof vi.fn>
+    commitTransaction?: ReturnType<typeof vi.fn>
+    rollbackTransaction?: ReturnType<typeof vi.fn>
+  },
+) => {
   const created: Doc[] = []
   return {
     created,
+    logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    db: dbOpts ?? {},
     find: vi.fn(async ({ collection, where, limit }: { collection: string; where?: Record<string, unknown>; limit?: number }) => {
       const source =
         collection === 'component-categories'
@@ -197,18 +206,77 @@ describe('rules import endpoint — entry 14 (name-vs-slug resolution)', () => {
     })
   })
 
-  it('#76 requires manager+ role (staff and anonymous are rejected)', async () => {
+  it('#76 requires manager+ role (staff 403 — signed in but forbidden; anonymous 401)', async () => {
     const payload = makePayload()
     const staff = await call({ dryRun: true, rows: [row()] }, payload, ['staff'])
-    expect(staff.status).toBe(401)
+    expect(staff.status).toBe(403)
     const anon = await call({ dryRun: true, rows: [row()] }, payload, [])
     expect(anon.status).toBe(401)
     expect(payload.create).not.toHaveBeenCalled()
+  })
+
+  it('#77 N+1 query elimination: pre-fetches category/component maps instead of querying per row', async () => {
+    const payload = makePayload()
+    // 20 identical rows that would have triggered 40 find calls in the old serial resolveName
+    const rows = Array.from({ length: 20 }, (_, i) =>
+      row({ value: `VAL_${i}` }),
+    )
+    const res = await call({ dryRun: true, rows }, payload)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.entries).toHaveLength(20)
+    // find should only be called for lookups (categories + components) and existing rules check
+    const findCalls = payload.find.mock.calls
+    expect(findCalls.length).toBeLessThanOrEqual(3)
+  })
+
+  it('#78 atomic transactions: rolls back batch when create throws on a row', async () => {
+    const beginTransaction = vi.fn(async () => 'tx-123')
+    const commitTransaction = vi.fn(async () => {})
+    const rollbackTransaction = vi.fn(async () => {})
+    const payload = makePayload([], { beginTransaction, commitTransaction, rollbackTransaction })
+
+    let callCount = 0
+    payload.create.mockImplementation(async ({ data }: { data: Doc }) => {
+      callCount++
+      if (callCount === 2) throw new Error('database constraint failed')
+      const doc = { id: 100 + payload.created.length, ...data }
+      payload.created.push(doc)
+      return doc
+    })
+
+    const rows = [row({ value: 'ROW_1' }), row({ value: 'ROW_2' })]
+    const res = await call({ rows }, payload)
+    expect(res.status).toBe(500)
+    // Audit 2026-11-18 L1: driver messages stay in the server log.
+    expect(JSON.stringify(await res.json())).not.toContain('database constraint failed')
+    expect(beginTransaction).toHaveBeenCalled()
+    expect(rollbackTransaction).toHaveBeenCalledWith('tx-123')
+    expect(commitTransaction).not.toHaveBeenCalled()
   })
 })
 
 const claim = (body: unknown, payload: ReturnType<typeof makePayload>, roles = ['customer']) =>
   builderClaimBuildEndpoint.handler!(makeReq(body, payload, roles))
+
+describe('rules import — lookup-page caps are loud, not silent (audit 2026-10-24)', () => {
+  it('#721 warns when a lookup collection exceeds its page cap', async () => {
+    const payload = makePayload([])
+    payload.find.mockImplementation(async ({ collection, limit }: { collection: string; limit?: number }) => {
+      const docs =
+        collection === 'component-categories'
+          ? categories
+          : collection === 'components'
+            ? components
+            : []
+      // Claim 10k component docs exist while only the page returned.
+      return { docs, totalDocs: collection === 'components' ? 10_001 : docs.length, limit }
+    })
+    const res = await call({ rows: [row()], dryRun: true }, payload)
+    expect(res.status).toBe(200)
+    expect(payload.logger.warn).toHaveBeenCalledWith(expect.stringContaining('cap'))
+  })
+})
 
 describe('claim endpoint — entry 15 (anonymous save -> account)', () => {
   it('#85 anonymous -> 401; invalid body -> 400; unknown shareId -> 404', async () => {
@@ -297,6 +365,7 @@ const templatePayload = (template: Doc | null) => {
       created.push(doc)
       return doc
     }),
+    db: { updateOne: vi.fn(async () => ({})) },
   }
 }
 
@@ -345,6 +414,31 @@ describe('use template endpoint — entry 15 (live probe regressions)', () => {
     expect(payload.created).toHaveLength(0)
     expect(payload.update).not.toHaveBeenCalled()
   })
+
+  it('#719 popularity bumps via atomic $inc — concurrent uses cannot lose counts', async () => {
+    const base = templatePayload({
+      id: 4,
+      name: 'Vanguard',
+      popularity: 41,
+      slots: [{ category: { id: 4 }, component: { id: 31 } }],
+    })
+    const updateOne = vi.fn(async () => ({}))
+    const payload = { ...base, db: { updateOne } }
+    const res = await builderUseTemplateEndpoint.handler!(
+      makeReq({}, payload as never, ['customer'], { id: '4' }),
+    )
+    expect(res.status).toBe(200)
+    expect(updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'build-templates',
+        id: 4,
+        data: { popularity: { $inc: 1 } },
+      }),
+    )
+    // No read-modify-write through the document API — the stale-read pattern
+    // this replaced could silently drop concurrent increments.
+    expect(base.update).not.toHaveBeenCalled()
+  })
 })
 
 describe('save endpoint — audit pass 3 (required/maxSelectable enforced server-side)', () => {
@@ -364,6 +458,19 @@ describe('save endpoint — audit pass 3 (required/maxSelectable enforced server
     )
     expect(res3.status).toBe(422) // '99' is not a category in the fixture
     expect(payload.created).toHaveLength(0)
+  })
+
+  it('#720 slug normalization resolves against the builder index — no per-slot find', async () => {
+    invalidateBuilderIndex()
+    const payload = templatePayload(null)
+    const res = await save({ slots: [{ categoryId: 'os', componentIds: ['31'] }] }, payload)
+    expect(res.status).toBe(200)
+    const categoryFinds = payload.find.mock.calls.filter(
+      ([a]: [{ collection: string }]) => a.collection === 'component-categories',
+    )
+    // One read total — the index build itself. The old code added one
+    // sequential find per non-numeric categoryId.
+    expect(categoryFinds).toHaveLength(1)
   })
 
   it('#196 a build missing a REQUIRED category is refused at save', async () => {
@@ -501,13 +608,15 @@ describe('conflicts endpoint — audit pass 3 (staff-gated per 08-api-surface)',
       makeReq(null, payload, roles, undefined, { componentId: '31' }),
     )
 
-  it('#197 anonymous and customer callers get 401; staff pass through to evaluation', async () => {
+  it('#197 anonymous callers get 401, customers 403; staff pass through to evaluation', async () => {
     const payload = {
       find: vi.fn(async () => ({ docs: [] })),
       logger: { error: vi.fn() },
     }
     expect((await conflicts(payload, [])).status).toBe(401)
-    expect((await conflicts(payload, ['customer'])).status).toBe(401)
+    // Audit 2026-11-18 L1: a signed-in non-staff caller is forbidden (403),
+    // not unauthenticated — 401 makes clients think the session expired.
+    expect((await conflicts(payload, ['customer'])).status).toBe(403)
     const staff = await conflicts(payload, ['staff'])
     expect(staff.status).toBe(200)
   })

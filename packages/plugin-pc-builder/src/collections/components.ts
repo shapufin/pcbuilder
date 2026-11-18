@@ -9,6 +9,24 @@ const FORM_FACTOR_OPTIONS = ['ATX', 'mATX', 'ITX'] as const
 const PCIE_OPTIONS = ['3.0', '4.0', '5.0'] as const
 const STORAGE_INTERFACE_OPTIONS = ['NVMe', 'SATA'] as const
 
+export const disableCompatibilityRulesForComponent = async (
+  payload: { update: (args: any) => Promise<unknown>; logger?: { error: (msg: string) => void } },
+  componentId: string | number,
+) => {
+  return payload.update({
+    collection: 'compatibility-rules',
+    where: {
+      or: [
+        { subjectComponent: { equals: componentId } },
+        { targetComponent: { equals: componentId } },
+      ],
+    },
+    data: {
+      enabled: false,
+    },
+  })
+}
+
 export const Components: CollectionConfig = {
   slug: 'components',
   access: {
@@ -43,6 +61,14 @@ export const Components: CollectionConfig = {
           await clearProductsForComponent(req.payload, doc.id)
         } catch (err) {
           req.payload.logger.error(`components: product link cleanup failed for ${String(doc.id)}: ${String(err)}`)
+        }
+        return doc
+      },
+      async ({ doc, req }) => {
+        try {
+          await disableCompatibilityRulesForComponent(req.payload, doc.id)
+        } catch (err) {
+          req.payload.logger.error(`components: failed to disable compatibility rules for deleted component ${String(doc.id)}: ${String(err)}`)
         }
         return doc
       },

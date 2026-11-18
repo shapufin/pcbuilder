@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isManager, isStaff } from '../lib/access.ts'
+import { invalidatePricingConfig } from '../lib/pricing-config.ts'
 
 /**
  * Static tax-rate table (A19). Prices are VAT-inclusive, so `rate` extracts
@@ -20,6 +21,10 @@ export const TaxRates: CollectionConfig = {
     defaultColumns: ['country', 'rate', 'isDefault', 'enabled'],
     listSearchableFields: ['country'],
     group: 'Store',
+  },
+  hooks: {
+    afterChange: [() => invalidatePricingConfig()],
+    afterDelete: [() => invalidatePricingConfig()],
   },
   fields: [
     {

@@ -69,4 +69,11 @@ describe('RuleSandbox component (#621)', () => {
     expect(html).toContain('Reset to Standard Spec')
     expect(html).toContain('EVALUATED PIPELINE DIAGNOSTICS')
   })
+
+  it('#622 renders skeleton controls and diagnostics while loading builder index', () => {
+    const html = renderToStaticMarkup(<RuleSandbox />)
+    expect(html).toContain('bmr-sandbox')
+    expect(html).toContain('bmr-skeleton')
+    expect(html).toContain('Loading engine telemetry...')
+  })
 })

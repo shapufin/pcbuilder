@@ -44,4 +44,23 @@ describe('resolveBuilderDesign — entry 50', () => {
     ) as { options: { label: string; value: string }[] }
     expect(designField.options).toEqual(builderDesignOptions())
   })
+
+  it('#682 every design declares a palette policy and a storefront description', () => {
+    for (const [slug, def] of Object.entries(BUILDER_DESIGNS)) {
+      expect(def.label, `${slug} label`).toBeTruthy()
+      expect(def.description, `${slug} description`).toBeTruthy()
+      expect(['inherit', 'accent'], `${slug} palette`).toContain(def.palette)
+    }
+  })
+
+  it('#683 classic rides the theme untouched; rig-studio owns the CAD ramp', () => {
+    expect(BUILDER_DESIGNS.classic.palette).toBe('inherit')
+    expect(BUILDER_DESIGNS['rig-studio'].palette).toBe('accent')
+  })
+
+  it('#684 builderDesignOptions stays label/value only (admin select contract)', () => {
+    for (const option of builderDesignOptions()) {
+      expect(Object.keys(option).sort()).toEqual(['label', 'value'])
+    }
+  })
 })

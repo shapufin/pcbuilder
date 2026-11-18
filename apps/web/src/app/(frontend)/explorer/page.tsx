@@ -17,6 +17,9 @@ export default async function ExplorerPage() {
 
   return (
     <main>
+      {/* The Nexus block renders its heading as an h2 — give the route a real
+          level-one heading (audit 2026-10-22, #675). */}
+      {isNexus ? <h1 className="sr-only">Slot explorer</h1> : null}
       {isNexus ? (
         <NexusSlotExplorer
           block={{

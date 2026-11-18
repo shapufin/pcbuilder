@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { BuilderIndex, EngineResult } from '@buildmyrig/lib'
+import type { BuilderIndex, EngineResult, SelectionIssue } from '@buildmyrig/lib'
 import { LivePrice } from './LivePrice'
 import { WarningsPanel } from './WarningsPanel'
 
@@ -15,6 +15,9 @@ interface Props {
   totalCents: number
   canReview: boolean
   missingRequired: Category[]
+  /** validateSelections(current).warnings — the build's warnings, not the
+   *  per-candidate badge dataset (entry 131). */
+  warnings: SelectionIssue[]
   onSlotClick: (index: number) => void
   onRemoveComponent: (categoryId: string, componentId: string) => void
 }
@@ -30,6 +33,7 @@ export function BuildRail({
   totalCents,
   canReview,
   missingRequired,
+  warnings,
   onSlotClick,
   onRemoveComponent,
 }: Props) {
@@ -91,7 +95,7 @@ export function BuildRail({
 
       <div className="power-chip">Recommended PSU ≥ {result.recommendedPsuWatts} W</div>
 
-      <WarningsPanel result={result} />
+      <WarningsPanel warnings={warnings} />
 
       {canReview ? (
         <Link href="/builder/summary" className="btn btn--primary btn--full">

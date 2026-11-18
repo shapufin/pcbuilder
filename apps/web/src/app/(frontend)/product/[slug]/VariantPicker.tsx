@@ -26,19 +26,23 @@ export function VariantPicker({
 }: {
   productId: number | string
   productTitle: string
-  fallbackPriceCents: number
+  fallbackPriceCents: number | null
   compareAtPriceCents?: number | null
   variants: PickerVariant[]
 }) {
   const [index, setIndex] = useState(0)
   const variant = variants[index] ?? variants[0]
+  // `null` means the product has no price yet (not "free") — buying it would
+  // silently fail because the cart drops priceless lines (audit round 2, #711).
   const priceCents = variant?.priceInEUR ?? fallbackPriceCents
+  const hasPrice = typeof priceCents === 'number' && Number.isFinite(priceCents)
   const inStock = variant == null || variant.inventory == null || variant.inventory > 0
   const hasDiscount =
-    typeof compareAtPriceCents === 'number' && compareAtPriceCents > priceCents
-  const discountPercent = hasDiscount
-    ? Math.round(((compareAtPriceCents - priceCents) / compareAtPriceCents) * 100)
-    : 0
+    hasPrice && typeof compareAtPriceCents === 'number' && compareAtPriceCents > priceCents
+  const discountPercent =
+    hasDiscount && typeof compareAtPriceCents === 'number'
+      ? Math.round(((compareAtPriceCents - priceCents) / compareAtPriceCents) * 100)
+      : 0
 
   return (
     <>
@@ -61,7 +65,9 @@ export function VariantPicker({
         </fieldset>
       ) : null}
       <div className="buy-box__price-row">
-        <p className="buy-box__price">{formatEUR(priceCents)}</p>
+        <p className="buy-box__price">
+          {hasPrice ? formatEUR(priceCents) : 'Price on request'}
+        </p>
         {hasDiscount && (
           <div className="buy-box__discount-wrap">
             <span className="buy-box__compare-at">{formatEUR(compareAtPriceCents)}</span>
@@ -76,7 +82,7 @@ export function VariantPicker({
         productId={productId}
         variantId={variant?.id}
         label={productTitle}
-        disabled={!inStock}
+        disabled={!inStock || !hasPrice}
       />
     </>
   )

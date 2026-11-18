@@ -4,10 +4,12 @@ import React, { useSyncExternalStore } from 'react'
 import { Sun, Moon, Zap, Sliders } from 'lucide-react'
 
 const THEMES = [
-  { label: '⚡ Modern Slate (Dark)', value: 'precision-dark', icon: Moon },
-  { label: '☀️ Enterprise SaaS (Light)', value: 'light-clean', icon: Sun },
-  { label: '🌌 Cyber Neon (Tech)', value: 'cyber-neon', icon: Zap },
-  { label: '📦 Classic Payload', value: 'classic-payload', icon: Sliders },
+  { label: 'Modern Slate (Dark)', value: 'precision-dark', icon: Moon },
+  { label: 'Aether Foundry (Luxury Workstation)', value: 'aether-foundry', icon: Zap },
+  { label: 'Aether Frost (Titanium Clean)', value: 'aether-frost', icon: Sun },
+  { label: 'Enterprise SaaS (Light)', value: 'light-clean', icon: Sun },
+  { label: 'Cyber Neon (Tech)', value: 'cyber-neon', icon: Zap },
+  { label: 'Classic Payload', value: 'classic-payload', icon: Sliders },
 ] as const
 
 type AdminTheme = (typeof THEMES)[number]['value']
@@ -26,7 +28,7 @@ const getThemeSnapshot = (): AdminTheme => {
     const stored = localStorage.getItem('bmr_admin_theme') as AdminTheme | null
     const rootTheme = document.documentElement.getAttribute('data-admin-theme') as AdminTheme | null
     const val = stored || rootTheme
-    if (val && ['precision-dark', 'cyber-neon', 'light-clean', 'classic-payload'].includes(val)) {
+    if (val && ['precision-dark', 'aether-foundry', 'aether-frost', 'cyber-neon', 'light-clean', 'classic-payload'].includes(val)) {
       return val
     }
   } catch {}
@@ -41,7 +43,7 @@ export const AdminHeaderActions: React.FC = () => {
   const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value as AdminTheme
     document.documentElement.setAttribute('data-admin-theme', next)
-    document.documentElement.setAttribute('data-theme', next === 'light-clean' ? 'light' : 'dark')
+    document.documentElement.setAttribute('data-theme', next === 'light-clean' || next === 'aether-frost' ? 'light' : 'dark')
     try {
       localStorage.setItem('bmr_admin_theme', next)
     } catch {}

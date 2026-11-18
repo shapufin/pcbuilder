@@ -26,6 +26,10 @@ export const TrustBadgesBlock: Block = {
       name: 'items',
       type: 'array',
       label: 'Trust Badges',
+      labels: {
+        singular: 'Trust Badge',
+        plural: 'Trust Badges',
+      },
       minRows: 1,
       maxRows: 6,
       defaultValue: [

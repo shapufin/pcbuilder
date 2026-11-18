@@ -62,6 +62,12 @@ describe('MegaMenuHeader (#573 - #577)', () => {
     expect(html).toContain('Nexus header flyout')
   })
 
+  it('#582 renders skeleton loaders on KPI cards during loading state', () => {
+    const html = renderToStaticMarkup(<MegaMenuHeader />)
+    expect(html).toContain('bmr-skeleton')
+    expect(html).toContain('bmr-metric-card--loading')
+  })
+
   it('#581 megaMenuStatsFromDoc mirrors resolver: title-less sections dropped, promos need title+url', () => {
     // resolveMegaMenu drops sections without a title and promos missing either
     // title or url — the KPIs must reflect what actually renders (review F2).

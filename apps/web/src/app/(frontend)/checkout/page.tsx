@@ -6,7 +6,15 @@ import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import { track } from '@/lib/analytics'
-import { validateShippingAddress, type ShippingAddressInput } from '@/lib/checkout'
+import {
+  buyerCheck,
+  cartLineTitle,
+  cartTotals,
+  errorMessageFrom,
+  parseStripeReturn,
+  postCartAction,
+  type ShippingAddressInput,
+} from '@/lib/checkout'
 import { Price } from '@/components/ui/Price'
 import { StripePaymentForm } from './StripePaymentForm'
 import { PackagingPicker } from '@/components/PackagingPicker'
@@ -34,19 +42,15 @@ export default function CheckoutPage() {
   // redirect_status to the return URL. Read once lazily; the effect below
   // finalizes the order. The payment already succeeded at Stripe — the
   // webhook settles the money side, so this confirm is idempotent UX only.
-  const [stripeReturn] = useState(() => {
-    if (typeof window === 'undefined') return null
-    const params = new URLSearchParams(window.location.search)
-    const paymentIntentID = params.get('payment_intent')
-    const redirectStatus = params.get('redirect_status')
-    return paymentIntentID && redirectStatus ? { paymentIntentID, redirectStatus } : null
-  })
+  const [stripeReturn] = useState(() =>
+    typeof window === 'undefined' ? null : parseStripeReturn(window.location.search),
+  )
   const returnFailed = stripeReturn != null && stripeReturn.redirectStatus !== 'succeeded'
   const [state, setState] = useState<'idle' | 'initiating' | 'paying' | 'confirming' | 'done' | 'error'>(
     returnFailed ? 'error' : 'idle',
   )
   const [message, setMessage] = useState(
-    returnFailed ? 'Payment was not completed — no charge was made. You can try again.' : '',
+    returnFailed ? 'Payment was not completed. No charge was made, so you can try again.' : '',
   )
   const [email, setEmail] = useState('')
   const [emailInvalid, setEmailInvalid] = useState(false)
@@ -69,26 +73,10 @@ export default function CheckoutPage() {
   // the buyer pick "Card" when it's the only option.
   const method =
     selectedPaymentMethod ?? (paymentMethods?.length === 1 ? paymentMethods[0].name : null)
-  const subtotal = (cart as { subtotal?: number } | undefined)?.subtotal ?? 0
-  // Server-computed totals (audit gaps P2-C3/C4/C5): the cart hook derives
-  // these on every write — they are never trusted from the client.
-  const totals = cart as
-    | { discountTotal?: number; shippingTotal?: number; taxTotal?: number; total?: number; discountCode?: { code?: string } | number | null }
-    | undefined
-  const discountTotal = totals?.discountTotal ?? 0
-  const shippingTotal = totals?.shippingTotal ?? 0
-  const taxTotal = totals?.taxTotal ?? 0
-  const total = totals?.total ?? subtotal
-  const appliedCode = typeof totals?.discountCode === 'object' && totals?.discountCode ? totals.discountCode.code : null
-  // €0 orders (full discount / free-shipping stack): Stripe rejects a €0
-  // PaymentIntent — these confirm server-side via /confirm-free, no card UI.
-  const isFree = total <= 0
-
-  const titleOf = (item: Item): string => {
-    if (item.lineType === 'packaging') return item.lineLabel || 'Packaging'
-    if (item.lineType === 'configured-build') return item.buildName || 'Configured build'
-    return typeof item.product === 'object' && item.product ? (item.product.title ?? 'Product') : 'Product'
-  }
+  // Server-computed totals (audit gaps P2-C3/C4/C5) — never trusted from the
+  // client; €0 carts confirm via /confirm-free (no card UI).
+  const { subtotal, discountTotal, shippingTotal, taxTotal, total, appliedCode, isFree } = cartTotals(cart)
+  const titleOf = cartLineTitle
 
   const elementsOptions = useMemo(
     // Empty clientSecret (3DS return path — the PI is already done at Stripe)
@@ -97,130 +85,80 @@ export default function CheckoutPage() {
     [paymentIntent],
   )
 
-  const startPayment = async () => {
-    if (!method) return
-    // The buyer's email drives guest order identity + confirmation/shipping
-    // emails (orderEmailsAfterChange); the plugin 400s guest confirm without it.
-    const buyerEmail = email.trim()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
-      setEmailInvalid(true)
-      setMessage('Enter a valid email for your order confirmation.')
-      setState('error')
-      return
-    }
-    const checked = validateShippingAddress(address)
+  const fail = (text: string) => {
+    setMessage(text)
+    setState('error')
+  }
+
+  /** Email + address gate shared by the paid and €0 paths. */
+  const checkBuyer = () => {
+    const checked = buyerCheck(email, address)
     if (!checked.ok) {
-      setMessage(checked.errors.join(' '))
-      setState('error')
-      return
+      if (checked.emailInvalid) setEmailInvalid(true)
+      fail(checked.message)
+      return null
     }
+    return checked
+  }
+
+  const startPayment = async () => {
+    if (!method || !cartId) return
+    const buyer = checkBuyer()
+    if (!buyer) return
     setState('initiating')
     try {
       // Pre-flight: confirmOrder catches every error into a generic 500, so
       // the per-slot build reasons have to arrive BEFORE payment starts.
-      const validate = await fetch(`/api/carts/${cartId}/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret: window.localStorage.getItem('cart_secret') ?? undefined }),
-      })
+      const validate = await postCartAction<{ reasons?: string[]; error?: string }>(cartId, 'validate')
       if (!validate.ok) {
-        const data = (await validate.json().catch(() => null)) as
-          | { reasons?: string[]; error?: string }
-          | null
-        const reasons = data?.reasons ?? []
-        setMessage(
-          reasons.length > 0
-            ? reasons.join(' · ')
-            : data?.error || 'Your build is no longer compatible. Update it in the configurator.',
-        )
-        setState('error')
-        return
+        return fail(errorMessageFrom(validate.data, 'Your build is no longer compatible. Update it in the configurator.'))
       }
       // Persist the country first: the adapter charges the server-computed
       // `cart.total`, so the country-specific tax rate must be applied before
       // the PaymentIntent is created.
-      const country = await fetch(`/api/carts/${cartId}/shipping-country`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          country: checked.address.country,
-          secret: window.localStorage.getItem('cart_secret') ?? undefined,
-        }),
+      const country = await postCartAction<{ error?: string }>(cartId, 'shipping-country', {
+        country: buyer.address.country,
       })
-      if (!country.ok) {
-        const data = (await country.json().catch(() => null)) as { error?: string } | null
-        setMessage(data?.error || 'Could not apply the shipping country.')
-        setState('error')
-        return
-      }
+      if (!country.ok) return fail(country.data?.error || 'Could not apply the shipping country.')
       // Show the country-driven total before the buyer pays.
       await refreshCart()
       // The plugin JSONs this into the PaymentIntent metadata; the webhook and
       // the confirmOrder poll both write it onto the order.
       const result = (await initiatePayment(method, {
-        additionalData: { customerEmail: buyerEmail, shippingAddress: checked.address },
+        additionalData: { customerEmail: buyer.email, shippingAddress: buyer.address },
       })) as { clientSecret?: string; paymentIntentID?: string; message?: string }
       if (!result?.clientSecret || !result?.paymentIntentID) {
-        throw new Error('Payment could not be started — missing client secret.')
+        throw new Error('Payment could not be started. Please try again.')
       }
       setPaymentIntent({ clientSecret: result.clientSecret, paymentIntentID: result.paymentIntentID })
       // Survives the 3DS redirect: the return-confirm needs the email for
       // guest order finalization, and React state is rebuilt on return.
-      window.sessionStorage.setItem('checkout_email', buyerEmail)
+      window.sessionStorage.setItem('checkout_email', buyer.email)
       setState('paying')
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Payment failed.')
-      setState('error')
+      fail(err instanceof Error ? err.message : 'Payment failed.')
     }
   }
 
   // €0 carts (full discount / free-shipping stack): Stripe rejects a €0
   // PaymentIntent, so the order is confirmed server-side without a charge.
-  // The endpoint re-verifies the total — nothing here is trusted.
+  // The endpoint re-prices and re-verifies the total — nothing here is trusted.
   const placeFreeOrder = async () => {
     if (!cartId) return
-    const buyerEmail = email.trim()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
-      setEmailInvalid(true)
-      setMessage('Enter a valid email for your order confirmation.')
-      setState('error')
-      return
-    }
-    const checked = validateShippingAddress(address)
-    if (!checked.ok) {
-      setMessage(checked.errors.join(' '))
-      setState('error')
-      return
-    }
+    const buyer = checkBuyer()
+    if (!buyer) return
     setState('confirming')
     try {
-      const res = await fetch(`/api/carts/${cartId}/confirm-free`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          secret: window.localStorage.getItem('cart_secret') ?? undefined,
-          customerEmail: buyerEmail,
-          shippingAddress: checked.address,
-        }),
+      const res = await postCartAction<{ error?: string; reasons?: string[] }>(cartId, 'confirm-free', {
+        customerEmail: buyer.email,
+        shippingAddress: buyer.address,
       })
-      const data = (await res.json().catch(() => null)) as
-        | { error?: string; reasons?: string[] }
-        | null
-      if (!res.ok) {
-        setMessage(
-          data?.reasons && data.reasons.length > 0
-            ? data.reasons.join(' · ')
-            : data?.error || 'Could not place the order.',
-        )
-        setState('error')
-        return
-      }
+      if (!res.ok) return fail(errorMessageFrom(res.data, 'Could not place the order.'))
       setMessage('Order confirmed.')
       track('purchase', { currency: 'EUR' })
       setState('done')
     } catch {
-      setMessage('Could not place the order — try again.')
-      setState('error')
+      fail('Could not place the order. Please try again.')
     }
   }
 
@@ -230,42 +168,46 @@ export default function CheckoutPage() {
     setApplyingDiscount(true)
     setDiscountMsg('')
     try {
-      const res = await fetch(`/api/carts/${cartId}/apply-discount`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, secret: window.localStorage.getItem('cart_secret') ?? undefined }),
-      })
-      const data = (await res.json().catch(() => null)) as { error?: string } | null
+      const res = await postCartAction<{ error?: string }>(cartId, 'apply-discount', { code })
       if (!res.ok) {
-        setDiscountMsg(data?.error || 'This discount code cannot be applied.')
+        setDiscountMsg(res.data?.error || 'This discount code cannot be applied.')
         return
       }
       setDiscountInput('')
       setDiscountMsg('Discount applied.')
       await refreshCart()
     } catch {
-      setDiscountMsg('Could not apply the discount code — try again.')
+      setDiscountMsg('Could not apply the discount code. Please try again.')
     } finally {
       setApplyingDiscount(false)
+    }
+  }
+
+  /** Shared tail of both confirm paths (card + 3DS return). */
+  const confirmWith = async (paymentIntentID: string, customerEmail: string, failCopy: string) => {
+    if (!method) return
+    setState('confirming')
+    try {
+      const confirmed = (await confirmOrder(method, {
+        additionalData: { customerEmail, paymentIntentID },
+      })) as { message?: string }
+      setMessage(confirmed?.message ?? 'Order confirmed.')
+      track('purchase', { currency: 'EUR' })
+      setState('done')
+    } catch (err) {
+      fail(err instanceof Error ? err.message : failCopy)
     }
   }
 
   // Called by StripePaymentForm after confirmPayment succeeds — the PI is
   // 'succeeded', so the adapter's confirmOrder can finalize the order now.
   const finalize = async () => {
-    if (!method || !paymentIntent?.paymentIntentID) return
-    setState('confirming')
-    try {
-      const confirmed = (await confirmOrder(method, {
-        additionalData: { customerEmail: email.trim(), paymentIntentID: paymentIntent.paymentIntentID },
-      })) as { message?: string }
-      setMessage(confirmed?.message ?? 'Order confirmed.')
-      track('purchase', { currency: 'EUR' })
-      setState('done')
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Order confirmation failed — contact support with your receipt.')
-      setState('error')
-    }
+    if (!paymentIntent?.paymentIntentID) return
+    await confirmWith(
+      paymentIntent.paymentIntentID,
+      email.trim(),
+      'Order confirmation failed. Contact support with your receipt.',
+    )
   }
 
   // 3DS/redirect return: the PI already succeeded at Stripe. Run the adapter's
@@ -277,28 +219,14 @@ export default function CheckoutPage() {
     if (handledReturn.current || !method) return
     handledReturn.current = true
     window.history.replaceState(null, '', window.location.pathname)
-    void (async () => {
-      setPaymentIntent({ clientSecret: '', paymentIntentID: stripeReturn.paymentIntentID })
-      setState('confirming')
-      try {
-        const confirmed = (await confirmOrder(method, {
-          additionalData: {
-            paymentIntentID: stripeReturn.paymentIntentID,
-            customerEmail: window.sessionStorage.getItem('checkout_email') ?? '',
-          },
-        })) as { message?: string }
-        setMessage(confirmed?.message ?? 'Order confirmed.')
-        track('purchase', { currency: 'EUR' })
-        setState('done')
-      } catch (err) {
-        setMessage(
-          err instanceof Error
-            ? err.message
-            : 'Payment received — order confirmation is finishing in the background.',
-        )
-        setState('error')
-      }
-    })()
+    setPaymentIntent({ clientSecret: '', paymentIntentID: stripeReturn.paymentIntentID })
+    void confirmWith(
+      stripeReturn.paymentIntentID,
+      window.sessionStorage.getItem('checkout_email') ?? '',
+      'Payment received. Your order confirmation is finishing in the background.',
+    )
+    // confirmWith is recreated each render; the ref guard keeps this once-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stripeReturn, method, confirmOrder])
 
   // Once payment is in flight the empty-cart view must never win:
@@ -312,6 +240,7 @@ export default function CheckoutPage() {
     if (cart === undefined) {
       return (
         <main className="checkout-page checkout-page--narrow">
+          <h1 className="page__title">Checkout</h1>
           <p className="checkout-msg checkout-msg--muted">Loading your cart…</p>
         </main>
       )
@@ -319,6 +248,7 @@ export default function CheckoutPage() {
     if (!cart || items.length === 0) {
       return (
         <main className="checkout-page checkout-page--narrow">
+          <h1 className="page__title">Checkout</h1>
           <div className="empty-state">
             <p className="empty-state__title">Your cart is empty</p>
             <Link href="/shop" className="btn btn--primary">
@@ -340,7 +270,7 @@ export default function CheckoutPage() {
         </p>
       ) : state === 'done' ? (
         <div className="empty-state" role="status">
-          <p className="empty-state__title">✓ {message || 'Order confirmed.'}</p>
+          <p className="empty-state__title">{message || 'Order confirmed.'}</p>
           <Link href="/shop" className="btn btn--primary">
             Continue shopping
           </Link>
@@ -504,7 +434,7 @@ export default function CheckoutPage() {
               </div>
             </div>
             <p className="checkout-msg checkout-msg--muted">
-              Payment method: <strong>{isFree ? 'Free — no payment required' : 'Card (Stripe)'}</strong>
+              Payment method: <strong>{isFree ? 'Free, no payment required' : 'Card (Stripe)'}</strong>
             </p>
           </aside>
         </div>

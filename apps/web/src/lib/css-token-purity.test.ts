@@ -26,6 +26,12 @@ const APP_CSS = [
   path.resolve(__dirname, '../blocks/blocks.css'),
   // Builder design stylesheets — same contract.
   path.resolve(__dirname, '../app/(frontend)/builder/designs/rig-studio/rig-studio.css'),
+  path.resolve(__dirname, '../app/(frontend)/builder/designs/atelier/atelier.css'),
+  // Shared builder dialog chrome (entry 131).
+  path.resolve(__dirname, '../app/(frontend)/builder/kit/modal.css'),
+  // Theme packs (audit 2026-11-18 H4) — same contract.
+  path.resolve(__dirname, '../themes/aether/aether.css'),
+  path.resolve(__dirname, '../themes/aether/aether-utilities.css'),
 ]
 
 describe('app CSS token purity', () => {

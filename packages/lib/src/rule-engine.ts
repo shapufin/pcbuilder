@@ -170,6 +170,22 @@ export interface InterpContext {
 
 // ---------- Operator evaluation ----------
 
+/**
+ * Numeric coercion for `gte`/`lte` (entry 131). Version specs are stored as
+ * strings ('4.0', '5.0'), and the old number-only guard made every such rule
+ * "unsatisfied" — which the `warns` polarity turned into a warning on every
+ * candidate (the PCIe rules warned even on an exact match). Numbers stay
+ * numbers; numeric strings are parsed; anything else is null (no match).
+ */
+const toNumber = (v: unknown): number | null => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
 const satisfiesOperator = (
   operator: RuleOperator,
   actual: unknown,
@@ -180,10 +196,16 @@ const satisfiesOperator = (
       return actual === expected
     case 'in':
       return Array.isArray(expected) && expected.includes(actual as never)
-    case 'gte':
-      return typeof actual === 'number' && typeof expected === 'number' && actual >= expected
-    case 'lte':
-      return typeof actual === 'number' && typeof expected === 'number' && actual <= expected
+    case 'gte': {
+      const a = toNumber(actual)
+      const e = toNumber(expected)
+      return a !== null && e !== null && a >= e
+    }
+    case 'lte': {
+      const a = toNumber(actual)
+      const e = toNumber(expected)
+      return a !== null && e !== null && a <= e
+    }
     case 'contains':
       if (Array.isArray(actual)) {
         if (Array.isArray(expected)) return expected.some((v) => actual.includes(v as never))
@@ -198,10 +220,14 @@ const satisfiesOperator = (
 /**
  * Does the candidate VIOLATE the rule?
  * Conservative (A8): missing spec on the candidate never violates.
+ * Entry 131: a numeric operator on a non-numeric/blank spec is a data mismatch,
+ * not a violation — otherwise every `warns` rule on a text field fires on
+ * everything (the PCIe bug).
  */
 const violates = (rule: RuleDoc, candidate: ComponentSpecEntry): boolean => {
   const actual = candidate.specs[rule.field]
-  if (actual === undefined || actual === null) return false
+  if (actual === undefined || actual === null || actual === '') return false
+  if ((rule.operator === 'gte' || rule.operator === 'lte') && toNumber(actual) === null) return false
   const ok = satisfiesOperator(rule.operator, actual, rule.value)
   if (rule.type === 'excludes') return ok // excludes: violation when condition IS satisfied
   return !ok // requires / supports / warns: violation when condition NOT satisfied
@@ -456,6 +482,60 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
     }
   }
 
+  // ---- validateSelections / evaluate helpers (audit 2026-11-18 R4: the two
+  // entry points were single 60–110-cognitive-complexity functions; each
+  // decision now has a name). Behaviour is unchanged — rule-engine tests pin it.
+
+  /** Does rule `cr` fire from selected entry `a`? Dynamic mirrors fire from their subject category. */
+  const firesFrom = (cr: CompiledRule, a: ComponentSpecEntry): boolean => {
+    const rule = cr.rule
+    if (isDynamicMirror(rule)) return a.categoryId === rule.subject.id
+    const subjectKey = rule.subject.kind === 'component' ? rule.subject.id : `cat:${rule.subject.id}`
+    return (subjectKey === a.id || subjectKey === `cat:${a.categoryId}`) && Boolean(cr.blocked ?? cr.warns)
+  }
+
+  /** Dynamic-mirror pair check: null = no issue, true = blocking, false = warning. */
+  const dynamicPairVerdict = (rule: RuleDoc, a: ComponentSpecEntry, b: ComponentSpecEntry): boolean | null => {
+    const bOnTargetSide = rule.target.kind === 'category' ? b.categoryId === rule.target.id : b.id === rule.target.id
+    if (!bOnTargetSide) return null
+    if (rule.type === 'excludes') {
+      // reverse of "S excludes T.F=V": selected t matching V blocks the S side
+      if (!satisfiesOperator(rule.operator, a.specs[rule.field], rule.value)) return null
+      return rule.severity === 'error'
+    }
+    // A8 — missing spec never violates (mirrors the evaluate-path skip in
+    // dynamicMirrorSets: asymmetric fields like coolerSocketSupport must not
+    // be compared against the other side's undefined spec).
+    const aSpec = a.specs[rule.field]
+    const bSpec = b.specs[rule.field]
+    if (aSpec == null || bSpec == null) return null
+    if (satisfiesOperator(rule.operator, bSpec, aSpec as string | number | (string | number)[])) return null
+    return rule.type !== 'warns' && rule.severity === 'error'
+  }
+
+  /** Pair verdict for any compiled rule: null = no issue, true = blocking, false = warning. */
+  const pairVerdict = (cr: CompiledRule, a: ComponentSpecEntry, b: ComponentSpecEntry): boolean | null => {
+    if (isDynamicMirror(cr.rule)) return dynamicPairVerdict(cr.rule, a, b)
+    const set = cr.blocked ?? cr.warns
+    if (!set || !set.has(b.id)) return null
+    return cr.blocked?.has(b.id) ?? false
+  }
+
+  const subjectEntryFor = (rule: RuleDoc, a: ComponentSpecEntry): ComponentSpecEntry | undefined => {
+    if (isDynamicMirror(rule)) return a
+    return rule.subject.kind === 'component'
+      ? specMap.get(rule.subject.id)
+      : ({ id: rule.subject.id, display: { name: rule.subject.name } } as ComponentSpecEntry)
+  }
+
+  /** PSU shortfall for the current selection, or null when the PSU covers the draw. */
+  const powerShortfall = (selections: Selections) => {
+    const { required, psuEntry } = computePower(selections)
+    const watts = psuEntry?.specs.psuWatts
+    if (!psuEntry || typeof watts !== 'number' || watts >= required) return { required, shortfall: null }
+    return { required, shortfall: { psuEntry, watts } }
+  }
+
   /**
    * Validates a FIXED selection set (a saved build): every selected pair is
    * checked against blocking rules — unlike evaluate(), which only filters
@@ -466,82 +546,94 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
     const errors: SelectionIssue[] = []
     const warnings: SelectionIssue[] = []
     const seen = new Set<string>()
+    const entries = selectedIds.map((id) => specMap.get(id)).filter((e): e is ComponentSpecEntry => Boolean(e))
 
-    for (const aId of selectedIds) {
-      const a = specMap.get(aId)
-      if (!a) continue
-      const aKeys = new Set([aId, `cat:${a.categoryId}`])
+    for (const a of entries) {
       for (const cr of compiled) {
-        const rule = cr.rule
-        const dynamic = isDynamicMirror(rule)
-        const subjectKey = rule.subject.kind === 'component' ? rule.subject.id : `cat:${rule.subject.id}`
-        // dynamic mirrors fire from the selected entry in their subject category
-        if (dynamic ? a.categoryId !== rule.subject.id : !aKeys.has(subjectKey)) continue
-        const set = cr.blocked ?? cr.warns
-        if (!set && !dynamic) continue
-        for (const bId of selectedIds) {
-          if (bId === aId) continue
-          const b = specMap.get(bId)
-          if (!b) continue
-          let isBlocked = false
-          if (dynamic) {
-            const bOnTargetSide =
-              rule.target.kind === 'category' ? b.categoryId === rule.target.id : b.id === rule.target.id
-            if (!bOnTargetSide) continue
-            if (rule.type === 'excludes') {
-              // reverse of "S excludes T.F=V": selected t matching V blocks the S side
-              const cond = satisfiesOperator(rule.operator, a.specs[rule.field], rule.value)
-              if (!cond) continue
-              isBlocked = rule.severity === 'error'
-            } else {
-              // A8 — missing spec never violates (mirrors the evaluate-path skip
-              // in dynamicMirrorSets: asymmetric fields like coolerSocketSupport
-              // must not be compared against the other side's undefined spec).
-              const aSpec = a.specs[rule.field]
-              const bSpec = b.specs[rule.field]
-              if (aSpec == null || bSpec == null) continue
-              const cond = satisfiesOperator(rule.operator, bSpec, aSpec as string | number | (string | number)[])
-              const violates = !cond
-              if (!violates) continue
-              isBlocked = rule.type !== 'warns' && rule.severity === 'error'
-            }
-          } else {
-            if (!set) continue
-            if (!set.has(bId)) continue
-            isBlocked = cr.blocked?.has(bId) ?? false
-          }
-          const pairKey = [aId, bId].sort().join('|')
-          const dedupKey = `${rule.id.replace(/:mirror$/, '')}|${pairKey}`
+        if (!firesFrom(cr, a)) continue
+        for (const b of entries) {
+          if (b.id === a.id) continue
+          const blocking = pairVerdict(cr, a, b)
+          if (blocking === null) continue
+          const ruleId = cr.rule.id.replace(/:mirror$/, '')
+          const dedupKey = `${ruleId}|${[a.id, b.id].sort().join('|')}`
           if (seen.has(dedupKey)) continue
           seen.add(dedupKey)
-          const subjectEntry = dynamic
-            ? a
-            : rule.subject.kind === 'component'
-              ? specMap.get(rule.subject.id)
-              : ({ id: rule.subject.id, display: { name: rule.subject.name } } as ComponentSpecEntry)
           const issue: SelectionIssue = {
-            ruleId: rule.id.replace(/:mirror$/, ''),
-            severity: isBlocked ? 'error' : 'warning',
-            message: interpolate(rule.message, buildInterp(rule, subjectEntry, b)),
+            ruleId,
+            severity: blocking ? 'error' : 'warning',
+            message: interpolate(cr.rule.message, buildInterp(cr.rule, subjectEntryFor(cr.rule, a), b)),
           }
-          if (isBlocked) errors.push(issue)
+          if (blocking) errors.push(issue)
           else warnings.push(issue)
         }
       }
     }
 
-    const { required, psuEntry } = computePower(selections)
-    if (psuEntry && typeof psuEntry.specs.psuWatts === 'number' && psuEntry.specs.psuWatts < required) {
+    const { required, shortfall } = powerShortfall(selections)
+    if (shortfall) {
       const powerIssue: SelectionIssue = {
         ruleId: 'derived-power',
         severity: powerSeverity,
-        message: `PSU insufficient: system draw ~${required} W, PSU rated ${psuEntry.specs.psuWatts} W — pick >= ${required} W`,
+        message: `PSU insufficient: system draw ~${required} W, PSU rated ${shortfall.watts} W — pick >= ${required} W`,
       }
       if (powerSeverity === 'error') errors.push(powerIssue)
       else warnings.push(powerIssue)
     }
 
     return { errors, warnings }
+  }
+
+  /** evaluate(): candidates hidden by an active blocking rule (first rule wins). */
+  const categoryExclusions = (
+    relevant: CompiledRule[],
+    candidates: ComponentSpecEntry[],
+    selections: Selections,
+  ): Map<string, CompiledRule> => {
+    const excludedBy = new Map<string, CompiledRule>()
+    for (const cr of relevant) {
+      const blocked = isDynamicMirror(cr.rule) ? dynamicMirrorSets(cr, candidates, selections).blocked : cr.blocked
+      if (!blocked) continue
+      for (const id of blocked) if (!excludedBy.has(id)) excludedBy.set(id, cr)
+    }
+    return excludedBy
+  }
+
+  /**
+   * evaluate(): warns-type rules surface on ALL candidates (card badges);
+   * warning/info-severity blocking rules surface only on live selected combos.
+   */
+  const categoryWarnings = (
+    relevant: CompiledRule[],
+    candidates: ComponentSpecEntry[],
+    selections: Selections,
+    selectedInCategory: string[],
+    selectedIds: string[],
+  ): Warning[] => {
+    const out: Warning[] = []
+    for (const cr of relevant) {
+      const dyn = isDynamicMirror(cr.rule) ? dynamicMirrorSets(cr, candidates, selections) : null
+      const warns = dyn ? dyn.warns : cr.warns
+      if (!warns) continue
+      const severity: 'warning' | 'info' =
+        cr.rule.type === 'warns' ? 'warning' : cr.rule.severity === 'error' ? 'warning' : cr.rule.severity
+      const flaggedIds = cr.rule.type === 'warns' ? Array.from(warns) : selectedInCategory.filter((id) => warns.has(id))
+      for (const candidateId of flaggedIds) {
+        const candidate = specMap.get(candidateId)
+        if (!candidate) continue
+        const subjectEntry = selectedIds
+          .map((id) => specMap.get(id))
+          .find((e): e is ComponentSpecEntry => Boolean(e) && e!.id !== candidateId)
+        out.push({
+          componentIdA: subjectEntry?.id ?? cr.rule.subject.id,
+          componentIdB: candidateId,
+          ruleId: cr.rule.id,
+          severity,
+          message: interpolate(cr.rule.message, buildInterp(cr.rule, subjectEntry, candidate)),
+        })
+      }
+    }
+    return out
   }
 
   const evaluate = (selections: Selections, options: EvaluationOptions = {}): EngineResult => {
@@ -554,18 +646,7 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
       const selectedInCategory = selections[category.id] ?? []
       const candidates = byCategory.get(category.id) ?? []
       const relevant = rulesFor(subjectKeys, category.id)
-
-      // Exclusions via precomputed blocked sets (dynamic mirrors computed per selection)
-      const excludedBy = new Map<string, CompiledRule>()
-      for (const cr of relevant) {
-        const blocked = isDynamicMirror(cr.rule)
-          ? dynamicMirrorSets(cr, candidates, selections).blocked
-          : cr.blocked
-        if (!blocked) continue
-        for (const id of blocked) {
-          if (!excludedBy.has(id)) excludedBy.set(id, cr)
-        }
-      }
+      const excludedBy = categoryExclusions(relevant, candidates, selections)
 
       const excluded: ExcludedComponent[] = []
       const validComponentIds: string[] = []
@@ -577,56 +658,29 @@ export const createRuleEngine = (index: BuilderIndex): RuleEngine => {
             componentId: candidate.id,
             ruleId: cr.rule.id,
             severity: 'error',
-            message: interpolate(
-              cr.rule.message,
-              buildInterp(cr.rule, specMap.get(selectedIds[0]), candidate),
-            ),
+            message: interpolate(cr.rule.message, buildInterp(cr.rule, specMap.get(selectedIds[0]), candidate)),
           })
         } else {
           validComponentIds.push(candidate.id)
         }
       }
 
-      // Warnings: warns-type rules surface on ALL candidates (card badges);
-      // warning/info-severity blocking rules surface only on live selected combos.
-      for (const cr of relevant) {
-        const dyn = isDynamicMirror(cr.rule) ? dynamicMirrorSets(cr, candidates, selections) : null
-        const warns = dyn ? dyn.warns : cr.warns
-        if (!warns) continue
-        const severity: 'warning' | 'info' =
-          cr.rule.type === 'warns' ? 'warning' : cr.rule.severity === 'error' ? 'warning' : cr.rule.severity
-        const flaggedIds = cr.rule.type === 'warns' ? Array.from(warns) : selectedInCategory.filter((id) => warns!.has(id))
-        for (const candidateId of flaggedIds) {
-          const candidate = specMap.get(candidateId)
-          if (!candidate) continue
-          const subjectEntry = selectedIds
-            .map((id) => specMap.get(id))
-            .find((e): e is ComponentSpecEntry => Boolean(e) && e!.id !== candidateId)
-          warnings.push({
-            componentIdA: subjectEntry?.id ?? cr.rule.subject.id,
-            componentIdB: candidateId,
-            ruleId: cr.rule.id,
-            severity,
-            message: interpolate(cr.rule.message, buildInterp(cr.rule, subjectEntry, candidate)),
-          })
-        }
-      }
-
+      warnings.push(...categoryWarnings(relevant, candidates, selections, selectedInCategory, selectedIds))
       categories.push({ categoryId: category.id, validComponentIds, excluded })
     }
 
-    // Power rule
-    const { required, psuEntry } = computePower(selections)
-    const powerWarnings: Warning[] = []
-    if (psuEntry && typeof psuEntry.specs.psuWatts === 'number' && psuEntry.specs.psuWatts < required) {
-      powerWarnings.push({
-        componentIdA: psuEntry.id,
-        componentIdB: null,
-        ruleId: 'derived-power',
-        severity: powerSeverity,
-        message: `PSU insufficient: system draw ~${required} W, PSU rated ${psuEntry.specs.psuWatts} W - pick >= ${required} W`,
-      })
-    }
+    const { required, shortfall } = powerShortfall(selections)
+    const powerWarnings: Warning[] = shortfall
+      ? [
+          {
+            componentIdA: shortfall.psuEntry.id,
+            componentIdB: null,
+            ruleId: 'derived-power',
+            severity: powerSeverity,
+            message: `PSU insufficient: system draw ~${required} W, PSU rated ${shortfall.watts} W - pick >= ${required} W`,
+          },
+        ]
+      : []
 
     return { categories, warnings, recommendedPsuWatts: required, powerWarnings }
   }

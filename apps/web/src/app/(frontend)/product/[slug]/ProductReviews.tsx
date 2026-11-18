@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { Check, Star } from 'lucide-react'
 
 export interface ReviewItem {
   id: number | string
@@ -30,7 +31,10 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
   const [submitStatus, setSubmitStatus] = useState<{ success?: boolean; message?: string } | null>(null)
 
   const count = reviews.length
-  const avgRating = count > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / count).toFixed(1) : '5.0'
+  // No approved reviews = no score. A 5.0 fallback advertised a rating nobody gave
+  // (audit 2026-10-22, #662) — the em dash renders as "unrated" and keeps the
+  // stars row empty (Number('—') is NaN, so nothing is filled).
+  const avgRating = count > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / count).toFixed(1) : '—'
 
   const ratingCounts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
   reviews.forEach((r) => {
@@ -99,7 +103,7 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
           onClick={() => setShowForm((prev) => !prev)}
           className="btn btn--secondary pdp-reviews__write-btn"
         >
-          {showForm ? 'Cancel Review' : '★ Write a Review'}
+          {showForm ? 'Cancel Review' : <><Star size={14} aria-hidden /> Write a Review</>}
         </button>
       </div>
 
@@ -124,7 +128,7 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                 >
-                  ★
+                  <Star size={18} aria-hidden />
                 </button>
               ))}
               <span className="pdp-reviews__star-label">
@@ -204,6 +208,8 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
 
           {submitStatus && (
             <div
+              role="status"
+              aria-live="polite"
               className={`pdp-reviews__message ${
                 submitStatus.success ? 'pdp-reviews__message--success' : 'pdp-reviews__message--error'
               }`}
@@ -228,12 +234,12 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
         <div className="pdp-reviews__score-box">
           <span className="pdp-reviews__big-score">{avgRating}</span>
           <div className="pdp-reviews__stars-row">
-            {'★★★★★'.split('').map((s, i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <span
                 key={i}
-                className={i < Math.round(Number(avgRating)) ? 'pdp-reviews__star--filled' : 'pdp-reviews__star--empty'}
+                className={i <= Math.round(Number(avgRating)) ? 'pdp-reviews__star--filled' : 'pdp-reviews__star--empty'}
               >
-                ★
+                <Star size={16} aria-hidden fill={i <= Math.round(Number(avgRating)) ? 'currentColor' : 'none'} />
               </span>
             ))}
           </div>
@@ -246,7 +252,7 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
             const pct = count > 0 ? Math.round((cnt / count) * 100) : 0
             return (
               <div key={s} className="pdp-reviews__bar-row">
-                <span className="pdp-reviews__bar-label">{s} ★</span>
+                <span className="pdp-reviews__bar-label">{s} <Star size={10} aria-hidden /></span>
                 <div className="pdp-reviews__bar-track">
                   <div className="pdp-reviews__bar-fill" style={{ width: `${pct}%` }} />
                 </div>
@@ -272,7 +278,7 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
                     <span className="pdp-reviews__item-author">{r.authorName}</span>
                     {r.isVerifiedBuyer ? (
                       <span className="pdp-reviews__verified-badge">
-                        ✓ Verified Buyer
+                        <Check size={12} aria-hidden /> Verified Buyer
                       </span>
                     ) : null}
                   </div>
@@ -292,7 +298,7 @@ export function ProductReviews({ productId, productTitle, reviews }: ProductRevi
                     key={st}
                     className={st <= r.rating ? 'pdp-reviews__star--filled' : 'pdp-reviews__star--empty'}
                   >
-                    ★
+                    <Star size={14} aria-hidden fill={st <= r.rating ? 'currentColor' : 'none'} />
                   </span>
                 ))}
               </div>

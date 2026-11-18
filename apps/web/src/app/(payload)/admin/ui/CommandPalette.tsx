@@ -31,10 +31,12 @@ import {
   Sun,
   Zap,
   Sliders,
+  Snowflake,
   X,
   ArrowRight,
   CreditCard,
 } from 'lucide-react'
+import { applyAdminTheme } from '../components/adminTheme.ts'
 
 export interface CommandAction {
   id: string
@@ -44,17 +46,6 @@ export interface CommandAction {
   keywords?: string[]
   href?: string
   run?: () => void
-}
-
-function applyAdminTheme(next: 'precision-dark' | 'light-clean' | 'cyber-neon' | 'classic-payload') {
-  if (typeof document === 'undefined') return
-  document.documentElement.setAttribute('data-admin-theme', next)
-  document.documentElement.setAttribute('data-theme', next === 'light-clean' ? 'light' : 'dark')
-  try {
-    localStorage.setItem('bmr_admin_theme', next)
-  } catch {}
-  document.cookie = `bmr_admin_theme=${next}; path=/; max-age=31536000; SameSite=Lax`
-  window.dispatchEvent(new CustomEvent('bmr-admin-theme-change', { detail: next }))
 }
 
 export interface CommandPaletteProps {
@@ -181,6 +172,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: Moon,
         keywords: ['dark mode', 'precision dark'],
         run: () => applyAdminTheme('precision-dark'),
+      },
+      {
+        id: 'theme-aether-foundry',
+        label: 'Theme: Aether Foundry (Luxury Workstation)',
+        category: 'Actions',
+        icon: Flame,
+        keywords: ['workstation', 'luxury', 'aether foundry', 'gold'],
+        run: () => applyAdminTheme('aether-foundry'),
+      },
+      {
+        id: 'theme-aether-frost',
+        label: 'Theme: Aether Frost (Titanium Clean)',
+        category: 'Actions',
+        icon: Snowflake,
+        keywords: ['titanium', 'frost', 'clean', 'white', 'cryo'],
+        run: () => applyAdminTheme('aether-frost'),
       },
       {
         id: 'theme-light',

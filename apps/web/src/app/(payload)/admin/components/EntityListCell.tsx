@@ -59,6 +59,17 @@ const thumbnailFor = (rowData: Record<string, unknown>): string | undefined => {
  * collection configures `formatDocURL`), `viewType === 'trash'` links into
  * `/trash`, and `onClick` wins over linking (row-select drawers).
  */
+const formatRuleFallback = (doc: Record<string, unknown>): string => {
+  const parts = [
+    typeof doc.subjectType === 'string' ? doc.subjectType : 'rule',
+    typeof doc.type === 'string' ? doc.type : '',
+    typeof doc.targetType === 'string' ? doc.targetType : '',
+  ].filter(Boolean)
+  const detail = doc.field ? `(${String(doc.field)}${doc.value != null && doc.value !== '' ? `: ${String(doc.value)}` : ''})` : ''
+  const summary = `${parts.join(' ')} ${detail}`.trim()
+  return summary || (doc.id != null ? `Rule #${String(doc.id)}` : 'Rule')
+}
+
 export const EntityListCell = ({
   cellData,
   collectionSlug,
@@ -68,8 +79,13 @@ export const EntityListCell = ({
   rowData,
   viewType,
 }: DefaultCellComponentProps): React.JSX.Element => {
-  const title = typeof cellData === 'string' && cellData !== '' ? cellData : 'Untitled'
   const data = (rowData as Record<string, unknown>) ?? {}
+  const rawTitle =
+    typeof cellData === 'string' && cellData.trim() !== '' && cellData !== '<No Title>'
+      ? cellData
+      : null
+  const title =
+    rawTitle ?? (collectionSlug === 'compatibility-rules' ? formatRuleFallback(data) : 'Untitled')
   const thumb = thumbnailFor(data)
   const cell = (
     <TableEntityCell

@@ -12,6 +12,12 @@ import { NexusCategoryMatrixBlock } from './nexus-category-matrix.ts'
 import { NexusHeroBlock } from './nexus-hero.ts'
 import { NexusProductRailBlock } from './nexus-product-rail.ts'
 import { NexusSlotExplorerBlock } from './nexus-slot-explorer.ts'
+import { AetherHeroBlock } from './aether-hero.ts'
+import { AetherProductLabBlock } from './aether-product-lab.ts'
+import { AetherLookbookBlock } from './aether-lookbook.ts'
+import { AetherTelemetryGridBlock } from './aether-telemetry-grid.ts'
+import { aetherCalculatorBlock } from './aether-calculator.ts'
+import { aetherLoopVisualizerBlock } from './aether-loop-visualizer.ts'
 import { ProductGridBlock } from './product-grid.ts'
 import { RichTextBlock } from './rich-text.ts'
 import { SectionBlock } from './section.ts'
@@ -45,6 +51,12 @@ export { NexusCategoryMatrixBlock } from './nexus-category-matrix.ts'
 export { NexusHeroBlock } from './nexus-hero.ts'
 export { NexusProductRailBlock } from './nexus-product-rail.ts'
 export { NexusSlotExplorerBlock } from './nexus-slot-explorer.ts'
+export { AetherHeroBlock } from './aether-hero.ts'
+export { AetherProductLabBlock } from './aether-product-lab.ts'
+export { AetherLookbookBlock } from './aether-lookbook.ts'
+export { AetherTelemetryGridBlock } from './aether-telemetry-grid.ts'
+export { aetherCalculatorBlock } from './aether-calculator.ts'
+export { aetherLoopVisualizerBlock } from './aether-loop-visualizer.ts'
 export { ProductGridBlock } from './product-grid.ts'
 export { RichTextBlock, richTextFeatures } from './rich-text.ts'
 export { SectionBlock } from './section.ts'
@@ -75,6 +87,12 @@ export const pageBlocks: Block[] = [
   NexusCategoryMatrixBlock,
   NexusProductRailBlock,
   NexusSlotExplorerBlock,
+  AetherHeroBlock,
+  AetherProductLabBlock,
+  AetherLookbookBlock,
+  AetherTelemetryGridBlock,
+  aetherCalculatorBlock,
+  aetherLoopVisualizerBlock,
   ColumnsBlock,
   TrustBadgesBlock,
   BannerCountdownBlock,

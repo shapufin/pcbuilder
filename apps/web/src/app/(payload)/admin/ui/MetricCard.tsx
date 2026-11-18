@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { clsx } from 'clsx'
 import { ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react'
+import { Skeleton } from './Skeleton'
 
 export interface MetricCardProps {
   label: string
@@ -14,6 +15,7 @@ export interface MetricCardProps {
   icon?: React.ComponentType<{ className?: string; size?: number }>
   href?: string
   className?: string
+  loading?: boolean
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -24,9 +26,18 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   icon: Icon,
   href,
   className,
+  loading = false,
 }) => {
   const content = (
-    <div className={clsx('bmr-metric-card', href && 'bmr-metric-card--interactive', className)}>
+    <div
+      className={clsx(
+        'bmr-metric-card',
+        href && 'bmr-metric-card--interactive',
+        loading && 'bmr-metric-card--loading',
+        className,
+      )}
+      aria-busy={loading ? 'true' : undefined}
+    >
       <div className="bmr-metric-card__header">
         <span className="bmr-metric-card__label">{label}</span>
         {Icon && (
@@ -37,8 +48,16 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       <div className="bmr-metric-card__body">
-        <div className="bmr-metric-card__value">{value}</div>
-        {trend && (
+        <div className="bmr-metric-card__value">
+          {loading ? (
+            <Skeleton width={110} height={28}>
+              <span className="sr-only">…</span>
+            </Skeleton>
+          ) : (
+            value
+          )}
+        </div>
+        {!loading && trend && (
           <div className={clsx('bmr-metric-card__trend', `bmr-metric-card__trend--${trend.direction}`)}>
             {trend.direction === 'up' && <ArrowUpRight size={14} className="bmr-metric-card__trend-arrow" />}
             {trend.direction === 'down' && <ArrowDownRight size={14} className="bmr-metric-card__trend-arrow" />}
@@ -47,10 +66,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         )}
       </div>
 
-      {(subtext || href) && (
+      {(subtext || href || loading) && (
         <div className="bmr-metric-card__footer">
-          {subtext && <span className="bmr-metric-card__subtext">{subtext}</span>}
-          {href && (
+          {loading ? (
+            <Skeleton width={140} height={14} />
+          ) : subtext ? (
+            <span className="bmr-metric-card__subtext">{subtext}</span>
+          ) : null}
+          {!loading && href && (
             <span className="bmr-metric-card__arrow">
               <ArrowRight size={14} />
             </span>
@@ -60,7 +83,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     </div>
   )
 
-  if (href) {
+  if (href && !loading) {
     return (
       <Link href={href} className="bmr-metric-card-link">
         {content}

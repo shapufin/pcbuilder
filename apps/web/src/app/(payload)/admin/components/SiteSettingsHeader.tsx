@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   Navigation,
   PanelBottom,
@@ -12,6 +11,7 @@ import {
   Store,
 } from 'lucide-react'
 import { MetricCard, AlertBanner, Button } from '../ui'
+import { ADMIN_THEME_IDS, ADMIN_THEME_LABELS } from './adminTheme.ts'
 
 export interface SiteSettingsTelemetryStats {
   navLinksCount: number
@@ -26,12 +26,8 @@ interface SiteSettingsHeaderProps {
   description?: unknown
 }
 
-const ADMIN_THEME_LABELS: Record<string, string> = {
-  'precision-dark': 'Precision Dark',
-  'cyber-neon': 'Cyber Neon',
-  'light-clean': 'Light Clean',
-  'classic-payload': 'Classic Payload',
-}
+// Re-exported for existing callers (CommandPalette-era imports + tests).
+export { ADMIN_THEMES_CATALOG, applyAdminTheme, selectAdminTheme } from './adminTheme.ts'
 
 const DEFAULT_STATS: SiteSettingsTelemetryStats = {
   navLinksCount: 2,
@@ -40,11 +36,36 @@ const DEFAULT_STATS: SiteSettingsTelemetryStats = {
   adminThemeLabel: 'Precision Dark',
 }
 
+const subscribeTheme = (cb: () => void) => {
+  window.addEventListener('storage', cb)
+  window.addEventListener('bmr-admin-theme-change', cb)
+  return () => {
+    window.removeEventListener('storage', cb)
+    window.removeEventListener('bmr-admin-theme-change', cb)
+  }
+}
+
+const getThemeSnapshot = (): string => {
+  try {
+    const stored = localStorage.getItem('bmr_admin_theme')
+    const rootTheme = document.documentElement.getAttribute('data-admin-theme')
+    const val = stored || rootTheme
+    if (val && ADMIN_THEME_IDS.includes(val)) {
+      return val
+    }
+  } catch {}
+  return 'precision-dark'
+}
+
+const getThemeServerSnapshot = (): string => 'precision-dark'
+
 export const SiteSettingsHeader: React.FC<SiteSettingsHeaderProps> = ({ stats: propStats }) => {
   const [fetchedStats, setFetchedStats] = useState<SiteSettingsTelemetryStats | null>(null)
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  const activeTheme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeServerSnapshot)
 
   const stats = propStats || fetchedStats || DEFAULT_STATS
+  const effectiveTheme = activeTheme
 
   useEffect(() => {
     if (propStats) return
@@ -87,26 +108,37 @@ export const SiteSettingsHeader: React.FC<SiteSettingsHeaderProps> = ({ stats: p
         </div>
 
         <div className="bmr-collection-header__actions">
-          <Link href="/admin/globals/theme">
-            <Button variant="outline" size="sm" aria-label="Open Theme Global">
-              <Palette className="bmr-btn-icon" />
-              Theme ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/globals/theme"
+            aria-label="Open Theme Global"
+          >
+            <Palette className="bmr-btn-icon" />
+            <span>Theme ↗</span>
+          </Button>
 
-          <Link href="/admin/globals/mega-menu">
-            <Button variant="outline" size="sm" aria-label="Open Mega Menu Global">
-              <Menu className="bmr-btn-icon" />
-              Mega Menu ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/globals/mega-menu"
+            aria-label="Open Mega Menu Global"
+          >
+            <Menu className="bmr-btn-icon" />
+            <span>Mega Menu ↗</span>
+          </Button>
 
-          <Link href="/" target="_blank" rel="noopener noreferrer">
-            <Button variant="primary" size="sm" aria-label="Open Storefront">
-              <Store className="bmr-btn-icon" />
-              Storefront ↗
-            </Button>
-          </Link>
+          <Button
+            variant="primary"
+            size="sm"
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Storefront"
+          >
+            <Store className="bmr-btn-icon" />
+            <span>Storefront ↗</span>
+          </Button>
         </div>
       </div>
 
@@ -152,7 +184,11 @@ export const SiteSettingsHeader: React.FC<SiteSettingsHeaderProps> = ({ stats: p
         />
         <MetricCard
           label="ADMIN SKIN"
-          value={stats.adminThemeLabel}
+          value={
+            propStats
+              ? propStats.adminThemeLabel
+              : ADMIN_THEME_LABELS[effectiveTheme] || stats.adminThemeLabel
+          }
           subtext="back-office visual preset"
           trend={{ direction: 'neutral', label: 'skin' }}
           icon={MonitorCog}

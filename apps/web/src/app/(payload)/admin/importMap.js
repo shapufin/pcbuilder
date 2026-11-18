@@ -15,6 +15,7 @@ import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloa
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { SlugField as SlugField_92a11e4902c027b3e27a617ef08ad6b4 } from '../../../app/(payload)/admin/components/SlugField'
 import { PriceListCell as PriceListCell_28f6c8bb10f89d70035abd6ed2bfca24 } from '../../../app/(payload)/admin/components/PriceListCell'
+import { ProductMarginPanel as ProductMarginPanel_f559d4f52da4018b3f641b82e8dda611 } from '../../../app/(payload)/admin/components/ProductMarginPanel'
 import { StockCell as StockCell_1f889b01007a8a1ee1aed086343fd669 } from '../../../app/(payload)/admin/components/StockCell'
 import { ProductSpecFields as ProductSpecFields_9e5a1a759aafc2056142aa2ce2da5e78 } from '../../../app/(payload)/admin/components/ProductSpecFields'
 import { BuilderRulesTabField as BuilderRulesTabField_0f3162e890b9b5def89433c0001736b6 } from '../../../app/(payload)/admin/components/BuilderRulesTabField'
@@ -52,7 +53,15 @@ import { ConflictsField as ConflictsField_1bd77adaa65caae8a5a9ede1e03f3bc6 } fro
 import { ComponentsListHeader as ComponentsListHeader_97d15032096c05c194b7743060a81dc8 } from '../../../app/(payload)/admin/components/ComponentsListHeader'
 import { TemplatesListHeader as TemplatesListHeader_0c9df5ff7ce152b5432bbabd8a63c405 } from '../../../app/(payload)/admin/components/TemplatesListHeader'
 import { ConfiguredBuildsListHeader as ConfiguredBuildsListHeader_f1fe5d4935375ccb1ad3d7971b531a04 } from '../../../app/(payload)/admin/components/ConfiguredBuildsListHeader'
+import { QueryPresetsAccessCell as QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsWhereCell as QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsWhereField as QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsColumnsCell as QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsColumnField as QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsGroupByCell as QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsGroupByField as QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { BuilderSettingsHeader as BuilderSettingsHeader_8b13cb9b0b6c9d6cca7049e13aa5246a } from '../../../app/(payload)/admin/components/BuilderSettingsHeader'
+import { AdminThemeCards as AdminThemeCards_d12898360327c695c0d93d345de36e15 } from '../../../app/(payload)/admin/components/AdminThemeCards'
 import { SiteSettingsHeader as SiteSettingsHeader_bfcd567c971b954e5de138bcffbe599f } from '../../../app/(payload)/admin/components/SiteSettingsHeader'
 import { ThemeHeader as ThemeHeader_bfedb030ac5f01c35b7ed24b66e8873a } from '../../../app/(payload)/admin/components/ThemeHeader'
 import { MegaMenuPreview as MegaMenuPreview_73c1aab382157e7485ba8a033e282d0c } from '../../../../../../packages/plugin-pages/src/admin/MegaMenuPreview'
@@ -92,6 +101,7 @@ export const importMap = {
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,
   "./app/(payload)/admin/components/SlugField#SlugField": SlugField_92a11e4902c027b3e27a617ef08ad6b4,
   "./app/(payload)/admin/components/PriceListCell#PriceListCell": PriceListCell_28f6c8bb10f89d70035abd6ed2bfca24,
+  "./app/(payload)/admin/components/ProductMarginPanel#ProductMarginPanel": ProductMarginPanel_f559d4f52da4018b3f641b82e8dda611,
   "./app/(payload)/admin/components/StockCell#StockCell": StockCell_1f889b01007a8a1ee1aed086343fd669,
   "./app/(payload)/admin/components/ProductSpecFields#ProductSpecFields": ProductSpecFields_9e5a1a759aafc2056142aa2ce2da5e78,
   "./app/(payload)/admin/components/BuilderRulesTabField#BuilderRulesTabField": BuilderRulesTabField_0f3162e890b9b5def89433c0001736b6,
@@ -129,7 +139,15 @@ export const importMap = {
   "./app/(payload)/admin/components/ComponentsListHeader#ComponentsListHeader": ComponentsListHeader_97d15032096c05c194b7743060a81dc8,
   "./app/(payload)/admin/components/TemplatesListHeader#TemplatesListHeader": TemplatesListHeader_0c9df5ff7ce152b5432bbabd8a63c405,
   "./app/(payload)/admin/components/ConfiguredBuildsListHeader#ConfiguredBuildsListHeader": ConfiguredBuildsListHeader_f1fe5d4935375ccb1ad3d7971b531a04,
+  "@payloadcms/next/client#QueryPresetsAccessCell": QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsWhereCell": QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsWhereField": QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsColumnsCell": QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsColumnField": QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsGroupByCell": QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsGroupByField": QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40,
   "./app/(payload)/admin/components/BuilderSettingsHeader#BuilderSettingsHeader": BuilderSettingsHeader_8b13cb9b0b6c9d6cca7049e13aa5246a,
+  "./app/(payload)/admin/components/AdminThemeCards#AdminThemeCards": AdminThemeCards_d12898360327c695c0d93d345de36e15,
   "./app/(payload)/admin/components/SiteSettingsHeader#SiteSettingsHeader": SiteSettingsHeader_bfcd567c971b954e5de138bcffbe599f,
   "./app/(payload)/admin/components/ThemeHeader#ThemeHeader": ThemeHeader_bfedb030ac5f01c35b7ed24b66e8873a,
   "../../../packages/plugin-pages/src/admin/MegaMenuPreview#MegaMenuPreview": MegaMenuPreview_73c1aab382157e7485ba8a033e282d0c,

@@ -89,6 +89,12 @@ export interface Config {
     nexusCategoryMatrix: NexusCategoryMatrixBlock;
     nexusProductRail: NexusProductRailBlock;
     nexusSlotExplorer: NexusSlotExplorerBlock;
+    aetherHero: AetherHeroBlock;
+    aetherProductLab: AetherProductLabBlock;
+    aetherLookbook: AetherLookbookBlock;
+    aetherTelemetryGrid: AetherTelemetryGridBlock;
+    aetherCalculator: AetherCalculatorBlock;
+    aetherLoopVisualizer: AetherLoopVisualizerBlock;
     columns: ColumnsBlock;
     trustBadges: TrustBadgesBlock;
     bannerCountdown: BannerCountdownBlock;
@@ -97,6 +103,7 @@ export interface Config {
   collections: {
     users: User;
     pages: Page;
+    'newsletter-subscribers': NewsletterSubscriber;
     media: Media;
     categories: Category;
     brands: Brand;
@@ -123,9 +130,11 @@ export interface Config {
     'build-templates': BuildTemplate;
     'configured-builds': ConfiguredBuild;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
+    'payload-query-presets': PayloadQueryPreset;
   };
   collectionsJoins: {
     variantTypes: {
@@ -138,6 +147,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     brands: BrandsSelect<false> | BrandsSelect<true>;
@@ -164,9 +174,11 @@ export interface Config {
     'build-templates': BuildTemplatesSelect<false> | BuildTemplatesSelect<true>;
     'configured-builds': ConfiguredBuildsSelect<false> | ConfiguredBuildsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
+    'payload-query-presets': PayloadQueryPresetsSelect<false> | PayloadQueryPresetsSelect<true>;
   };
   db: {
     defaultIDType: number;
@@ -179,6 +191,7 @@ export interface Config {
     'site-settings': SiteSetting;
     theme: Theme;
     'mega-menu': MegaMenu;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'packaging-tiers': PackagingTiersSelect<false> | PackagingTiersSelect<true>;
@@ -187,6 +200,7 @@ export interface Config {
     'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     theme: ThemeSelect<false> | ThemeSelect<true>;
     'mega-menu': MegaMenuSelect<false> | MegaMenuSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -194,7 +208,13 @@ export interface Config {
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      pruneStaleGuestData: TaskPruneStaleGuestData;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
   /**
@@ -553,6 +573,12 @@ export interface SectionBlock {
         | NexusCategoryMatrixBlock
         | NexusProductRailBlock
         | NexusSlotExplorerBlock
+        | AetherHeroBlock
+        | AetherProductLabBlock
+        | AetherLookbookBlock
+        | AetherTelemetryGridBlock
+        | AetherCalculatorBlock
+        | AetherLoopVisualizerBlock
         | ColumnsBlock
         | TrustBadgesBlock
         | BannerCountdownBlock
@@ -697,6 +723,9 @@ export interface Product {
       }[]
     | null;
   gallery?: (number | Media)[] | null;
+  /**
+   * Editorial Markdown overview shown on storefront PDP (supports headings, bold text, bullet points).
+   */
   description?: string | null;
   /**
    * Recommended upgrades & accessories shown in PDP and Cart
@@ -727,7 +756,14 @@ export interface Product {
    * Official OEM hardware part number
    */
   mpn?: string | null;
+  /**
+   * Current real-time stock units available across warehouse hubs.
+   */
   inventory?: number | null;
+  /**
+   * Physical package weight for shipping band calculation.
+   */
+  weightKg?: number | null;
   /**
    * When disabled, product is treated as having unlimited availability.
    */
@@ -736,10 +772,6 @@ export interface Product {
    * Allow customers to purchase when stock level reaches 0.
    */
   allowBackorders?: boolean | null;
-  /**
-   * Physical package weight for shipping band calculation.
-   */
-  weightKg?: number | null;
   attributeValues?:
     | {
         attributeType: number | AttributeType;
@@ -1023,6 +1055,161 @@ export interface ComponentCategory {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherHeroBlock".
+ */
+export interface AetherHeroBlock {
+  /**
+   * Telemetry strip banner above heading.
+   */
+  badge?: string | null;
+  heading: string;
+  /**
+   * Word(s) rendered in the Amber/Gold accent gradient.
+   */
+  highlightText?: string | null;
+  body?: string | null;
+  ctas?:
+    | {
+        label: string;
+        url: string;
+        style?: ('primary' | 'outline' | 'ghost') | null;
+        id?: string | null;
+      }[]
+    | null;
+  telemetryMetrics?:
+    | {
+        label: string;
+        value: string;
+        delta?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherHero';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherProductLabBlock".
+ */
+export interface AetherProductLabBlock {
+  eyebrow?: string | null;
+  heading: string;
+  subtitle?: string | null;
+  /**
+   * Target category to pull featured hardware products from.
+   */
+  categorySlug?: string | null;
+  /**
+   * Render telemetry cards (SP Score, Thermal Delta, Acoustic Floor, Golden Bin).
+   */
+  showBenchmarkTelemetry?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherProductLab';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherLookbookBlock".
+ */
+export interface AetherLookbookBlock {
+  eyebrow?: string | null;
+  heading: string;
+  subtitle?: string | null;
+  rigs?:
+    | {
+        title: string;
+        tier?: string | null;
+        summary?: string | null;
+        priceCents: number;
+        badge?: string | null;
+        /**
+         * Short summary e.g. "RTX 5090 · 9950X3D · 64GB DDR5"
+         */
+        specs?: string | null;
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherLookbook';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherTelemetryGridBlock".
+ */
+export interface AetherTelemetryGridBlock {
+  eyebrow?: string | null;
+  heading: string;
+  subtitle?: string | null;
+  departments?:
+    | {
+        title: string;
+        /**
+         * Short lab code e.g. "GPU-01"
+         */
+        code: string;
+        description?: string | null;
+        /**
+         * Live status e.g. "450W TDP Validated"
+         */
+        telemetry?: string | null;
+        categorySlug: string;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherTelemetryGrid';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherCalculatorBlock".
+ */
+export interface AetherCalculatorBlock {
+  /**
+   * Small uppercase header tag
+   */
+  eyebrow?: string | null;
+  heading: string;
+  subtitle?: string | null;
+  /**
+   * Default CPU target load in Watts
+   */
+  defaultCpuTdp?: number | null;
+  /**
+   * Default GPU target load in Watts
+   */
+  defaultGpuTdp?: number | null;
+  /**
+   * Enable direct-die delid comparison toggles
+   */
+  showDelidComparison?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherCalculator';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AetherLoopVisualizerBlock".
+ */
+export interface AetherLoopVisualizerBlock {
+  /**
+   * Small uppercase header tag
+   */
+  eyebrow?: string | null;
+  heading: string;
+  subtitle?: string | null;
+  defaultCoolant?: ('cyan' | 'amber' | 'clear' | 'emerald') | null;
+  defaultTubing?: ('brass' | 'acrylic' | 'epdm') | null;
+  showFlowRateControl?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'aetherLoopVisualizer';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ColumnsBlock".
  */
 export interface ColumnsBlock {
@@ -1050,6 +1237,12 @@ export interface ColumnsBlock {
               | NexusCategoryMatrixBlock
               | NexusProductRailBlock
               | NexusSlotExplorerBlock
+              | AetherHeroBlock
+              | AetherProductLabBlock
+              | AetherLookbookBlock
+              | AetherTelemetryGridBlock
+              | AetherCalculatorBlock
+              | AetherLoopVisualizerBlock
               | TrustBadgesBlock
               | BannerCountdownBlock
               | ReviewsShowcaseBlock
@@ -1213,6 +1406,12 @@ export interface Page {
         | NexusCategoryMatrixBlock
         | NexusProductRailBlock
         | NexusSlotExplorerBlock
+        | AetherHeroBlock
+        | AetherProductLabBlock
+        | AetherLookbookBlock
+        | AetherTelemetryGridBlock
+        | AetherCalculatorBlock
+        | AetherLoopVisualizerBlock
         | ColumnsBlock
         | TrustBadgesBlock
         | BannerCountdownBlock
@@ -1229,7 +1428,24 @@ export interface Page {
   };
   updatedAt: string;
   createdAt: string;
+  deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * Double opt-in list. Addresses appear as pending until the owner clicks the confirmation link.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers".
+ */
+export interface NewsletterSubscriber {
+  id: number;
+  email: string;
+  status: 'pending' | 'confirmed';
+  confirmedAt?: string | null;
+  lastSentAt?: string | null;
+  confirmToken?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Legacy pricing schedule table. Active product pricing is managed directly on Products & Variants (priceInEUR / compareAtPriceInEUR).
@@ -1632,6 +1848,10 @@ export interface Transaction {
  */
 export interface CompatibilityRule {
   id: number;
+  /**
+   * Auto-generated rule summary for admin relations and headers.
+   */
+  title?: string | null;
   subjectType: 'component' | 'category';
   subjectComponent?: (number | null) | Component;
   subjectCategory?: (number | null) | ComponentCategory;
@@ -1735,6 +1955,107 @@ export interface PayloadKv {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'pruneStaleGuestData';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'pruneStaleGuestData') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
@@ -1747,6 +2068,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'pages';
         value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'newsletter-subscribers';
+        value: number | NewsletterSubscriber;
       } | null)
     | ({
         relationTo: 'media';
@@ -1892,6 +2217,55 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-query-presets".
+ */
+export interface PayloadQueryPreset {
+  id: number;
+  title: string;
+  isShared?: boolean | null;
+  access?: {
+    read?: {
+      constraint?: ('everyone' | 'onlyMe' | 'specificUsers') | null;
+      users?: (number | User)[] | null;
+    };
+    update?: {
+      constraint?: ('everyone' | 'onlyMe' | 'specificUsers') | null;
+      users?: (number | User)[] | null;
+    };
+    delete?: {
+      constraint?: ('everyone' | 'onlyMe' | 'specificUsers') | null;
+      users?: (number | User)[] | null;
+    };
+  };
+  where?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  columns?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  groupBy?: string | null;
+  relatedCollection: 'products' | 'orders' | 'compatibility-rules';
+  /**
+   * This is a temporary field used to determine if updating the preset would remove the user's access to it. When `true`, this record will be deleted after running the preset's `validate` function.
+   */
+  isTemp?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -1932,7 +2306,21 @@ export interface PagesSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers_select".
+ */
+export interface NewsletterSubscribersSelect<T extends boolean = true> {
+  email?: T;
+  status?: T;
+  confirmedAt?: T;
+  lastSentAt?: T;
+  confirmToken?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2227,9 +2615,9 @@ export interface ProductsSelect<T extends boolean = true> {
   sku?: T;
   mpn?: T;
   inventory?: T;
+  weightKg?: T;
   trackQuantity?: T;
   allowBackorders?: T;
-  weightKg?: T;
   attributeValues?:
     | T
     | {
@@ -2451,6 +2839,7 @@ export interface ComponentsSelect<T extends boolean = true> {
  * via the `definition` "compatibility-rules_select".
  */
 export interface CompatibilityRulesSelect<T extends boolean = true> {
+  title?: T;
   subjectType?: T;
   subjectComponent?: T;
   subjectCategory?: T;
@@ -2536,6 +2925,38 @@ export interface PayloadKvSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -2563,6 +2984,43 @@ export interface PayloadPreferencesSelect<T extends boolean = true> {
 export interface PayloadMigrationsSelect<T extends boolean = true> {
   name?: T;
   batch?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-query-presets_select".
+ */
+export interface PayloadQueryPresetsSelect<T extends boolean = true> {
+  title?: T;
+  isShared?: T;
+  access?:
+    | T
+    | {
+        read?:
+          | T
+          | {
+              constraint?: T;
+              users?: T;
+            };
+        update?:
+          | T
+          | {
+              constraint?: T;
+              users?: T;
+            };
+        delete?:
+          | T
+          | {
+              constraint?: T;
+              users?: T;
+            };
+      };
+  where?: T;
+  columns?: T;
+  groupBy?: T;
+  relatedCollection?: T;
+  isTemp?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2665,9 +3123,9 @@ export interface StoreSetting {
 export interface BuilderSetting {
   id: number;
   /**
-   * Storefront renderer for /builder/configure. Options come from the code-side BUILDER_DESIGNS registry — swap takes effect on next render, no deploy.
+   * Storefront renderer for /builder/configure — swap takes effect on next render, no deploy. Available: Classic wizard · RIG Studio · Atelier.
    */
-  design: 'classic' | 'rig-studio';
+  design: 'classic' | 'rig-studio' | 'atelier';
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2680,7 +3138,8 @@ export interface SiteSetting {
   /**
    * Default visual skin used across the Payload Admin Back-Office.
    */
-  adminTheme?: ('precision-dark' | 'cyber-neon' | 'light-clean' | 'classic-payload') | null;
+  adminTheme?:
+    ('precision-dark' | 'aether-foundry' | 'aether-frost' | 'cyber-neon' | 'light-clean' | 'classic-payload') | null;
   /**
    * Shown in the site header. Empty list = no header links (Shop/Builder are not structural).
    */
@@ -2719,7 +3178,7 @@ export interface Theme {
   /**
    * Design swap — empty fields fall back to this preset.
    */
-  preset?: ('dark' | 'light' | 'midnight' | 'rig-dark' | 'nexus') | null;
+  preset?: ('dark' | 'light' | 'midnight' | 'rig-dark' | 'nexus' | 'aether' | 'aether-frost') | null;
   /**
    * Leave a field empty to use the preset value.
    */
@@ -2800,6 +3259,24 @@ export interface MegaMenu {
         };
         id?: string | null;
       }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -2990,6 +3467,16 @@ export interface MegaMenuSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -2997,6 +3484,14 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskPruneStaleGuestData".
+ */
+export interface TaskPruneStaleGuestData {
+  input?: unknown;
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

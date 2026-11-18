@@ -1,5 +1,4 @@
 import { cache } from 'react'
-import type { Metadata } from 'next'
 import { getPayloadClient } from '@/lib/shop'
 
 export type PageDoc = {
@@ -41,17 +40,6 @@ export const getHomepagePage = cache(async function getHomepagePage(): Promise<P
   }
 })
 
-const siteName = 'BuildMyRig'
+export { H1_BLOCKS, layoutHasH1 } from './page-heading.ts'
+export { pageMetadata } from './page-metadata.ts'
 
-export function pageMetadata(page: PageDoc): Metadata {
-  const title = page.seo?.title || `${page.title} | ${siteName}`
-  return {
-    title,
-    description: page.seo?.description ?? undefined,
-    openGraph: {
-      title,
-      description: page.seo?.description ?? undefined,
-      images: page.seo?.image?.url ? [{ url: page.seo.image.url }] : undefined,
-    },
-  }
-}

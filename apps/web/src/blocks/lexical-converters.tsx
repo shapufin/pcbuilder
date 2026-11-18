@@ -1,6 +1,6 @@
 import type { JSXConverters, JSXConvertersFunction } from '@payloadcms/richtext-lexical/react'
 import { lexicalEmbedBlockSlugs } from '@buildmyrig/plugin-pages'
-import { blockRegistry, type BlockComponent } from './registry'
+import { getBlockRegistry, type BlockComponent } from './nested'
 
 type BlockNodeLike = { fields?: Record<string, unknown> } | undefined
 
@@ -11,7 +11,7 @@ type BlockNodeLike = { fields?: Record<string, unknown> } | undefined
  * content would silently drop from the rendered page.
  */
 export function buildLexicalBlockConverters(
-  registry: Record<string, BlockComponent> = blockRegistry,
+  registry: Record<string, BlockComponent> = getBlockRegistry(),
 ): JSXConverters {
   const blocks: Record<string, (args: { node?: BlockNodeLike }) => unknown> = {}
   for (const slug of lexicalEmbedBlockSlugs) {

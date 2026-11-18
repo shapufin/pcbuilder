@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contactFormHtml, newsletterWelcomeHtml } from './templates.ts'
+import { contactFormHtml, newsletterConfirmHtml, newsletterWelcomeHtml } from './templates.ts'
 
 /**
  * Entry 23: newsletter welcome (inline send in the newsletter route moves to
@@ -23,5 +23,13 @@ describe('newsletter + contact templates (entry 23)', () => {
     expect(contact).toContain('a&amp;b@example.com')
     expect(contact).not.toContain('<img')
     expect(contact).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  })
+})
+
+describe('newsletter confirm template (audit 2026-11-18 M3)', () => {
+  it('#746 carries the confirm link, escaped', () => {
+    const html = newsletterConfirmHtml('https://shop.test/api/newsletter/confirm?token=a"b&c')
+    expect(html).toContain('href="https://shop.test/api/newsletter/confirm?token=a&quot;b&amp;c"')
+    expect(html).toContain('Confirm subscription')
   })
 })

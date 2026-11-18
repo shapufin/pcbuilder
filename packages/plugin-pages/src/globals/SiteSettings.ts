@@ -43,10 +43,12 @@ export const SiteSettings: GlobalConfig = {
       label: 'Admin CMS GUI Theme',
       defaultValue: 'precision-dark',
       options: [
-        { label: '⚡ Precision Dark (RIG Studio)', value: 'precision-dark' },
-        { label: '🌌 Cyber Neon (High Contrast)', value: 'cyber-neon' },
-        { label: '☀️ Light Clean (High Visibility)', value: 'light-clean' },
-        { label: '📦 Classic Payload (Neutral)', value: 'classic-payload' },
+        { label: 'Precision Dark (RIG Studio)', value: 'precision-dark' },
+        { label: 'Aether Foundry (Luxury Workstation)', value: 'aether-foundry' },
+        { label: 'Aether Frost (Titanium Clean)', value: 'aether-frost' },
+        { label: 'Cyber Neon (High Contrast)', value: 'cyber-neon' },
+        { label: 'Light Clean (High Visibility)', value: 'light-clean' },
+        { label: 'Classic Payload (Neutral)', value: 'classic-payload' },
       ],
       admin: {
         description: 'Default visual skin used across the Payload Admin Back-Office.',

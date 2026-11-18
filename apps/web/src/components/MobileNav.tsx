@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { Menu, X } from 'lucide-react'
 
 type NavLink = { label: string; url: string }
 
@@ -38,7 +39,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
         aria-label={open ? 'Close menu' : 'Open menu'}
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? '✕' : '☰'}
+        {open ? <X size={16} aria-hidden /> : <Menu size={16} aria-hidden />}
       </button>
       {open && (
         <nav id="mobile-nav-drawer" className="mobile-nav__drawer" aria-label="Mobile">

@@ -50,6 +50,12 @@ describe('pageBlocks (moved from apps/web, entry 19)', () => {
       'nexusCategoryMatrix',
       'nexusProductRail',
       'nexusSlotExplorer',
+      'aetherHero',
+      'aetherProductLab',
+      'aetherLookbook',
+      'aetherTelemetryGrid',
+      'aetherCalculator',
+      'aetherLoopVisualizer',
       'columns',
       'trustBadges',
       'bannerCountdown',
@@ -72,8 +78,8 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
     expect(new Set(names).size).toBe(pageBlocks.length)
   })
 
-  it('#145 every block carries an admin.group (drawer grouping: Layout/Content/Commerce/Nexus)', () => {
-    const allowed = ['Layout', 'Content', 'Commerce', 'Nexus']
+  it('#145 every block carries an admin.group (drawer grouping: Layout/Content/Commerce/Nexus/Aether)', () => {
+    const allowed = ['Layout', 'Content', 'Commerce', 'Nexus', 'Aether']
     for (const block of pageBlocks) {
       expect(allowed, `${block.slug} has no group`).toContain(block.admin?.group)
     }
@@ -154,6 +160,15 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
     }
   })
 
+  it('#445 aether blocks stay page-level (no Lexical embeds, no topBlocks)', () => {
+    for (const slug of ['aetherHero', 'aetherProductLab', 'aetherLookbook', 'aetherTelemetryGrid']) {
+      expect(pageBlockSlugs).toContain(slug)
+      expect(lexicalEmbedBlockSlugs).not.toContain(slug)
+      expect(sectionChildSlugs).toContain(slug)
+      expect(bySlug(slug)?.admin?.group).toBe('Aether')
+    }
+  })
+
   it('#454 columns block: 2–4 column rows, closed layout/gap selects, no section/columns nesting', () => {
     const columns = bySlug('columns')
     expect(columns, 'columns block missing').toBeDefined()
@@ -220,4 +235,78 @@ describe('block system v2 (entry 22, Phase 5 Step D)', () => {
     expect(blocksFeature.key).toBe('blocks')
     expect(blocksFeature.serverFeatureProps?.blocks).toEqual([...lexicalEmbedBlockSlugs])
   })
-})
+
+  it('#659 blocks with nested arrays configure labels and admin.initCollapsed: true', () => {
+    const blocksWithArrays = [
+      { slug: 'testimonials', arrayField: 'items' },
+      { slug: 'aetherHero', arrayField: 'ctas' },
+      { slug: 'aetherHero', arrayField: 'telemetryMetrics' },
+      { slug: 'aetherLookbook', arrayField: 'rigs' },
+      { slug: 'aetherTelemetryGrid', arrayField: 'departments' },
+      { slug: 'nexusHero', arrayField: 'ctas' },
+      { slug: 'nexusCategoryMatrix', arrayField: 'items' },
+      { slug: 'nexusSlotExplorer', arrayField: 'slots' },
+    ]
+
+    for (const { slug, arrayField } of blocksWithArrays) {
+      const block = bySlug(slug)
+      expect(block, `${slug} block missing`).toBeDefined()
+      const field = (block!.fields ?? []).find((f: any) => f.name === arrayField) as any
+      expect(field, `${slug}.${arrayField} field missing`).toBeDefined()
+      expect(field.type).toBe('array')
+      expect(field.labels?.singular, `${slug}.${arrayField} missing singular label`).toBeTruthy()
+      expect(field.labels?.plural, `${slug}.${arrayField} missing plural label`).toBeTruthy()
+      expect(field.admin?.initCollapsed, `${slug}.${arrayField} missing initCollapsed: true`).toBe(true)
+    }
+  })
+
+  it('#660 blocks with link targets enforce safe URL validation', () => {
+    const ctaBlocks = [
+      { slug: 'hero', arrayField: 'ctas', urlField: 'url' },
+      { slug: 'ctaBanner', arrayField: null, urlField: 'ctaUrl' },
+      { slug: 'bannerCountdown', arrayField: null, urlField: 'ctaUrl' },
+      { slug: 'aetherHero', arrayField: 'ctas', urlField: 'url' },
+      { slug: 'aetherLookbook', arrayField: 'rigs', urlField: 'url' },
+      { slug: 'nexusHero', arrayField: 'ctas', urlField: 'url' },
+    ]
+
+    const findNamedField = (fields: any[], name: string): any => {
+      for (const f of fields) {
+        if (f.name === name) return f
+        if (Array.isArray(f.fields)) {
+          const found = findNamedField(f.fields, name)
+          if (found) return found
+        }
+      }
+      return undefined
+    }
+
+    for (const { slug, arrayField, urlField } of ctaBlocks) {
+      const block = bySlug(slug)
+      expect(block, `${slug} block missing`).toBeDefined()
+      let field: any
+      if (arrayField) {
+        const arr = (block!.fields ?? []).find((f: any) => f.name === arrayField) as any
+        field = findNamedField(arr?.fields ?? [], urlField)
+      } else {
+        field = findNamedField(block!.fields ?? [], urlField)
+      }
+      expect(field, `${slug}.${urlField} field missing`).toBeDefined()
+      expect(typeof field.validate, `${slug}.${urlField} missing validate function`).toBe('function')
+
+      // Safe URLs must return true
+      expect(field.validate('/builder')).toBe(true)
+      expect(field.validate('https://example.com/spec')).toBe(true)
+
+      // Malformed / unsafe URLs must return error string
+      expect(typeof field.validate('javascript:alert(1)')).toBe('string')
+      expect(typeof field.validate('//evil.com')).toBe('string')
+    }
+
+    // Video embed URL validation
+    const videoBlock = bySlug('videoEmbed')
+    const videoUrlField = (videoBlock!.fields ?? []).find((f: any) => f.name === 'url') as any
+    expect(videoUrlField.validate('https://www.youtube.com/watch?v=123')).toBe(true)
+    expect(typeof videoUrlField.validate('javascript:alert(1)')).toBe('string')
+  })
+});

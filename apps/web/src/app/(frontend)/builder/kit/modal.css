@@ -1,0 +1,458 @@
+/* Shared builder dialog chrome (entry 131) — design-agnostic.
+   These rules used to live inside rig-studio.css under `.bdesign-rig-studio`,
+   which meant a second design (atelier) rendered an unstyled dialog. The
+   markup contract lives in kit/ModalShell.tsx; the palette still comes from
+   the design root because the modal is rendered inside it. */
+
+.studio-modal.bdesign-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.bdesign-modal .studio-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  cursor: default;
+  background: var(--color-scrim);
+  backdrop-filter: blur(8px);
+  animation: studio-backdrop-in var(--duration-base) var(--ease-out);
+}
+
+.bdesign-modal .studio-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  font-family: var(--font-display);
+  animation: studio-panel-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes studio-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes studio-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bdesign-modal .studio-modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bdesign-modal .studio-modal__icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--color-accent);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+}
+
+.bdesign-modal .studio-modal__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.bdesign-modal .studio-modal__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bdesign-modal .studio-modal__current {
+  margin: 0;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bdesign-modal .studio-modal__current strong {
+  color: var(--color-accent);
+}
+
+.bdesign-modal .studio-modal__close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.bdesign-modal .studio-modal__close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.bdesign-modal .studio-modal__cap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 11px;
+}
+
+.bdesign-modal .studio-modal__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bdesign-modal .studio-modal__empty {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.bdesign-modal .studio-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.bdesign-modal .studio-modal__count {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.bdesign-modal .studio-modal__clear {
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.bdesign-modal .studio-modal__clear:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.bdesign-modal .studio-modal__clear:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bdesign-modal .studio-modal__panel--wide {
+  width: min(720px, 100%);
+}
+
+@media (max-width: 768px) {
+   /* bottom-sheet modal */
+  .studio-modal.bdesign-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .bdesign-modal .studio-modal__panel {
+    width: 100%;
+    max-width: none;
+    max-height: 85vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bdesign-modal .studio-modal__backdrop,
+  .bdesign-modal .studio-modal__panel {
+    animation: none;
+  }
+}
+
+/* ---------- saved-builds manager (entry 131) ---------- */
+
+.bdesign-modal .studio-btn {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.bdesign-modal .studio-btn:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+}
+
+.bdesign-modal .studio-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bdesign-modal .studio-btn--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.bdesign-modal .studio-input {
+  font: inherit;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+}
+
+.bdesign-modal .studio-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.bdesign-modal .studio-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.bdesign-modal .studio-saved__tabs {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bdesign-modal .studio-saved__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.bdesign-modal .studio-saved__save {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.bdesign-modal .studio-saved__save-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.bdesign-modal .studio-saved__empty {
+  margin: 0;
+  padding: var(--space-5) var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.bdesign-modal .studio-saved__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.bdesign-modal .studio-saved__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.bdesign-modal .studio-saved__row:hover {
+  border-color: var(--color-border-strong);
+}
+
+.bdesign-modal .studio-saved__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bdesign-modal .studio-saved__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bdesign-modal .studio-saved__sub {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bdesign-modal .studio-saved__row-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bdesign-modal .studio-saved__io-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.bdesign-modal .studio-saved__io-title {
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.bdesign-modal .studio-saved__json {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  resize: vertical;
+}
+
+.bdesign-modal .studio-saved__file {
+  position: relative;
+  overflow: hidden;
+}
+
+.bdesign-modal .studio-saved__file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Saved-builds tabs (entry 131) — the dialog no longer borrows the studio
+   header's tab classes, so it renders identically in every design. */
+.bdesign-modal .studio-saved__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.bdesign-modal .studio-saved__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.bdesign-modal .studio-saved__tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.bdesign-modal .studio-saved__tab--active {
+  color: var(--color-accent);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+  font-weight: var(--weight-semibold);
+}
+
+/* Primary dialog action (was the header CTA class). */
+.bdesign-modal .studio-btn--primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.bdesign-modal .studio-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-strong);
+}

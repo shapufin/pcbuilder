@@ -12,6 +12,9 @@
         "payload": "payload",
         "seed": "payload run src/seed.ts",
         "seed:pages": "payload run src/seed-pages.ts",
+        "repair:mojibake": "payload run src/repair-mojibake.ts",
+        "repair:block-names": "payload run src/repair-block-names.ts",
+        "seed:presets": "payload run src/seed-presets.ts",
         "backfill:links": "payload run src/backfill-product-links.ts",
         "test": "vitest run",
         "test:e2e": "playwright test"

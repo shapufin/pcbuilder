@@ -7,11 +7,14 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { Users } from './collections/Users.ts'
 import { Pages } from './collections/Pages.ts'
+import { NewsletterSubscribers } from './collections/NewsletterSubscribers.ts'
 import { shopPlugin } from '@buildmyrig/plugin-shop'
 import { pcBuilderPlugin } from '@buildmyrig/plugin-pc-builder'
 import { pagesPlugin } from '@buildmyrig/plugin-pages'
 import { themeRevalidatePlugin } from './lib/theme-revalidate-plugin.ts'
 import { listCellElevationPlugin } from './lib/admin-list-cells.ts'
+import { pruneStaleGuestData } from './lib/retention.ts'
+import { allowedCsrfOrigins, queryPresetsAccess, restrictLockedDocuments } from './lib/system-access.ts'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,6 +36,11 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     suppressHydrationWarning: true,
+    // 'all' lets Payload's ThemeProvider follow the `payload-theme` cookie that
+    // applyAdminTheme writes, so its own components (Monaco code editors, date
+    // pickers) match the active skin instead of always rendering light
+    // (audit 2026-10-22, item 678).
+    theme: 'all',
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -50,28 +58,48 @@ export default buildConfig({
         plugins: {
           type: 'custom',
           path: '/plugins',
+          // meta.title drives the browser tab title; without it every custom
+          // view falls back to "Payload - Payload" (audit 2026-10-22, #674).
+          meta: { title: 'Plugins' },
           Component: './app/(payload)/admin/components/PluginsManagerView#PluginsManagerView',
         } as never,
         designSystem: {
           type: 'custom',
           path: '/design-system',
+          meta: { title: 'Design System' },
           Component: './app/(payload)/admin/components/DesignSystemView#DesignSystemView',
         } as never,
       },
     },
   },
-  collections: [Users, Pages],
+  collections: [Users, Pages, NewsletterSubscribers],
   editor: lexicalEditor({}),
   // 11-access-security.md checklist #2: cookie-authenticated requests are only
   // trusted from these origins (BMR_URL = production origin). Required for
   // prod: without it, requests lacking Origin/Sec-Fetch-Site are rejected.
   // Origin headers never carry a trailing slash — normalize the env value so
   // `BMR_URL=https://example.com/` can't silently break cookie auth.
-  csrf: [
-    process.env.BMR_URL?.replace(/\/+$/, ''),
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ].filter((o): o is string => Boolean(o)),
+  // Audit 2026-11-18 L3: localhost is trusted outside production only.
+  csrf: allowedCsrfOrigins(process.env),
+  // Audit 2026-11-18 H2: presets default to any authenticated user — customers
+  // share the users collection, so pin them to staff.
+  queryPresets: { access: queryPresetsAccess, constraints: {} },
+  // Audit 2026-11-18 H2: locked-documents has no config access option.
+  onInit: async (payload) => {
+    restrictLockedDocuments(payload)
+  },
+  // Audit 2026-11-18 C1: nightly retention for anonymous writes (guest carts,
+  // unclaimed builds). autoRun polls the queue; schedule enqueues at 03:15.
+  jobs: {
+    tasks: [
+      {
+        slug: 'pruneStaleGuestData',
+        schedule: [{ cron: '15 3 * * *', queue: 'maintenance' }],
+        handler: async ({ req }) => ({ output: await pruneStaleGuestData(req.payload) }),
+      },
+    ],
+    autoRun: [{ cron: '*/10 * * * *', queue: 'maintenance', limit: 1 }],
+  },
   secret: payloadSecret,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
@@ -106,6 +134,7 @@ export default buildConfig({
       builderRulesTabComponent: './app/(payload)/admin/components/BuilderRulesTabField#BuilderRulesTabField',
       serpPreviewComponent: './app/(payload)/admin/components/SerpPreviewField#SerpPreviewField',
       slugFieldComponent: './app/(payload)/admin/components/SlugField#SlugField',
+      productMarginComponent: './app/(payload)/admin/components/ProductMarginPanel#ProductMarginPanel',
     }),
     pcBuilderPlugin({
       enabled: true,
@@ -122,6 +151,7 @@ export default buildConfig({
     pagesPlugin({
       enabled: true,
       siteSettingsHeaderComponent: './app/(payload)/admin/components/SiteSettingsHeader#SiteSettingsHeader',
+      siteSettingsThemeCardsComponent: './app/(payload)/admin/components/AdminThemeCards#AdminThemeCards',
       themeHeaderComponent: './app/(payload)/admin/components/ThemeHeader#ThemeHeader',
       megaMenuHeaderComponent: './app/(payload)/admin/components/MegaMenuHeader#MegaMenuHeader',
     }),

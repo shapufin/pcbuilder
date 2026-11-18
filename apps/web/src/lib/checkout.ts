@@ -100,3 +100,103 @@ export const validateShippingAddress = (input: ShippingAddressInput): ShippingAd
   if (errors.length > 0) return { ok: false, errors }
   return { ok: true, address: out as unknown as ShippingAddress }
 }
+
+// ---- Audit 2026-11-18 R1: CheckoutPage decisions as pure, tested helpers.
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export type CartTotalsView = {
+  subtotal: number
+  discountTotal: number
+  shippingTotal: number
+  taxTotal: number
+  total: number
+  appliedCode: string | null
+  /** €0 orders confirm server-side via /confirm-free — Stripe rejects €0 PaymentIntents. */
+  isFree: boolean
+}
+
+/** Server-computed cart totals (never derived client-side); `total` falls back to subtotal. */
+export const cartTotals = (cart: unknown): CartTotalsView => {
+  const c = (cart ?? {}) as {
+    subtotal?: number
+    discountTotal?: number
+    shippingTotal?: number
+    taxTotal?: number
+    total?: number
+    discountCode?: { code?: string } | number | null
+  }
+  const subtotal = c.subtotal ?? 0
+  const total = c.total ?? subtotal
+  const appliedCode = typeof c.discountCode === 'object' && c.discountCode ? (c.discountCode.code ?? null) : null
+  return {
+    subtotal,
+    discountTotal: c.discountTotal ?? 0,
+    shippingTotal: c.shippingTotal ?? 0,
+    taxTotal: c.taxTotal ?? 0,
+    total,
+    appliedCode,
+    isFree: total <= 0,
+  }
+}
+
+export type CartLine = {
+  lineType?: string
+  lineLabel?: string
+  buildName?: string
+  product?: { title?: string } | number | string
+}
+
+export const cartLineTitle = (item: CartLine): string => {
+  if (item.lineType === 'packaging') return item.lineLabel || 'Packaging'
+  if (item.lineType === 'configured-build') return item.buildName || 'Configured build'
+  return typeof item.product === 'object' && item.product ? (item.product.title ?? 'Product') : 'Product'
+}
+
+export type BuyerCheck =
+  | { ok: true; email: string; address: ShippingAddress }
+  | { ok: false; emailInvalid: boolean; message: string }
+
+/** Email first (guest order identity + confirmation mail), then the shipping address. */
+export const buyerCheck = (email: string, address: ShippingAddressInput): BuyerCheck => {
+  const buyerEmail = email.trim()
+  if (!EMAIL_RE.test(buyerEmail)) {
+    return { ok: false, emailInvalid: true, message: 'Enter a valid email for your order confirmation.' }
+  }
+  const checked = validateShippingAddress(address)
+  if (!checked.ok) return { ok: false, emailInvalid: false, message: checked.errors.join(' ') }
+  return { ok: true, email: buyerEmail, address: checked.address }
+}
+
+/** Endpoint failure copy: per-slot build reasons win, then the server's error, then a fallback. */
+export const errorMessageFrom = (
+  data: { reasons?: string[]; error?: string } | null | undefined,
+  fallback: string,
+): string => (data?.reasons && data.reasons.length > 0 ? data.reasons.join(' · ') : data?.error || fallback)
+
+/** Stripe 3DS/redirect return params, or null when this is not a return visit. */
+export const parseStripeReturn = (
+  search: string,
+): { paymentIntentID: string; redirectStatus: string } | null => {
+  const params = new URLSearchParams(search)
+  const paymentIntentID = params.get('payment_intent')
+  const redirectStatus = params.get('redirect_status')
+  return paymentIntentID && redirectStatus ? { paymentIntentID, redirectStatus } : null
+}
+
+/**
+ * POST a cart mutation endpoint with the guest cart secret. Returns the parsed
+ * body and ok flag; network errors propagate to the caller's catch.
+ */
+export const postCartAction = async <T extends Record<string, unknown>>(
+  cartId: string | number,
+  action: string,
+  body: Record<string, unknown> = {},
+): Promise<{ ok: boolean; data: T | null }> => {
+  const res = await fetch(`/api/carts/${cartId}/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, secret: window.localStorage.getItem('cart_secret') ?? undefined }),
+  })
+  return { ok: res.ok, data: (await res.json().catch(() => null)) as T | null }
+}

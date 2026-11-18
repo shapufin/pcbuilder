@@ -1,4 +1,4 @@
-import { renderBlocks, type BlockShape } from '../renderBlocks'
+import { renderNested, type BlockShape } from '../nested'
 
 type SectionLayout = {
   padding?: string | number | null
@@ -34,7 +34,7 @@ export function Section({ block }: { block: SectionBlockData }) {
   return (
     <section className="blk-section" data-padding={padding} data-bg={background}>
       <div className="blk-section__inner" data-width={width}>
-        {renderBlocks(block.blocks, 'Section')}
+        {renderNested(block.blocks, 'Section')}
       </div>
     </section>
   )

@@ -8,6 +8,7 @@ import { trackBuildStepCompleted } from '@/lib/analytics'
 import { useBuilder } from '../../builder-provider'
 import type { OptionRow } from '../../kit/option-rows'
 import type { BuilderToast } from '../../kit/BuilderToasts'
+import { trapTabKey } from '../../kit/focus-trap'
 import { highlightFor, wattsOf, type StudioCategory } from './studio-lib'
 
 type ToastFn = (message: string, kind?: BuilderToast['kind']) => void
@@ -36,6 +37,7 @@ export function StudioSwapModal({
   const { state, actions, meta } = useBuilder()
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Escape + scroll-lock + focus management. autoFocus attribute is banned by
   // jsx-a11y/no-autofocus → focus via ref on mount; restore on dismount.
@@ -47,7 +49,12 @@ export function StudioSwapModal({
     closeRef.current?.focus()
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      // Entry 131: contain Tab inside the dialog.
+      trapTabKey(panelRef.current, e)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => {
@@ -89,7 +96,7 @@ export function StudioSwapModal({
   }
 
   return (
-    <div className="studio-modal">
+    <div className="studio-modal bdesign-modal">
       <button
         type="button"
         className="studio-modal__backdrop"
@@ -98,6 +105,7 @@ export function StudioSwapModal({
         tabIndex={-1}
       />
       <div
+        ref={panelRef}
         className="studio-modal__panel"
         role="dialog"
         aria-modal="true"
@@ -181,6 +189,7 @@ function SwapOptionRow({
   const name = row.entry.display?.name ?? row.entry.id
   const brand = row.entry.display?.brand
   const watts = wattsOf(row.entry)
+  const image = row.entry.display?.image
   const reason = row.excludedReason ?? (!row.inStock ? 'Out of stock' : undefined)
 
   return (
@@ -197,6 +206,11 @@ function SwapOptionRow({
         <span className="studio-option__price">{formatEUR(row.entry.priceCents)}</span>
       </span>
 
+      {image ? (
+        <span className="studio-option__media">
+          <img src={image} alt="" loading="lazy" />
+        </span>
+      ) : null}
       <span className="studio-option__name">{name}</span>
       {brand && <span className="studio-option__brand">{brand}</span>}
 

@@ -1,6 +1,7 @@
 import type { Endpoint, JsonObject, Payload, PayloadRequest, TypeWithID } from 'payload'
+import { commitTransaction, initTransaction, killTransaction } from 'payload'
 import { z } from 'zod'
-import { createRuleEngine, rateLimit } from '@buildmyrig/lib'
+import { createRuleEngine, rateLimit, rateLimitedResponse, type BuilderIndex } from '@buildmyrig/lib'
 import { interpolate } from '@buildmyrig/lib'
 import { getBuilderIndex, getEngine, requireStaff } from './lib/builder-index.ts'
 import { isStaff } from './lib/access.ts'
@@ -23,6 +24,14 @@ import {
 const ok = (data: unknown): Response => Response.json(data)
 const bad = (status: number, message: string, extra?: unknown): Response =>
   Response.json({ error: message, ...(extra ? { details: extra } : {}) }, { status })
+
+/**
+ * Audit 2026-11-18 L1: 401 means "who are you?", 403 means "not allowed".
+ * A signed-in customer/staff hitting a manager endpoint must get 403 — a 401
+ * makes clients treat the session as expired.
+ */
+const roleDenied = (req: PayloadRequest, message: string): Response =>
+  bad(req.user ? 403 : 401, message)
 
 const conflictsSchema = z.object({ componentId: z.string().min(1) })
 
@@ -65,7 +74,7 @@ export const builderConflictsEndpoint: Endpoint = {
   handler: async (req: PayloadRequest) => {
     // 08-api-surface: read-side introspection is staff-gated (rule internals
     // + component names are operational data, not storefront content).
-    if (!isStaff(req.user as { roles?: string[] | null } | null)) return bad(401, 'staff role required')
+    if (!isStaff(req.user as { roles?: string[] | null } | null)) return roleDenied(req, 'staff role required')
     const parsed = conflictsSchema.safeParse(req.query)
     if (!parsed.success) return bad(400, 'componentId required', parsed.error.flatten())
     try {
@@ -120,17 +129,8 @@ const buildsLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 const useTemplateLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 const claimLimiter = rateLimit({ windowMs: 60_000, max: 30 })
 
-const clientIp = (req: PayloadRequest): string =>
-  req.headers?.get?.('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-
-const rateLimited = (limiter: ReturnType<typeof rateLimit>, req: PayloadRequest): Response | null => {
-  const result = limiter.check(clientIp(req))
-  if (result.ok) return null
-  return Response.json(
-    { error: 'rate limit exceeded', retryAfterMs: result.retryAfterMs },
-    { status: 429, headers: { 'Retry-After': String(Math.ceil(result.retryAfterMs / 1000)) } },
-  )
-}
+const rateLimited = (limiter: ReturnType<typeof rateLimit>, req: PayloadRequest): Response | null =>
+  rateLimitedResponse(limiter, req.headers)
 
 const buildsSchema = z.object({
   slots: z
@@ -149,25 +149,23 @@ const buildsSchema = z.object({
     .optional(),
 })
 
-/** Category ids may arrive as numeric ids or slugs; component ids as numeric strings. */
-const normalizeSlots = async (payload: Payload, slots: BuildSlot[]): Promise<BuildSlot[]> => {
-  const normalized: BuildSlot[] = []
-  for (const slot of slots) {
-    let categoryId = slot.categoryId
-    if (!/^\d+$/.test(categoryId)) {
-      const cat = await payload.find({
-        collection: 'component-categories',
-        where: { slug: { equals: categoryId } },
-        limit: 1,
-      })
-      if (cat.docs[0]) categoryId = String(cat.docs[0].id)
-    }
-    normalized.push({
-      categoryId,
-      componentIds: slot.componentIds.map((id) => (/^\d+$/.test(id) ? String(Number(id)) : id)),
-    })
-  }
-  return normalized
+/**
+ * Category ids may arrive as numeric ids or slugs; component ids as numeric
+ * strings. Slug→id resolution comes from the builder index the caller already
+ * loads (audit 2026-10-24 — the old per-slot find cost N sequential queries);
+ * unknown slugs pass through and hit findUnknownSlotRefs' 422 like any other
+ * bad ref.
+ */
+const normalizeSlots = (index: BuilderIndex, slots: BuildSlot[]): BuildSlot[] => {
+  const categoryBySlug = new Map(
+    index.categories.filter((c) => c.slug).map((c) => [c.slug, c.id]),
+  )
+  return slots.map((slot) => ({
+    categoryId: /^\d+$/.test(slot.categoryId)
+      ? slot.categoryId
+      : (categoryBySlug.get(slot.categoryId) ?? slot.categoryId),
+    componentIds: slot.componentIds.map((id) => (/^\d+$/.test(id) ? String(Number(id)) : id)),
+  }))
 }
 
 const numericId = (id: string): string | number => (/^\d+$/.test(id) ? Number(id) : id)
@@ -176,12 +174,13 @@ type CreateResult = { ok: true; doc: { id: string | number; shareId: string }; b
 
 const createBuildFromSlots = async (
   payload: Payload,
-  slots: BuildSlot[],
+  rawSlots: BuildSlot[],
   name: string | undefined,
   user: PayloadRequest['user'],
   rgbColor?: string,
 ): Promise<CreateResult> => {
   const index = await getBuilderIndex(payload)
+  const slots = normalizeSlots(index, rawSlots)
   const engine = createRuleEngine(index)
   // The engine skips unknown ids silently — catch them here so phantom refs
   // return 422 with reasons instead of a FOREIGN KEY 500 from payload.create.
@@ -273,10 +272,9 @@ export const builderSaveBuildEndpoint: Endpoint = {
     }
     const parsed = buildsSchema.safeParse(body)
     if (!parsed.success) return bad(400, 'invalid build', parsed.error.flatten())
-    const slots = await normalizeSlots(req.payload, parsed.data.slots)
     const result = await createBuildFromSlots(
       req.payload,
-      slots,
+      parsed.data.slots,
       parsed.data.name,
       req.user,
       parsed.data.rgbColor,
@@ -478,16 +476,17 @@ export const builderUseTemplateEndpoint: Endpoint = {
       })
       .filter((s) => s.componentIds.length > 0)
     if (slots.length === 0) return bad(400, 'template has no components')
-    const normalized = await normalizeSlots(req.payload, slots)
-    const result = await createBuildFromSlots(req.payload, normalized, undefined, req.user)
+    const result = await createBuildFromSlots(req.payload, slots, undefined, req.user)
     if (!result.ok) return result.error
-    // Popularity counts successful uses only — a failed create must not bump it.
-    await req.payload.update({
+    // Popularity counts successful uses only — a failed create must not bump
+    // it. Atomic $inc (audit 2026-10-24): the read-modify-write this replaced
+    // silently dropped concurrent increments.
+    await req.payload.db.updateOne({
       collection: 'build-templates',
       id: template.id,
-      overrideAccess: true,
-      data: { popularity: ((template as { popularity?: number }).popularity ?? 0) + 1 } as never,
-    })
+      data: { popularity: { $inc: 1 } },
+      req,
+    } as never)
     return ok({ buildId: result.doc.id, shareId: result.doc.shareId })
   },
 }
@@ -531,26 +530,71 @@ export const builderStockAlternativesEndpoint: Endpoint = {
   },
 }
 
+interface ImportLookups {
+  categoryBySlugOrName: Map<string, string | number>
+  componentByName: Map<string, string | number>
+}
+
+export const buildImportLookups = async (payload: Payload): Promise<ImportLookups> => {
+  const [categoriesRes, componentsRes] = await Promise.all([
+    payload.find({ collection: 'component-categories', limit: 1000, depth: 0 }),
+    payload.find({ collection: 'components', limit: 10000, depth: 0 }),
+  ])
+  // Same loud-cap policy as HELD_QUERY_LIMIT: crossing the page cap must
+  // never silently truncate the lookup maps.
+  for (const [slug, res] of [
+    ['component-categories', categoriesRes],
+    ['components', componentsRes],
+  ] as const) {
+    if (typeof res.totalDocs === 'number' && res.totalDocs > res.docs.length) {
+      payload.logger.warn(
+        `[rules-import] ${slug} lookup hit its page cap (${res.docs.length}/${res.totalDocs}) — names past the cap will not resolve`,
+      )
+    }
+  }
+  const categoryBySlugOrName = new Map<string, string | number>()
+  for (const doc of categoriesRes.docs as Array<{ id: string | number; slug?: string; name?: string }>) {
+    if (doc.slug) categoryBySlugOrName.set(String(doc.slug).toLowerCase(), doc.id)
+    if (doc.name) categoryBySlugOrName.set(String(doc.name).toLowerCase(), doc.id)
+  }
+  const componentByName = new Map<string, string | number>()
+  for (const doc of componentsRes.docs as Array<{ id: string | number; name?: string }>) {
+    if (doc.name) componentByName.set(String(doc.name).toLowerCase(), doc.id)
+  }
+  return { categoryBySlugOrName, componentByName }
+}
+
 const resolveName = async (
   payload: Payload,
   row: ImportRow,
   errors: string[],
   index: number,
+  lookups?: ImportLookups,
 ): Promise<{ subject: { kind: 'component' | 'category'; id: number | string }; target: { kind: 'component' | 'category'; id: number | string } } | null> => {
   // subject
   let subject: { kind: 'component' | 'category'; id: number | string } | null = null
   if (row.subjectType === 'category') {
     // Accept slug or name: CSV export writes category names (see toCsvRow in
     // RuleManagerView), hand-authored files usually use names.
-    const cat = await payload.find({
-      collection: 'component-categories',
-      where: { or: [{ slug: { equals: row.subject } }, { name: { equals: row.subject } }] },
-      limit: 1,
-    })
-    if (cat.docs[0]) subject = { kind: 'category', id: cat.docs[0].id }
+    const cached = lookups?.categoryBySlugOrName.get(row.subject.toLowerCase())
+    if (cached !== undefined) {
+      subject = { kind: 'category', id: cached }
+    } else {
+      const cat = await payload.find({
+        collection: 'component-categories',
+        where: { or: [{ slug: { equals: row.subject } }, { name: { equals: row.subject } }] },
+        limit: 1,
+      })
+      if (cat.docs[0]) subject = { kind: 'category', id: cat.docs[0].id }
+    }
   } else {
-    const comp = await payload.find({ collection: 'components', where: { name: { equals: row.subject } }, limit: 1 })
-    if (comp.docs[0]) subject = { kind: 'component', id: comp.docs[0].id }
+    const cached = lookups?.componentByName.get(row.subject.toLowerCase())
+    if (cached !== undefined) {
+      subject = { kind: 'component', id: cached }
+    } else {
+      const comp = await payload.find({ collection: 'components', where: { name: { equals: row.subject } }, limit: 1 })
+      if (comp.docs[0]) subject = { kind: 'component', id: comp.docs[0].id }
+    }
   }
   if (!subject) {
     errors.push(`row ${index + 1}: subject "${row.subject}" not found`)
@@ -559,15 +603,25 @@ const resolveName = async (
   // target
   let target: { kind: 'component' | 'category'; id: number | string } | null = null
   if (row.targetType === 'category') {
-    const cat = await payload.find({
-      collection: 'component-categories',
-      where: { or: [{ slug: { equals: row.targetCategory } }, { name: { equals: row.targetCategory } }] },
-      limit: 1,
-    })
-    if (cat.docs[0]) target = { kind: 'category', id: cat.docs[0].id }
+    const cached = lookups?.categoryBySlugOrName.get(row.targetCategory.toLowerCase())
+    if (cached !== undefined) {
+      target = { kind: 'category', id: cached }
+    } else {
+      const cat = await payload.find({
+        collection: 'component-categories',
+        where: { or: [{ slug: { equals: row.targetCategory } }, { name: { equals: row.targetCategory } }] },
+        limit: 1,
+      })
+      if (cat.docs[0]) target = { kind: 'category', id: cat.docs[0].id }
+    }
   } else {
-    const comp = await payload.find({ collection: 'components', where: { name: { equals: row.targetCategory } }, limit: 1 })
-    if (comp.docs[0]) target = { kind: 'component', id: comp.docs[0].id }
+    const cached = lookups?.componentByName.get(row.targetCategory.toLowerCase())
+    if (cached !== undefined) {
+      target = { kind: 'component', id: cached }
+    } else {
+      const comp = await payload.find({ collection: 'components', where: { name: { equals: row.targetCategory } }, limit: 1 })
+      if (comp.docs[0]) target = { kind: 'component', id: comp.docs[0].id }
+    }
   }
   if (!target) {
     errors.push(`row ${index + 1}: target "${row.targetCategory}" not found`)
@@ -580,7 +634,7 @@ export const builderRulesImportEndpoint: Endpoint = {
   path: '/builder/rules/import',
   method: 'post',
   handler: async (req: PayloadRequest) => {
-    if (!requireStaff(req.user)) return bad(401, 'admin or manager role required')
+    if (!requireStaff(req.user)) return roleDenied(req, 'admin or manager role required')
     let body: unknown
     try {
       body = await req.json?.()
@@ -592,8 +646,9 @@ export const builderRulesImportEndpoint: Endpoint = {
     const errors: string[] = []
     const invalid: Array<{ line: number; reason: string }> = []
     const resolvedList: ResolvedImportRow[] = []
+    const lookups = await buildImportLookups(req.payload)
     for (const [index, row] of parsed.data.rows.entries()) {
-      const resolved = await resolveName(req.payload, row, errors, index)
+      const resolved = await resolveName(req.payload, row, errors, index, lookups)
       if (!resolved) {
         invalid.push({ line: index + 1, reason: errors[errors.length - 1] ?? 'row could not be resolved' })
         continue
@@ -607,6 +662,11 @@ export const builderRulesImportEndpoint: Endpoint = {
     }
 
     const existingDocs = await req.payload.find({ collection: 'compatibility-rules', limit: 5000, depth: 0 })
+    if (typeof existingDocs.totalDocs === 'number' && existingDocs.totalDocs > existingDocs.docs.length) {
+      req.payload.logger.warn(
+        `[rules-import] existing-rules read hit its page cap (${existingDocs.docs.length}/${existingDocs.totalDocs}) — dedup may miss rules past the cap`,
+      )
+    }
     const existing: ExistingRuleKey[] = (existingDocs.docs as unknown as Array<Record<string, unknown>>).map((d) => ({
       subjectType: String(d.subjectType ?? ''),
       subjectId: (d.subjectType === 'component' ? d.subjectComponent : d.subjectCategory) as string | number | null,
@@ -627,15 +687,16 @@ export const builderRulesImportEndpoint: Endpoint = {
     const resolvedByLine = new Map(resolvedList.map((r) => [r.line, r]))
     let created = 0
     let skipped = 0
-    for (const entry of diff.entries) {
-      if (entry.action === 'skip') {
-        skipped++
-        continue
-      }
-      if (entry.action === 'error') continue
-      const r = resolvedByLine.get(entry.line)
-      if (!r) continue
-      try {
+    const hasTransaction = await initTransaction(req)
+    try {
+      for (const entry of diff.entries) {
+        if (entry.action === 'skip') {
+          skipped++
+          continue
+        }
+        if (entry.action === 'error') continue
+        const r = resolvedByLine.get(entry.line)
+        if (!r) continue
         await req.payload.create({
           collection: 'compatibility-rules',
           data: {
@@ -656,13 +717,21 @@ export const builderRulesImportEndpoint: Endpoint = {
             message: r.row.message ?? '',
             enabled: r.row.enabled === undefined ? true : r.row.enabled === true || r.row.enabled === 'true',
           } as never,
+          req,
         })
         created++
-      } catch (e) {
-        errors.push(`row ${entry.line}: ${e instanceof Error ? e.message : 'create failed'}`)
       }
+      if (hasTransaction) {
+        await commitTransaction(req)
+      }
+      return ok({ created, skipped, errors })
+    } catch (e) {
+      if (hasTransaction) {
+        await killTransaction(req)
+      }
+      req.payload.logger.error(`rules batch import failed, rolled back: ${e instanceof Error ? e.message : e}`)
+      return bad(500, 'import failed — no rules were saved (see server log)')
     }
-    return ok({ created, skipped, errors })
   },
 }
 
@@ -670,7 +739,7 @@ export const builderStatsEndpoint: Endpoint = {
   path: '/builder/stats',
   method: 'get',
   handler: async (req: PayloadRequest) => {
-    if (!isStaff(req.user as { roles?: string[] | null } | null)) return bad(401, 'staff role required')
+    if (!isStaff(req.user as { roles?: string[] | null } | null)) return roleDenied(req, 'staff role required')
     try {
       return ok(await getBuildStats(req.payload))
     } catch (e) {

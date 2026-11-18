@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { canReuseInflight, draftSignature, shouldApplySavedBuild } from './save-guard'
+import {
+  canReuseInflight,
+  cartViewFor,
+  draftSignature,
+  shouldApplySavedBuild,
+  shouldRename,
+} from './save-guard'
 
 describe('save-guard — entry-55 review M1 race semantics', () => {
   it('#378 shouldApplySavedBuild stamps only when the live draft matches the snapshot', () => {
@@ -24,5 +30,26 @@ describe('save-guard — entry-55 review M1 race semantics', () => {
     expect(draftSignature({})).not.toBe(draftSignature({ cpu: [] }))
     expect(draftSignature({ cpu: ['a'] })).not.toBe(draftSignature({ cpu: ['b'] }))
     expect(draftSignature({ cpu: ['a', 'b'] })).not.toBe(draftSignature({ cpu: ['b', 'a'] }))
+  })
+
+  it('#705 cartViewFor collapses a stale "added" once the draft it describes is gone', () => {
+    // Round-2 audit F2: 'added' outlived the build — after any selection edit
+    // (which clears buildId/shareId) the commission sheet offered no re-add
+    // path and the summary kept saying "Added to cart".
+    expect(cartViewFor('added', true)).toBe('added')
+    expect(cartViewFor('added', false)).toBe('idle')
+    expect(cartViewFor('adding', false)).toBe('adding')
+    expect(cartViewFor('error', false)).toBe('error')
+    expect(cartViewFor('idle', true)).toBe('idle')
+  })
+
+  it('#706 shouldRename gates on a real name change AND an authed user', () => {
+    // The rename PATCH must not run (and the resolved build must not claim
+    // the new name) when the name is unchanged or the save is a guest's.
+    expect(shouldRename({ buildName: 'Old' }, 'New', true)).toBe(true)
+    expect(shouldRename({ buildName: undefined }, 'New', true)).toBe(true)
+    expect(shouldRename({ buildName: 'Old' }, 'Old', true)).toBe(false)
+    expect(shouldRename({ buildName: 'Old' }, '  ', true)).toBe(false)
+    expect(shouldRename({ buildName: 'Old' }, 'New', false)).toBe(false)
   })
 })

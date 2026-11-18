@@ -45,6 +45,10 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   first key-ful boot; prod must migrate *before* setting keys.
 - Inventory decrement lives in `lib/settle-transaction.ts` (entry 13/57)
   — do not add a second decrement path.
+- **€0 checkout re-prices first (audit 2026-11-18 M4)**: `confirm-free`
+  rewrites the cart's own items (beforeChange recomputes subtotal + totals
+  from live discount/shipping/tax) before trusting `total <= 0`; skipped on
+  replay. `customerEmail` must be a valid email (400).
 - **€0 checkout (entry 57)**: `POST /api/carts/:id/confirm-free`
   (10/min/IP, owner-or-secret → 404) settles fully-discounted carts
   without Stripe — requires server `cart.total <= 0` (422), non-empty
@@ -139,8 +143,8 @@ Canonical docs: `docs/buildmyrig-plan/04-collections/commerce.md`,
   (all write-locked at field level). It **fails open** to zeroed totals
   with a warn — a totals hiccup must not break cart writes — and clears
   a discount code that no longer validates.
-- Endpoints: `POST /api/discounts/validate` (stateless, 20/min/IP) and
-  `POST /api/carts/:id/apply-discount` (owner-or-secret → 404; invalid
+- Endpoint: `POST /api/carts/:id/apply-discount` (the anonymous
+  `/api/discounts/validate` oracle was removed — audit 2026-11-18 M2) (owner-or-secret → 404; invalid
   code → 422 with the shared reason; writes only the relationship).
   Never compute totals in an endpoint — write the code, let the hook
   recompute.

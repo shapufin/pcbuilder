@@ -39,6 +39,7 @@ interface BuildStats {
   builds: { total: number; draft: number; addedToCart: number; ordered: number }
   topTemplates: Array<{ id: string; name: string; popularity: number }>
   lowStock: Array<{ id: string; name: string; inventory: number }>
+  categoryDepth?: Array<{ name: string; count: number }>
 }
 
 const eur = (cents: number): string =>
@@ -60,7 +61,12 @@ export const ModernAdminDashboard: React.FC = () => {
     fetch('/api/builder/stats', { credentials: 'same-origin' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data) setStats(data as BuildStats)
+        if (data) {
+          setStats(data as BuildStats)
+          if (Array.isArray(data.categoryDepth) && data.categoryDepth.length > 0) {
+            setCategoryDepth(data.categoryDepth)
+          }
+        }
       })
       .catch(() => {
         // Fallback gracefully if API is warming up
@@ -79,28 +85,21 @@ export const ModernAdminDashboard: React.FC = () => {
       .catch(() => {})
   }, [])
 
-  // Real per-category component counts for the catalog-depth panel.
+  // Single-request catalog depth fallback if not already provided by /api/builder/stats.
   useEffect(() => {
-    fetch('/api/component-categories?limit=100&depth=0&sort=sortOrder', {
-      credentials: 'same-origin',
-    })
+    if (categoryDepth !== null) return
+    fetch('/api/builder/index', { credentials: 'same-origin' })
       .then((res) => (res.ok ? res.json() : null))
-      .then(async (data) => {
-        const cats = (data?.docs ?? []) as Array<{ id: string | number; name: string }>
-        const counts = await Promise.all(
-          cats.map((c) =>
-            fetch(`/api/components?limit=0&depth=0&where[category][equals]=${c.id}`, {
-              credentials: 'same-origin',
-            })
-              .then((r) => (r.ok ? r.json() : null))
-              .then((j) => ({ name: c.name, count: typeof j?.totalDocs === 'number' ? j.totalDocs : 0 }))
-              .catch(() => ({ name: c.name, count: 0 })),
-          ),
-        )
+      .then((index) => {
+        if (!index?.categories || !Array.isArray(index.components)) return
+        const counts = (index.categories as Array<{ id: string; name: string }>).map((c) => ({
+          name: c.name,
+          count: (index.components as Array<{ categoryId: string }>).filter((comp) => comp.categoryId === c.id).length,
+        }))
         setCategoryDepth(counts)
       })
       .catch(() => {})
-  }, [])
+  }, [categoryDepth])
 
   const filterTabs = [
     { id: 'all', label: 'All Sections', count: 4 },

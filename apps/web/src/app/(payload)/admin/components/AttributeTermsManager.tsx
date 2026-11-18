@@ -21,10 +21,56 @@ import {
   DialogTitle,
 } from '../ui'
 
-interface AttributeTerm {
+export interface AttributeTerm {
   id: string | number
   value: string
   displayLabel?: string | null
+}
+
+export async function checkTermVariantUsage(
+  termId: string | number,
+  fetchFn: typeof fetch = fetch,
+): Promise<number> {
+  try {
+    const res = await fetchFn(
+      `/api/variants?where[options.value][equals]=${termId}&limit=1&depth=0`,
+    )
+    if (!res.ok) return 0
+    const data = await res.json()
+    return typeof data.totalDocs === 'number'
+      ? data.totalDocs
+      : Array.isArray(data.docs)
+        ? data.docs.length
+        : 0
+  } catch {
+    return 0
+  }
+}
+
+export async function deleteTermWithGuard(
+  term: AttributeTerm,
+  fetchFn: typeof fetch = fetch,
+): Promise<{ allowed: boolean; variantCount: number; error?: string }> {
+  const count = await checkTermVariantUsage(term.id, fetchFn)
+  if (count > 0) {
+    return { allowed: false, variantCount: count }
+  }
+
+  try {
+    const res = await fetchFn(`/api/attribute-values/${term.id}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) {
+      return { allowed: true, variantCount: 0, error: 'Failed to delete term from server.' }
+    }
+    return { allowed: true, variantCount: 0 }
+  } catch (err) {
+    return {
+      allowed: true,
+      variantCount: 0,
+      error: err instanceof Error ? err.message : 'Network error',
+    }
+  }
 }
 
 export const AttributeTermsManager: React.FC = () => {
@@ -43,7 +89,25 @@ export const AttributeTermsManager: React.FC = () => {
   const [newValue, setNewValue] = useState('')
   const [newLabel, setNewLabel] = useState('')
   const [pendingDelete, setPendingDelete] = useState<AttributeTerm | null>(null)
+  const [checkingUsage, setCheckingUsage] = useState(false)
+  const [variantUsageCount, setVariantUsageCount] = useState<number | null>(null)
   const { toast } = useToast()
+
+  const openDeleteModal = (term: AttributeTerm) => {
+    setPendingDelete(term)
+    setCheckingUsage(true)
+    setVariantUsageCount(null)
+    void checkTermVariantUsage(term.id).then((count) => {
+      setVariantUsageCount(count)
+      setCheckingUsage(false)
+    })
+  }
+
+  const closeDeleteModal = () => {
+    setPendingDelete(null)
+    setCheckingUsage(false)
+    setVariantUsageCount(null)
+  }
 
   const reloadTerms = useCallback(() => {
     if (!docId) return Promise.resolve()
@@ -130,27 +194,30 @@ export const AttributeTermsManager: React.FC = () => {
   }
 
   const handleDeleteTerm = async (term: AttributeTerm) => {
-    const termId = term.id
-    const termValue = term.value
-
     try {
-      const res = await fetch(`/api/attribute-values/${termId}`, {
-        method: 'DELETE',
-      })
-      if (res.ok) {
+      const res = await deleteTermWithGuard(term)
+      if (!res.allowed) {
         toast({
-          title: 'Term Removed',
-          description: `Removed "${termValue}".`,
-          variant: 'info',
-        })
-        setTerms((prev) => prev.filter((t) => t.id !== termId))
-      } else {
-        toast({
-          title: 'Delete Failed',
-          description: 'Failed to delete term from server.',
+          title: 'Deletion Blocked',
+          description: `Cannot remove "${term.value}": it is referenced by ${res.variantCount} active product variant(s).`,
           variant: 'error',
         })
+        return
       }
+      if (res.error) {
+        toast({
+          title: 'Delete Failed',
+          description: res.error,
+          variant: 'error',
+        })
+        return
+      }
+      toast({
+        title: 'Term Removed',
+        description: `Removed "${term.value}".`,
+        variant: 'info',
+      })
+      setTerms((prev) => prev.filter((t) => t.id !== term.id))
     } catch {
       toast({
         title: 'Network Error',
@@ -210,7 +277,7 @@ export const AttributeTermsManager: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setPendingDelete(term)}
+                  onClick={() => openDeleteModal(term)}
                   title={`Remove term ${term.value}`}
                   aria-label={`Remove term ${term.value}`}
                 >
@@ -266,31 +333,42 @@ export const AttributeTermsManager: React.FC = () => {
         </div>
       </CardContent>
 
-      {/* Styled delete confirmation (replaces native window.confirm) */}
-      <Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+      {/* Styled delete confirmation with variant usage safety guard */}
+      <Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && closeDeleteModal()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove Term</DialogTitle>
             <DialogDescription>
-              {pendingDelete
-                ? `Remove term "${pendingDelete.value}"? Products referencing it keep their stored value but lose the label mapping.`
-                : ''}
+              {pendingDelete ? (
+                checkingUsage ? (
+                  'Checking for referencing product variants…'
+                ) : variantUsageCount && variantUsageCount > 0 ? (
+                  `Cannot remove "${pendingDelete.value}": this term is actively referenced by ${variantUsageCount} product variant(s). Deletion is blocked to prevent broken variant configurations. Please reassign or remove the variant options first.`
+                ) : (
+                  `Are you sure you want to remove term "${pendingDelete.value}"? Products referencing it keep their stored value but lose the label mapping.`
+                )
+              ) : (
+                ''
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setPendingDelete(null)}>
-              Cancel
+            <Button variant="outline" size="sm" onClick={closeDeleteModal}>
+              {variantUsageCount && variantUsageCount > 0 ? 'Close' : 'Cancel'}
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                if (pendingDelete) void handleDeleteTerm(pendingDelete)
-                setPendingDelete(null)
-              }}
-            >
-              Remove
-            </Button>
+            {(!variantUsageCount || variantUsageCount === 0) && (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={checkingUsage}
+                onClick={() => {
+                  if (pendingDelete) void handleDeleteTerm(pendingDelete)
+                  closeDeleteModal()
+                }}
+              >
+                Remove
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

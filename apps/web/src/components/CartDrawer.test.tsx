@@ -82,7 +82,7 @@ describe('CartDrawer', () => {
   it('#178b open with an empty cart offers browsing, no checkout link', () => {
     const html = renderToStaticMarkup(<CartDrawerOverlay items={[]} subtotal={0} onClose={() => {}} />)
     expect(html).toContain('Your cart is empty')
-    expect(html).toContain('href="/"')
+    expect(html).toContain('href="/shop"')
     expect(html).not.toContain('href="/checkout"')
   })
 })

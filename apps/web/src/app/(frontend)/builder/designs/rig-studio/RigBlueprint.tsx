@@ -181,8 +181,8 @@ export function RigBlueprint({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
           <linearGradient id="bp-chassis-glass" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: 'var(--color-border-strong)', stopOpacity: 0.25 }} />
-            <stop offset="100%" style={{ stopColor: 'var(--color-bg)', stopOpacity: 0.4 }} />
+            <stop offset="0%" style={{ stopColor: 'var(--color-text)', stopOpacity: 0.06 }} />
+            <stop offset="100%" style={{ stopColor: 'var(--color-bg)', stopOpacity: 0.2 }} />
           </linearGradient>
         </defs>
 

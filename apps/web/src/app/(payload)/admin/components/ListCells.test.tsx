@@ -88,6 +88,38 @@ describe('EntityListCell (#582 - #585)', () => {
     expect(html).toContain('href="/admin/collections/components/7"')
   })
 
+  it('#729 dynamically derives rule title fallback for compatibility rules when title is empty or <No Title>', () => {
+    const html = renderToStaticMarkup(
+      <EntityListCell
+        cellData="<No Title>"
+        rowData={{
+          id: 41,
+          subjectType: 'component',
+          type: 'requires',
+          targetType: 'mobo',
+          field: 'socket',
+          value: 'AM5',
+        }}
+        collectionSlug="compatibility-rules"
+        field={{ name: 'title', type: 'text' } as never}
+      />,
+    )
+    expect(html).toContain('component requires mobo (socket: AM5)')
+    expect(html).toContain('#41')
+  })
+
+  it('#760 keeps a zero threshold in the rule fallback title (audit 2026-11-18 L4)', () => {
+    const html = renderToStaticMarkup(
+      <EntityListCell
+        cellData=""
+        rowData={{ id: 42, subjectType: 'component', type: 'max', targetType: 'gpu', field: 'tdp', value: 0 }}
+        collectionSlug="compatibility-rules"
+        field={{ name: 'title', type: 'text' } as never}
+      />,
+    )
+    expect(html).toContain('(tdp: 0)')
+  })
+
   it('#593 renders the row thumbnail when a gallery/images media object is present', () => {
     const html = renderToStaticMarkup(
       <EntityListCell
@@ -190,5 +222,38 @@ describe('PriceListCell (#588 - #589)', () => {
       />,
     )
     expect(html).toContain('—')
+  })
+})
+
+describe('Workstation Table Standard CSS Contract (#723 - #724)', () => {
+  it('#723 admin.css collapses collection-list gutters and unsets blanket column min-width', async () => {
+    const fs = await import('fs')
+    const path = await import('path')
+    const cssPath = path.resolve(process.cwd(), 'src/app/(payload)/admin.css')
+    const css = fs.readFileSync(cssPath, 'utf8')
+
+    // 1. Gutter collapse
+    expect(css).toContain('.collection-list .collection-list__wrap.gutter')
+    expect(css).toContain('padding-left: 0 !important;')
+    expect(css).toContain('padding-right: 0 !important;')
+
+    // 2. Blanket min-width reset
+    expect(css).toContain('.collection-list thead th {')
+    expect(css).toContain('min-width: unset !important;')
+    expect(css).toContain('.collection-list tbody td {')
+  })
+
+  it('#724 admin.css defines compact widths for select, ID, and status columns', async () => {
+    const fs = await import('fs')
+    const path = await import('path')
+    const cssPath = path.resolve(process.cwd(), 'src/app/(payload)/admin.css')
+    const css = fs.readFileSync(cssPath, 'utf8')
+
+    expect(css).toContain('th#heading-_select')
+    expect(css).toContain('width: 44px !important;')
+    expect(css).toContain('th#heading-_bmrId')
+    expect(css).toContain('width: 64px !important;')
+    expect(css).toContain('th#heading-_bmrStatus')
+    expect(css).toContain('width: 116px !important;')
   })
 })

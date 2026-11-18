@@ -1,3 +1,4 @@
+import { registerBlockRegistry } from './nested'
 import type { ComponentType } from 'react'
 import './blocks.css'
 import { Hero } from './components/Hero'
@@ -22,6 +23,12 @@ import { NexusHero } from '../themes/nexus/blocks/NexusHero'
 import { NexusCategoryMatrix } from '../themes/nexus/blocks/NexusCategoryMatrix'
 import { NexusProductRail } from '../themes/nexus/blocks/NexusProductRail'
 import { NexusSlotExplorer } from '../themes/nexus/blocks/NexusSlotExplorer'
+import { AetherHero } from '../themes/aether/blocks/AetherHero'
+import { AetherProductLab } from '../themes/aether/blocks/AetherProductLab'
+import { AetherLookbook } from '../themes/aether/blocks/AetherLookbook'
+import { AetherTelemetryGrid } from '../themes/aether/blocks/AetherTelemetryGrid'
+import { AetherCalculator } from '../themes/aether/blocks/AetherCalculator'
+import { AetherLoopVisualizer } from '../themes/aether/blocks/AetherLoopVisualizer'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BlockComponent = ComponentType<{ block: any }>
@@ -51,9 +58,19 @@ export const blockRegistry: Record<string, BlockComponent> = {
   nexusCategoryMatrix: NexusCategoryMatrix,
   nexusProductRail: NexusProductRail,
   nexusSlotExplorer: NexusSlotExplorer,
+  // Entry 124 Aether pack — hardware laboratory blocks.
+  aetherHero: AetherHero,
+  aetherProductLab: AetherProductLab,
+  aetherLookbook: AetherLookbook,
+  aetherTelemetryGrid: AetherTelemetryGrid,
+  aetherCalculator: AetherCalculator,
+  aetherLoopVisualizer: AetherLoopVisualizer,
   // Entry 74 — horizontal container primitive.
   columns: Columns,
   trustBadges: TrustBadges,
   bannerCountdown: BannerCountdown,
   reviewsShowcase: ReviewsShowcase,
 }
+
+// Rich-text embeds resolve components through nested.ts (no import cycle).
+registerBlockRegistry(blockRegistry)

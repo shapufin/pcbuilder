@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import {
   Cpu,
   ShoppingCart,
@@ -159,12 +158,17 @@ export const ConfiguredBuildsListHeader: React.FC<ConfiguredBuildsListHeaderProp
             Export CSV
           </Button>
 
-          <Link href="/builder" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm" aria-label="Open Storefront Configurator">
-              <ExternalLink className="bmr-btn-icon" />
-              Configurator ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/builder"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Storefront Configurator"
+          >
+            <ExternalLink className="bmr-btn-icon" />
+            <span>Configurator ↗</span>
+          </Button>
 
           <CreateDocDrawerButton collectionSlug="configured-builds" label="Create Configured Build" />
         </div>

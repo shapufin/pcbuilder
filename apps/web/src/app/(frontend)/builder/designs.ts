@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import dynamic from 'next/dynamic'
-import type { BuilderDesign } from '@buildmyrig/plugin-pc-builder'
+import type { BuilderDesign, BuilderDesignPalette } from '@buildmyrig/plugin-pc-builder'
 import { Configurator } from './configure/Configurator'
 
 /**
@@ -10,8 +10,14 @@ import { Configurator } from './configure/Configurator'
  * scarica lo studio. dynamic() qui è nel module graph client (importato
  * solo da BuilderShell, 'use client') — code-splitting dei client
  * components funziona solo in questo punto, non nei server components.
+ *
+ * Entry 131: BuilderShell passes the registry's `palette` policy down, so a
+ * design never hardcodes which mode it is in.
  */
+export type BuilderDesignProps = { palette?: BuilderDesignPalette }
+
 export const BUILDER_DESIGN_COMPONENTS = {
   classic: Configurator,
   'rig-studio': dynamic(() => import('./designs/rig-studio').then((m) => m.RigStudioDesign)),
-} satisfies Record<BuilderDesign, ComponentType>
+  atelier: dynamic(() => import('./designs/atelier').then((m) => m.AtelierDesign)),
+} satisfies Record<BuilderDesign, ComponentType<BuilderDesignProps>>

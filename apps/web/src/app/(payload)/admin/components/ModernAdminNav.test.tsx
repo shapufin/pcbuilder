@@ -1,12 +1,29 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import React from 'react'
+
+// Audit 2026-11-18 H3: the nav reads identity + permissions from useAuth().
+const everything = new Proxy({}, { get: () => ({ read: true, update: true }) })
+const auth = vi.hoisted(() => ({ state: {} as { user: unknown; permissions: unknown } }))
+// The real @payloadcms/ui barrel imports CSS that node can't load — the nav
+// only needs useAuth from it.
+vi.mock('@payloadcms/ui', () => ({ useAuth: () => auth.state }))
+const signInAs = (user: unknown, permissions: unknown) => {
+  auth.state = { user, permissions }
+}
 import { ModernAdminNav } from './ModernAdminNav'
 import { ModernAdminDashboard } from './ModernAdminDashboard'
 import { AdminHeaderActions } from './AdminHeaderActions'
 import { PluginsManagerView } from './PluginsManagerView'
 
 describe('Modern Admin GUI Overhaul — Components & Contract', () => {
+  beforeEach(() => {
+    signInAs(
+      { email: 'admin@buildmyrig.test', roles: ['admin'] },
+      { collections: everything, globals: everything },
+    )
+  })
+
   it('#458 ModernAdminNav renders 5 domain sections and essential navigation items', () => {
     const html = renderToStaticMarkup(<ModernAdminNav />)
 
@@ -118,6 +135,21 @@ describe('Modern Admin GUI Overhaul — Components & Contract', () => {
     expect(html).toContain('Administrator')
     expect(html).toContain('admin@buildmyrig.test')
     expect(html).toContain('href="/admin/logout"')
+  })
+
+  it('#758 staff see their own identity and only the links their permissions allow (audit 2026-11-18 H3)', () => {
+    signInAs(
+      { email: 'staff@buildmyrig.test', roles: ['staff'] },
+      { collections: { orders: { read: true }, products: { read: true } }, globals: { theme: { read: true } } },
+    )
+    const html = renderToStaticMarkup(<ModernAdminNav />)
+    expect(html).toContain('staff@buildmyrig.test')
+    expect(html).not.toContain('admin@buildmyrig.test')
+    expect(html).not.toContain('Administrator')
+    expect(html).toContain('href="/admin/collections/orders"')
+    expect(html).not.toContain('href="/admin/collections/transactions"')
+    expect(html).not.toContain('href="/admin/collections/users"')
+    expect(html).not.toContain('href="/admin/plugins"')
   })
 
   it('#484 ModernAdminNav renders ⌘K command palette trigger in search box (Phase 5 Shell)', () => {

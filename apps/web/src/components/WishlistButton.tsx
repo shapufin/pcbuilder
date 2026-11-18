@@ -1,5 +1,6 @@
 'use client'
 
+import { Heart } from 'lucide-react'
 import { useWishlist, useWishlistHydration, type WishlistItem } from '@/lib/wishlist-store'
 
 /** Product page heart toggle (localStorage-first wishlist, entry 18 Step A). */
@@ -14,7 +15,15 @@ export function WishlistButton({ item }: { item: WishlistItem }) {
       onClick={() => toggle(item)}
       className={`btn btn--secondary btn--full wishlist-toggle${saved ? ' wishlist-toggle--saved' : ''}`}
     >
-      {saved ? '♥ Saved to wishlist' : '♡ Save to wishlist'}
+      {saved ? (
+        <>
+          <Heart size={15} aria-hidden fill="currentColor" /> Saved to wishlist
+        </>
+      ) : (
+        <>
+          <Heart size={15} aria-hidden /> Save to wishlist
+        </>
+      )}
     </button>
   )
 }

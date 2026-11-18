@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { RichText as LexicalRichText } from '@payloadcms/richtext-lexical/react'
 import { lexicalEmbedBlockSlugs } from '@buildmyrig/plugin-pages'
 import { buildLexicalBlockConverters, lexicalRichTextConverters } from './lexical-converters'
+import { blockRegistry } from './registry'
+import { registerBlockRegistry } from './nested'
+
+// Embeds resolve through the late-bound registry seam (audit 2026-11-18 R6).
+registerBlockRegistry(blockRegistry)
 
 vi.mock('./registry', async () => {
   const { jsx } = await import('react/jsx-runtime')

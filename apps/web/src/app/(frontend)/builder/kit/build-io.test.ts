@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BuilderIndex } from '@buildmyrig/lib'
-import { buildManifest, parseBuildJson, serializeBuild } from './build-io'
+import { buildManifest, buildSubItems, parseBuildJson, serializeBuild } from './build-io'
 
 /**
  * Design kit #329+ — manifest Deploy, export serializzato (slug, JSON-safe)
@@ -136,5 +136,17 @@ describe('build-io', () => {
       .toEqual({ error: 'gpu-1 does not belong to slot cpu' })
     expect(parseBuildJson('{bad json', index)).toEqual({ error: 'Invalid JSON' })
     expect(parseBuildJson({ name: 'x' }, index)).toEqual({ error: 'Missing the slot list' })
+  })
+
+  it('#707 buildSubItems drops stale selection ids instead of posting component:""', () => {
+    // Round-2 audit F6: a selection pointing at a deleted catalog component
+    // produced {component: ''} — the endpoint rejected it with a generic 400.
+    // Same contract as buildManifest: missing entries are skipped.
+    const cpu = index.components[0]
+    const rows = [{ entry: cpu }, { entry: undefined }]
+    expect(buildSubItems(rows)).toEqual([
+      { component: cpu.id, quantity: 1, name: 'Part cpu-1' },
+    ])
+    expect(buildSubItems([{ entry: undefined }])).toEqual([])
   })
 })

@@ -10,6 +10,10 @@ import type { Block } from 'payload'
 export const NexusSlotExplorerBlock: Block = {
   slug: 'nexusSlotExplorer',
   interfaceName: 'NexusSlotExplorerBlock',
+  labels: {
+    singular: 'Nexus Slot Explorer',
+    plural: 'Nexus Slot Explorers',
+  },
   admin: { group: 'Nexus' },
   fields: [
     { name: 'eyebrow', type: 'text', maxLength: 120 },
@@ -18,8 +22,14 @@ export const NexusSlotExplorerBlock: Block = {
     {
       name: 'slots',
       type: 'array',
-      label: 'Slot product overrides',
-      admin: { description: 'Optional — leave empty to use the first published product per slot category.' },
+      labels: {
+        singular: 'Slot Product Override',
+        plural: 'Slot Product Overrides',
+      },
+      admin: {
+        initCollapsed: true,
+        description: 'Optional — leave empty to use the first published product per slot category.',
+      },
       fields: [
         {
           name: 'slot',

@@ -11,11 +11,13 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   registers because Lexical `BlocksFeature` boot-resolves slugs), and
   wraps mini-plugins `plugins/seo-fields.ts` +
   `plugins/category-top-blocks.ts`.
-- 22 block configs in `packages/plugin-pages/src/blocks/` (one file
+- 26 block configs in `packages/plugin-pages/src/blocks/` (one file
   each + `slugs.ts` literal lists + `definitions.ts` assembler;
   `rich-text.ts` exports `richTextFeatures`). Entry 71 added the four
   `nexus*` blocks; Entry 74 added `columns`; Entry 79 added `trustBadges`,
-  `bannerCountdown`, and `reviewsShowcase` (`admin.group: 'Commerce'`).
+  `bannerCountdown`, and `reviewsShowcase` (`admin.group: 'Commerce'`);
+  Entry 124 added four `aether*` blocks (`aetherHero`, `aetherProductLab`,
+  `aetherLookbook`, `aetherTelemetryGrid`).
 - Layout uses **references, not embeds**: `blocks: []` +
   `blockReferences` + **`filterOptions` as the server-side allow-list**
   (verified in payload's `validateBlocksFilterOptions`; pinned by #156).
@@ -38,6 +40,13 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   renders "unknown node" (entry-22 HIGH F1; regression test `#155`).
   Wrapper: `lexicalRichTextConverters` in
   `apps/web/src/blocks/lexical-converters.tsx`.
+
+## Component Doctrine & Accessibility Contract
+
+- **Never wrap `<Button>` in `<Link>`**: always use `<Button href="...">`.
+  Wrapping `<Button>` in Next.js `<Link>` produces nested interactive elements (`<a><button>...</button></a>`)
+  which violates HTML5 specification and WCAG 2.2 accessibility, leading to hydration mismatches and broken click events.
+  The design system `Button` component is polymorphic and renders an accessible `<Link>` when `href` is provided.
 
 ## Theme system
 
@@ -62,15 +71,14 @@ Canonical docs: `docs/buildmyrig-plan/10-blocks-pages.md`,
   → `<style id="theme-skin">` after the vars; layout calls the
   single-fetch `getThemeAssets()` (all never-throw → defaults/`''`).
   Adding a design = registry entry + optional skin file.
-- **Theme packs (entry 71)**: `ThemePresetDef.pack?: string` — preset
-  `nexus` carries `pack: 'nexus'`; `getThemeAssets()` propagates it and
-  `(frontend)/layout.tsx` sets `body[data-theme-pack]` + swaps chrome to
-  `NexusHeader`/`NexusFooter` when `pack === 'nexus'`. Nexus ships TWO
-  CSS layers: skin `packages/ui/skins/nexus.css` (shared surfaces —
-  dies with the visitor alt-toggle by design) + always-bundled
-  `apps/web/src/themes/nexus/nexus.css` for `nx-*` component styles
-  (token-only, `color-mix` glows → light alt yields a light Nexus).
-  Design doc: `docs/buildmyrig-plan/21-nexus-theme-design.md`.
+- **Theme packs (entries 71, 124)**: `ThemePresetDef.pack?: string` — presets
+  `nexus` and `aether` carry `pack: 'nexus'` / `pack: 'aether'`; `getThemeAssets()`
+  propagates it and `(frontend)/layout.tsx` sets `body[data-theme-pack]` + swaps
+  chrome to `NexusHeader`/`NexusFooter` or `AetherHeader`/`AetherFooter`.
+  Aether pack ships `packages/ui/skins/aether.css` (shared surfaces) +
+  always-bundled `apps/web/src/themes/aether/aether.css` for `ae-*` luxury lab styles
+  (amber/gold + cyan telemetry accents, precision hairlines, search dialog).
+  Admin GUI also gains matching `aether-foundry` theme via `[data-admin-theme="aether-foundry"]`.
 - **Mega-menu + announcements (entry 71)**: `mega-menu` global
   (`globals/MegaMenu.ts` + `lib/mega-menu.ts` resolver — closed icon
   set, `isSafeNavLinkUrl`, default fallback) feeds the Nexus catalog
@@ -205,6 +213,15 @@ data-table standard. Read it before touching any admin component.
   (`useRowLabel()`); package tsconfig carries `"jsx": "react-jsx"` +
   `react`/`@types/react` devDeps (mirror pc-builder; `@payloadcms/ui`
   resolves transitively).
+- **ThemeColorStudio DOM-sync is an accepted workaround (round-2 audit F3)**:
+  `syncColorsToPayloadForm` also writes preset colors into the mounted DOM
+  inputs via the native value setter + synthetic `input`/`change` events.
+  That is the ONLY working path to flip Payload's dirty state on the
+  `site-settings` global — custom field components there get no form context
+  (`useField` throws during SSR, `useFormFields` → `{}`, `dispatch` is a
+  no-op; verified with a `ui`-field probe, entry 131 round-1c). Do not
+  "clean up" this pattern unless the global gets a real form-bound field —
+  the DOM path is what enables `#action-save`.
 
 ## Verify
 
@@ -213,3 +230,18 @@ data-table standard. Read it before touching any admin component.
 - Live probe: admin PATCH theme → storefront shows override after ISR
   window (`/` = 60 s; first post-expiry fetch can serve stale-while-
   revalidate).
+
+## Audit 2026-11-18 rules (entry 139)
+
+- **Nested blocks go through `blocks/nested.ts`** (`renderNested`, `getBlockRegistry`). Leaf
+  blocks (Columns, Section, RichText, lexical converters) must never import
+  `renderBlocks`/`resolveBlock`/`registry` — that formed 3 module cycles (#764 guards it).
+  Tests rendering a container alone must `import '../renderBlocks'` to register the renderer.
+- **Pack-bound blocks** (`aether*`) rendered under another pack get a `display: contents`
+  `[data-block-pack="aether"]` scope that re-exposes `--ae-*` (#777–778). Nexus vars are
+  global. A new pack whose vars are pack-scoped must join `SCOPED_PACKS` in `renderBlocks.tsx`.
+- **No Tailwind**: bare utility classes fail `no-tailwind-classes.test.ts` (#761). Aether's
+  `aether-utilities.css` (`ae-u-*`) is a generated, token-only port — prefer semantic `ae-*`.
+- **Every fallback-less `var(--x)` must resolve** (`css-undefined-vars.test.ts`, #763):
+  weights are `--weight-*`, durations `--duration-*`, containers `--container`/`-wide`/`-narrow`.
+- Grid floors use `minmax(min(Npx, 100%), 1fr)` — a bare px floor overflows 280px phones.

@@ -32,6 +32,7 @@ const LIST_CELL_MAP: Record<string, Record<string, string>> = {
   'component-categories': { name: ENTITY, slug: CHIP },
   'build-templates': { name: ENTITY, basePrice: PRICE },
   'configured-builds': { name: ENTITY, priceSnapshot: PRICE },
+  'compatibility-rules': { title: ENTITY },
 }
 
 /**
@@ -105,6 +106,21 @@ const walkFields = (fields: LooseField[], targets: Record<string, string>): void
 }
 
 /**
+ * Cell specifier for an injected virtual column. The row actions cell needs to
+ * know whether the collection is trash-enabled, but Payload strips `trash`
+ * from the client config (`ClientCollectionConfig`), so it cannot look it up
+ * at runtime — hand it over as a client prop, which Payload merges into the
+ * component's props (`RenderServerComponent`).
+ */
+const cellFor = (
+  collection: CollectionConfig,
+  virtual: { cell: string; name: string },
+): string | { path: string; clientProps: Record<string, unknown> } =>
+  virtual.name === VIRTUAL_COLUMN_FIELDS.actions.name
+    ? { path: virtual.cell, clientProps: { trash: collection.trash === true } }
+    : virtual.cell
+
+/**
  * Mutates the collections in-place: targeted fields gain
  * `admin.components.Cell` specifiers pointing at the elevated table cells
  * (`admin/components/{EntityListCell,CodeChipCell,PriceListCell}`).
@@ -128,7 +144,7 @@ export const applyListCellElevation = (collections: CollectionConfig[]): void =>
             name: virtual.name,
             type: 'ui',
             label: virtual.label,
-            admin: { components: { Cell: virtual.cell } },
+            admin: { components: { Cell: cellFor(collection, virtual) } },
           })
         }
       }
@@ -168,6 +184,7 @@ const LIST_HEADER_SLUGS = [
   'pages',
   'variants',
   'transactions',
+  'compatibility-rules',
 ] as const
 
 /**

@@ -1,22 +1,24 @@
 'use client'
 
-import type { EngineResult } from '@buildmyrig/lib'
+import type { SelectionIssue } from '@buildmyrig/lib'
 
-interface Props {
-  result: EngineResult
-}
-
-export function WarningsPanel({ result }: Props) {
-  const warnings = [...result.warnings, ...result.powerWarnings]
+/**
+ * Build-level warnings (entry 131). Callers pass `validateSelections(...).warnings`
+ * for the CURRENT picks — not `result.warnings`, which is the per-CANDIDATE
+ * badge dataset (a `warns` rule flags every candidate in the category, so a
+ * full build printed 8 "warnings" where only 2 applied).
+ *
+ * Prop-driven on purpose: the panel renders both inside the BuilderProvider
+ * (classic rail) and outside it (summary page, which owns its own engine).
+ */
+export function WarningsPanel({ warnings }: { warnings: SelectionIssue[] }) {
   if (warnings.length === 0) return null
   return (
     <div className="warnings" role="status">
       {warnings.map((w, i) => (
         <div
-          key={`${w.ruleId}-${w.componentIdA}-${w.componentIdB}-${i}`}
-          className={`warning-item${
-            w.severity === 'info' ? ' warning-item--info' : w.severity === 'error' ? ' warning-item--error' : ''
-          }`}
+          key={`${w.ruleId}-${i}`}
+          className={`warning-item${w.severity === 'error' ? ' warning-item--error' : ''}`}
         >
           {w.message}
         </div>

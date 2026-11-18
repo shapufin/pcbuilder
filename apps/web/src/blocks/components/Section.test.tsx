@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { Section } from './Section'
+// Nested rendering is late-bound (audit 2026-11-18 R6): loading the renderer
+// registers it, exactly as PageRenderer does in the app.
+import '../renderBlocks'
 
 vi.mock('../registry', async () => {
   const { jsx } = await import('react/jsx-runtime')

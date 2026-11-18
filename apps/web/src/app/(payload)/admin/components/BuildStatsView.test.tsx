@@ -81,7 +81,13 @@ describe('BuildStatsView (#530 - #534)', () => {
   it('#534 renders export funnel action button and refresh telemetry trigger', () => {
     const html = renderToStaticMarkup(<BuildStatsView />)
     expect(html).toContain('Export Funnel')
-    expect(html).toContain('Refresh') // 'Refreshing…' while loading, 'Refresh Telemetry' idle
+    expect(html).toContain('Refresh') // 'Refreshing...' while loading, 'Refresh Telemetry' idle
     expect(html).toContain('RIG Studio Build Analytics')
+  })
+
+  it('#535 renders skeleton loaders on KPI metric cards when loading', () => {
+    const html = renderToStaticMarkup(<BuildStatsView />)
+    expect(html).toContain('bmr-skeleton')
+    expect(html).toContain('bmr-metric-card--loading')
   })
 })

@@ -33,6 +33,13 @@ export const pageBlockSlugs: BlockSlug[] = [
   'nexusCategoryMatrix',
   'nexusProductRail',
   'nexusSlotExplorer',
+  // Entry 124 & 125 (Aether pack) — high-compute hardware laboratory blocks.
+  'aetherHero',
+  'aetherProductLab',
+  'aetherLookbook',
+  'aetherTelemetryGrid',
+  'aetherCalculator',
+  'aetherLoopVisualizer',
   // Entry 74 — columns container (2–4 side-by-side block stacks).
   'columns',
   // Marketing & Commerce blocks

@@ -77,5 +77,13 @@ describe('PluginsManagerView Primitive Refactor (Phase 2)', () => {
     expect(html).toContain('bmr-filter-pills')
     expect(html).toContain('bmr-filter-pill--active')
   })
+
+  it('#503 SYSTEM_PLUGINS defines required feature keys and modules', () => {
+    const html = renderToStaticMarkup(<PluginsManagerView />)
+    expect(html).toContain('Discount Codes')
+    expect(html).toContain('Customer Reviews')
+    expect(html).toContain('Inventory Reservations')
+    expect(html).toContain('Dynamic Tax Rates')
+  })
 })
 

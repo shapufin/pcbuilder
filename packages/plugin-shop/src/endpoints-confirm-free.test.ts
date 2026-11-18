@@ -163,6 +163,30 @@ describe('POST /api/carts/:id/confirm-free', () => {
     expect(store.carts[0].purchasedAt).toBeUndefined()
   })
 
+  it('#740 re-prices the cart before trusting total — a stale stored €0 is not free (audit 2026-11-18 M4)', async () => {
+    const { payload, store } = makePayload({ carts: [freeCart()] })
+    // Simulate the cart beforeChange hook on the re-price write: an admin
+    // lowered the discount after it was applied, so live totals are > 0.
+    const realUpdate = payload.update
+    payload.update = vi.fn(async (args: any) =>
+      args.collection === 'carts' && args.data?.items
+        ? { ...store.carts[0], ...args.data, discountTotal: 500, total: 4_500 }
+        : realUpdate(args),
+    )
+    const res = await call(payload, { body: { secret: 's3cret' } })
+    expect(res.status).toBe(422)
+    expect(payload.update).toHaveBeenCalledWith(expect.objectContaining({ collection: 'carts', id: 3 }))
+    expect(store.transactions).toHaveLength(0)
+    expect(store.orders).toHaveLength(0)
+  })
+
+  it('#741 rejects a non-email customerEmail with 400 (audit 2026-11-18 L3)', async () => {
+    const { payload, store } = makePayload({ carts: [freeCart()] })
+    const res = await call(payload, { body: { secret: 's3cret', customerEmail: 'abc' } })
+    expect(res.status).toBe(400)
+    expect(store.transactions).toHaveLength(0)
+  })
+
   it('#384 rejects an empty cart with 422', async () => {
     const { payload, store } = makePayload({ carts: [freeCart({ items: [] })] })
     const res = await call(payload, { body: { secret: 's3cret' } })

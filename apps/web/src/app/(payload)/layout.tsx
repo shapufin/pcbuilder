@@ -7,6 +7,10 @@ import { AdminThemeSync } from './admin/components/AdminThemeSync'
 import { getSiteSettings } from '@/lib/site-settings.server'
 import { ToastProvider, CommandPalette } from './admin/ui'
 import '@payloadcms/next/css'
+// Shared design tokens (--space-*, --text-*, --radius-*, --duration-*,
+// --color-*). The admin skin reads the same scale as the storefront; without
+// this import every tokenised value in admin.css resolved to nothing.
+import '@buildmyrig/ui/tokens.css'
 import './admin.css'
 import './admin/ui/ui.css'
 

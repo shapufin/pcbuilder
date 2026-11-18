@@ -65,7 +65,7 @@ BuildSummaryPage
 
 ## 4. Cart & checkout
 
-`/cart`: `CartDrawer` + `CartTable` (standard lines, composite lines expandable to sub-items), quantity steppers, discount field (`POST /api/discounts/validate`), totals from server response. `/checkout`: Stripe hosted checkout (session created by `POST /api/checkout`); address entered at Stripe. `/order/confirmation/[id]`: order recap, status=pending until webhook confirms (polls once).
+`/cart`: `CartDrawer` + `CartTable` (standard lines, composite lines expandable to sub-items), quantity steppers, discount field (`POST /api/carts/:id/apply-discount`), totals from server response. `/checkout`: Stripe hosted checkout (session created by `POST /api/checkout`); address entered at Stripe. `/order/confirmation/[id]`: order recap, status=pending until webhook confirms (polls once).
 
 ## 5. Shop screens
 

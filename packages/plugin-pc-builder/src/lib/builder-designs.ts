@@ -6,10 +6,40 @@
  * endpoints) is shared across all designs — only presentation swaps.
  * Adding a design = entry here + a designs/<slug>/ dir + registry entry.
  */
+export type BuilderDesignPalette = 'inherit' | 'accent'
+
+export type BuilderDesignDef = {
+  label: string
+  /** One-liner shown in the admin picker / docs. */
+  description: string
+  /**
+   * How the design consumes the site theme (entry 131). 'inherit' = every
+   * color is a --color-* token, so an admin theme edit repaints the design
+   * wholesale. 'accent' = same surfaces/text, plus the design's own --bd-*
+   * elevation/line ramp (packages/lib builder-palette) derived from the live
+   * theme vars — that is how a mockup keeps its contrast ladder without
+   * freezing the theme out.
+   */
+  palette: BuilderDesignPalette
+}
+
 export const BUILDER_DESIGNS = {
-  classic: { label: 'Classic wizard' },
-  'rig-studio': { label: 'RIG Studio' },
-} satisfies Record<string, { label: string }>
+  classic: {
+    label: 'Classic wizard',
+    description: 'Step-by-step wizard: one category per step, sticky build rail and price summary.',
+    palette: 'inherit',
+  },
+  'rig-studio': {
+    label: 'RIG Studio',
+    description: 'CAD console: component bay, blueprint canvas, telemetry cards and matrix view.',
+    palette: 'accent',
+  },
+  atelier: {
+    label: 'Atelier',
+    description: 'Editorial studio: vector rig stage, numbered spec sheet and an architectural blueprint screen.',
+    palette: 'accent',
+  },
+} satisfies Record<string, BuilderDesignDef>
 
 export type BuilderDesign = keyof typeof BUILDER_DESIGNS
 
@@ -17,7 +47,7 @@ export type BuilderDesign = keyof typeof BUILDER_DESIGNS
 export const DEFAULT_BUILDER_DESIGN: BuilderDesign = 'rig-studio'
 
 export const builderDesignOptions = (): Array<{ label: string; value: BuilderDesign }> =>
-  (Object.entries(BUILDER_DESIGNS) as Array<[BuilderDesign, { label: string }]>).map(
+  (Object.entries(BUILDER_DESIGNS) as Array<[BuilderDesign, BuilderDesignDef]>).map(
     ([value, def]) => ({ label: def.label, value }),
   )
 

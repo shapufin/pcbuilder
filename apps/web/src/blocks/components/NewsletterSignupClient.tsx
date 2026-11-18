@@ -38,7 +38,9 @@ export function NewsletterSignupClient({
       <h2 className="blk__title">{heading ?? 'Get build deals in your inbox'}</h2>
       {consent ? <p className="blk__lead">{consent}</p> : null}
       {state === 'done' ? (
-        <p className="state-msg state-msg--success">Thanks — check your inbox to confirm.</p>
+        <p className="state-msg state-msg--success" role="status" aria-live="polite">
+          Thanks — check your inbox and click the link to confirm your subscription.
+        </p>
       ) : (
         <form onSubmit={submit} className="newsletter__form">
           <input

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCart } from '@payloadcms/plugin-ecommerce/client/react'
+import { X } from 'lucide-react'
 import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { drawerMotion, prefersReducedMotion } from '@/lib/motion'
 import { Price } from '@/components/ui/Price'
@@ -66,12 +67,16 @@ export function CartDrawerOverlay({
     // Stash the opener: unmounting the dialog drops focus to <body> unless
     // it's explicitly restored (same contract as MobileNav).
     const restoreTo = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKeyDown)
     closeRef.current?.focus()
     return () => {
+      document.body.style.overflow = prevOverflow
       window.removeEventListener('keydown', onKeyDown)
       restoreTo?.focus()
     }
@@ -104,12 +109,12 @@ export function CartDrawerOverlay({
             aria-label="Close cart"
             className="cart-drawer__close"
           >
-            ✕
+            <X size={18} aria-hidden />
           </button>
         </div>
 
         {items.length > 0 && (
-          <div style={{ padding: '0 var(--space-4) var(--space-2)' }}>
+          <div className="cart-drawer-x-1">
             <FreeShippingMeter currentTotalCents={subtotal} />
           </div>
         )}
@@ -117,7 +122,7 @@ export function CartDrawerOverlay({
         {items.length === 0 ? (
           <p className="cart-drawer__empty">
             Your cart is empty.{' '}
-            <Link href="/" onClick={onClose}>
+            <Link href="/shop" onClick={onClose}>
               Browse products
             </Link>
           </p>

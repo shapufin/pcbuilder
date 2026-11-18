@@ -21,13 +21,13 @@ const resolveBadge = (product: CardProduct): { label: string; type: string } | n
   if (!product.badgeType || product.badgeType === 'none') return null
   switch (product.badgeType) {
     case 'hot':
-      return { label: '🔥 HOT', type: 'hot' }
+      return { label: 'HOT', type: 'hot' }
     case 'new':
-      return { label: '✨ NEW', type: 'new' }
+      return { label: 'NEW', type: 'new' }
     case 'sale':
-      return { label: '⚡ SALE', type: 'sale' }
+      return { label: 'SALE', type: 'sale' }
     case 'bestseller':
-      return { label: '⭐ BESTSELLER', type: 'bestseller' }
+      return { label: 'BESTSELLER', type: 'bestseller' }
     case 'custom':
       return product.customBadgeText?.trim() ? { label: product.customBadgeText.trim(), type: 'custom' } : null
     default:

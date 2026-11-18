@@ -4,7 +4,7 @@ import { getPayloadClient } from '@/lib/shop'
 const TemplatesCarouselClient = dynamic(
   () => import('./TemplatesCarouselClient').then((m) => m.TemplatesCarouselClient),
   {
-    loading: () => <div className="blk" style={{ minHeight: 280 }} />,
+    loading: () => <div className="blk tpl-carousel-x-1" />,
   },
 )
 

@@ -50,6 +50,13 @@ describe('LIST_HEADER_REGISTRY (#595 - #596)', () => {
       expect(`${urls} ${wheres}`, slug).not.toContain('_status')
     }
   })
+
+  it('#602 compatibility-rules entry is registered and links to Rule Manager', () => {
+    const entry = LIST_HEADER_REGISTRY['compatibility-rules']
+    expect(entry).toBeDefined()
+    expect(entry?.title).toBe('Compatibility Rules Registry')
+    expect(entry?.actions?.some((a) => a.href === '/admin/compatibility-rules-manager')).toBe(true)
+  })
 })
 
 describe('RegistryListHeader (#597 - #598)', () => {

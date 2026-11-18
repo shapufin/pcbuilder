@@ -10,7 +10,15 @@ import { useCartDrawerStore } from '@/lib/cart-drawer-store'
 import { useBuilderStore } from '../builder-store'
 import { addSavedRef, loadSavedRefs, storeSavedRefs } from './saved-refs'
 import { copyText } from './clipboard'
-import { canReuseInflight, draftSignature, shouldApplySavedBuild } from './save-guard'
+import { buildSubItems } from './build-io'
+import {
+  canReuseInflight,
+  cartViewFor,
+  draftSignature,
+  shouldApplySavedBuild,
+  shouldRename,
+  type CartView,
+} from './save-guard'
 import { persistCartHandle, resolveCartHandle } from './cart-ensure'
 
 export type SavedBuild = { buildId: string; shareId: string; name?: string }
@@ -21,7 +29,9 @@ export type SavedBuild = { buildId: string; shareId: string; name?: string }
 export interface BuildActionStatus {
   saveState: 'idle' | 'saving' | 'saved' | 'error'
   saveView: 'idle' | 'saving' | 'saved' | 'error'
-  cartState: 'idle' | 'adding' | 'added' | 'error'
+  /** What designs render — 'added' collapses to 'idle' once the draft it
+   *  described is gone (round-2 audit F2). The raw cartState is internal. */
+  cartView: CartView
   shareState: 'idle' | 'copied'
   cartLoading: boolean
 }
@@ -60,6 +70,10 @@ export function useBuildActions(index: BuilderIndex | null) {
   // A selection change clears the store's draft ref (#93), so a lingering
   // 'saved' flag refers to a build the no longer matches — show idle instead.
   const saveView = saveState === 'saved' && !savedBuild ? 'idle' : saveState
+  // Same staleness rule for 'added' (round-2 audit F2): after the draft moved
+  // on, the flag described a cart line for a build that no longer exists and
+  // left the commission flow with no re-add path.
+  const cartView = cartViewFor(cartState, savedBuild !== null)
 
   const categories = useMemo(
     () => (index ? [...index.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
@@ -94,7 +108,10 @@ export function useBuildActions(index: BuilderIndex | null) {
       }
       // Rename path: saving an already-saved draft with a name PATCHes the
       // doc (owner-scoped update; name-only writes skip slots validation).
-      if (trimmedName && trimmedName !== live.buildName && user) {
+      // Best-effort: the resolved build reports the PERSISTED name — on a
+      // rejected PATCH the store keeps the old one, so claiming trimmedName
+      // here would tell callers a name the server refused (round-2 F5).
+      if (shouldRename(live, trimmedName, Boolean(user))) {
         void (async () => {
           try {
             const res = await fetch(`/api/configured-builds/${live.buildId}`, {
@@ -107,7 +124,6 @@ export function useBuildActions(index: BuilderIndex | null) {
             /* best-effort rename — the draft itself is already saved */
           }
         })()
-        return Promise.resolve({ ...existing, name: trimmedName })
       }
       return Promise.resolve(existing)
     }
@@ -206,11 +222,7 @@ export function useBuildActions(index: BuilderIndex | null) {
       setCartState('error')
       return false
     }
-    const subItems = rows.map(({ entry }) => ({
-      component: entry?.id ?? '',
-      quantity: 1,
-      name: entry?.display?.name ?? entry?.id ?? 'Part',
-    }))
+    const subItems = buildSubItems(rows)
     try {
       const headers = { 'Content-Type': 'application/json' }
       // Entry-23 review F2: the plugin's context value omits `cartID`, so the
@@ -305,7 +317,7 @@ export function useBuildActions(index: BuilderIndex | null) {
     clearSavedBuild,
     saveState,
     saveView,
-    cartState,
+    cartView,
     shareState,
     cartLoading,
   }

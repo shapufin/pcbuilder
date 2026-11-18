@@ -92,9 +92,11 @@ Codex read `AGENTS.md` natively. `workflow:check` fails if a pointer drifts.
   `sessions.jsonl` (gitignored JSONL). Hook-less tools follow the
   contract manually; the ledger answers "what changed" on resume.
 
-## Current status (2026-10-10)
+## Current status (2026-11-18)
 
 Phases 0–3, 5 done; Phase 4 hardening complete; CI all-8-gates green.
+Latest: full-app audit (entry 139, `docs/audits/full-app-2026-11-18/`) —
+batches A–D fixed on branch `audit/full-app-2026-11-18`.
 "Precision Dark" frontend redesign committed + pushed. The gap register is
 fully resolved (all 7 blocking items fixed; all minor items closed or declared).
 Recent rounds: entries 88–91 (perf ISR, admin hydration, GUI design spec,
@@ -109,41 +111,14 @@ Detail: `docs/buildmyrig-plan/18-progress-log.md`.
 Last 1–2 dates stay here; older entries live in
 `.devin/tracking/agents-archive-2026-10.md` (entries 1–24 + rotated
 25–51 verbatim).
-Tests numbered cumulatively (#1–#647 + e2e; per-package counts in 05).
+Tests numbered cumulatively (#1–#778 + e2e; per-package counts in 05).
 
-16. **Entry 123** — **Claim CAS Hardening (VERIFY-001 Closed)**:
-    `POST /api/builder/builds/claim` upgraded to atomic CAS `update` with
-    `where: { and: [{ id }, { or: [{ user: exists false }, { user: null }] }] }`.
-    Race re-check guarantees safe 403 on foreign claim or 200 idempotent for own.
-    Test #86b added. Lib 86 / shop 163 / pc-builder 118 / web 422 green, tc+lint 0.
-15. **Entry 122** — **Admin GUI & Backend Audit**: Full 60-route crawl
-    (all 6 custom views, 4 globals, 20 collections across list/create/edit)
-    via `admin-crawl.spec.ts` (added `/admin/design-system` custom view);
-    new `admin-workflows.spec.ts` testing 5 interactive browser workflows
-    (Rule Sandbox, Product SERP sync, Attribute Terms, Theme toggle, Facets).
-    0 route errors (HTTP/page/console); unit 422 web, tc+lint 0, e2e clean.
-12. **Entry 120** — **Money-format unification**: `formatEUR(cents|null)`
-   promoted to `packages/lib` (`money.ts`, Intl en-IE, null-safe); `Price.tsx`
-   re-exports it, `templates.ts` re-exports as `formatEur`, 3 admin headers'
-   inline copies replaced — five impls → one. Backlog item 1 closed.
-   #645–#647; lib 83 / plugin-shop 166 / web 422 unit green, tc+lint 0.
-13. **Entry 119** — **Graphify rebuild + architecture audit**: 3 546 nodes /
-    7 778 edges / 215 communities on 639 files; package bridges verified
-    (`BuilderIndex` shared spine, `pagesPlugin`→config, `shopPlugin`→checkout
-    Path A). Two refactor findings → `17-assumptions-backlog.md`: unify
-    `formatEUR`/`formatEur` in `packages/lib`; relocate `sendResendEmail` out of
-    plugin-shop. `getPayloadClient()` flagged 61-edge chokepoint.
-14. **Entry 121** — **Mailer relocation**: `sendResendEmail` →
-    `packages/lib/src/mail.ts` behind new `@buildmyrig/lib/server`
-    subpath (`.` entry stays browser-pure); `emails/resend.ts` = re-export;
-    3 web routes (forgot-password, contact, newsletter) decoupled from
-    plugin-shop. `01-commerce.md` updated. Tests moved (#118–#120 names
-    kept); lib 86 / shop 163 / web 422, tc+lint 0.
-99–110. **Entries 107–118** — Mockup parity slide-over creates, Design System
-   view, review fixes, crawl fixes, list-table cells + registry headers,
-   global views + collection headers, admin audit fix round, e2e crawl green.
-   Verbatim in archive (rotated 2026-10-12/-13).
-43–98. **Entries 47–106** — Precision Dark redesign, admin overlays, command palette, modern commerce overhaul, performance ISR, design spec, primitive library, and list elevations. Verbatim in archive.
+28. **Entry 139** — **Full-app audit + fix batches A/B/C** (`docs/audits/full-app-2026-11-18/`): admin panel staff-only, presets/locked-docs staff-only, security headers, discount oracle removed, newsletter double opt-in, €0 re-price, rightmost-XFF IP key + nightly guest-data retention, permission-aware admin nav, Aether Tailwind→token port + guards, undefined CSS vars fixed, 280px overflow fixes; round 3 closed the backlog (cycles 0, engine/checkout/PDP refactors, pack token scope). 1038 passed (#730–#778), tc+lint 0.
+27. **Entry 138** — **Admin GUI Product Tabs & Gutter Normalization (Full Audit)**: Overrode Payload asymmetric gutter negative margins (`margin: 0 -40px 0 -60px`) and `padding: 0 60px`; neutralized `.group-field--within-tab` breakout so all fields across all 5 product tabs align to 100% width; suppressed `.tabs-field__tabs::before` 60px pseudo-offset; removed 720px clamp on `.bmr-builder-rules`; tactile checkbox cards for inventory toggles; full-width `bmr-serp-preview` in lower deck; verified via browser evaluate & screenshots (1440px + 390px); 524 tests passed, tc+lint 0.
+26. **Entry 137** — **Admin GUI tables, edit layout & theme refactor (Mockup Parity)**: Full-width stacked edit workspace (\`.document-fields\`), responsive lower meta deck, anti-slop tab styling with Windows scrollbar eliminated, redundant raw specs JSON hidden, pricing tab card refactor, table sort header truncation resolved, duplicate list header titles suppressed, centered table checkboxes, dynamic rule title fallback (\`#729\`), tc+lint 0.
+25. **Entry 136** — **Storefront, theme packs, cart & PDP audit fixes**: Aether theme tokens unified (`aether.css`, `.ae-modal-backdrop`, `.ae-search-modal`), cart drawer body scroll lock + empty `/shop` link, review feedback live region, 992 tests passed (#725–#728), tc+lint 0.
+22. **Entries 122–133** — (132–133 audit rounds rotated verbatim to the archive 2026-11-18) Builder themes audit (palette contract, immersive chrome, Atelier design, shared kit, #678–#703); Admin GUI audit & theme sync (#655–#661); Full-App audit round 1 (#662–#677); sticky shell & table headers (#650–#654); Aether rigs & CFD. Verbatim in archive.
+99–110 / 43–98. **Entries 47–121** — Precision Dark redesign through earlier rounds. Verbatim in archive.
 
 ## graphify
 

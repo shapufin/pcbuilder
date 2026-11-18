@@ -279,7 +279,7 @@ export const PluginsManagerView: React.FC = () => {
 
   // Synchronize with database on mount (updates storage and dispatches change event)
   useEffect(() => {
-    fetch('/api/globals/store-settings')
+    fetch('/api/globals/store-settings', { credentials: 'same-origin' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.features) {
@@ -296,15 +296,46 @@ export const PluginsManagerView: React.FC = () => {
     const plugin = SYSTEM_PLUGINS.find((p) => p.id === id)
     if (!plugin) return
 
-    if (plugin.featureKey) {
-      const nextActive = !pluginStatus[id]
-      let currentFeatures = { discountCodes: true, reviews: true, inventoryReservations: true, taxRates: true }
-      try {
-        const stored = localStorage.getItem('bmr_plugin_features')
-        if (stored) currentFeatures = { ...currentFeatures, ...JSON.parse(stored) }
-      } catch {}
+    if (!plugin.featureKey) {
+      setNotification(`${plugin.name} is a core architecture module. Status updated in view.`)
+      showToast('Core Architecture Module', `${plugin.name} cannot be deactivated.`, 'warning')
+      setTimeout(() => {
+        setNotification(null)
+      }, 4000)
+      return
+    }
 
-      const updatedFeatures = { ...currentFeatures, [plugin.featureKey]: nextActive }
+    const nextActive = !pluginStatus[id]
+    let currentFeatures = { discountCodes: true, reviews: true, inventoryReservations: true, taxRates: true }
+    try {
+      const stored = localStorage.getItem('bmr_plugin_features')
+      if (stored) currentFeatures = { ...currentFeatures, ...JSON.parse(stored) }
+    } catch {}
+
+    const updatedFeatures = { ...currentFeatures, [plugin.featureKey]: nextActive }
+
+    try {
+      const res = await fetch('/api/globals/store-settings', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ features: updatedFeatures }),
+      })
+
+      if (!res.ok) {
+        const errorMsg =
+          res.status === 401 || res.status === 403
+            ? 'Manager or Admin role required to toggle plugin features.'
+            : `Failed to save plugin status (HTTP ${res.status}).`
+        setNotification(errorMsg)
+        showToast('Plugin Update Failed', errorMsg, 'error')
+        setTimeout(() => {
+          setNotification(null)
+        }, 4000)
+        return
+      }
+
+      // Persist locally and notify listeners only upon server confirmation
       try {
         localStorage.setItem('bmr_plugin_features', JSON.stringify(updatedFeatures))
         window.dispatchEvent(new CustomEvent('bmr-plugin-features-change', { detail: updatedFeatures }))
@@ -317,19 +348,11 @@ export const PluginsManagerView: React.FC = () => {
         'Sidebar navigation and storefront pipelines updated.',
         nextActive ? 'success' : 'info',
       )
-
-      try {
-        await fetch('/api/globals/store-settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ features: updatedFeatures }),
-        })
-      } catch (err) {
-        console.error('Failed to sync plugin state:', err)
-      }
-    } else {
-      setNotification(`${plugin.name} is a core architecture module. Status updated in view.`)
-      showToast('Core Architecture Module', `${plugin.name} cannot be deactivated.`, 'warning')
+    } catch (err) {
+      const errorMsg = 'Network error: unable to reach settings endpoint.'
+      setNotification(errorMsg)
+      showToast('Connection Error', errorMsg, 'error')
+      console.error('Failed to sync plugin state:', err)
     }
 
     setTimeout(() => {
@@ -369,7 +392,7 @@ export const PluginsManagerView: React.FC = () => {
       <div className="bmr-plugins-header">
         <div className="bmr-plugins-header__top">
           <div>
-            <Badge variant="success" dot style={{ marginBottom: '8px' }}>
+            <Badge variant="success" dot className="bmr-plugins-header__badge">
               <Sparkles size={12} />
               <span>MODULAR EXTENSIONS RUNTIME</span>
             </Badge>
@@ -411,7 +434,7 @@ export const PluginsManagerView: React.FC = () => {
       )}
 
       {/* 4-Card Telemetry Ribbon (Matching Mockup) */}
-      <div className="bmr-kpi-grid" style={{ marginBottom: '20px' }}>
+      <div className="bmr-kpi-grid bmr-plugins-kpi-grid">
         <MetricCard
           label="Installed Modules"
           value={stats.total}
@@ -542,7 +565,7 @@ export const PluginsManagerView: React.FC = () => {
                   {/* When to disable explanation box */}
                   {plugin.disableReason && (
                     <div className="bmr-plugin-card__disable-box">
-                      <AlertCircle size={14} style={{ color: 'var(--theme-warning)', flexShrink: 0, marginTop: '1px' }} />
+                      <AlertCircle className="bmr-plugins-1" size={14} />
                       <span>
                         <strong>When to disable:</strong> {plugin.disableReason}
                       </span>

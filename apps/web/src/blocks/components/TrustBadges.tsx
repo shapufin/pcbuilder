@@ -1,23 +1,35 @@
+import type { ComponentType } from 'react'
+import {
+  Award,
+  Check,
+  Cpu,
+  Headphones,
+  ShieldCheck,
+  Truck,
+  Zap,
+} from 'lucide-react'
 import type { TrustBadgesBlock as TrustBadgesBlockType } from '@/payload-types'
 
-const iconGlyph = (iconName?: string | null): string => {
+/** Icon name -> lucide component. Emoji glyphs are banned in UI (no-emoji
+ *  doctrine); lucide is already the house icon set. */
+const iconFor = (iconName?: string | null): ComponentType<{ size?: number }> => {
   switch (iconName) {
     case 'shield-check':
     case 'shield':
-      return '🛡️'
+      return ShieldCheck
     case 'truck':
-      return '🚀'
+      return Truck
     case 'cpu':
-      return '⚡'
+      return Cpu
     case 'headphones':
-      return '🎧'
+      return Headphones
     case 'award':
-      return '🏆'
+      return Award
     case 'zap':
-      return '⚡'
+      return Zap
     case 'check':
     default:
-      return '✨'
+      return Check
   }
 }
 
@@ -27,20 +39,23 @@ export function TrustBadges({ block }: { block: Partial<TrustBadgesBlockType> })
 
   return (
     <section className="blk">
-      {block.eyebrow && <p className="blk__lead" style={{ textAlign: 'center', marginBottom: 'var(--space-1)' }}>{block.eyebrow}</p>}
+      {block.eyebrow && <p className="blk__lead trust-badges-x-1">{block.eyebrow}</p>}
       {block.heading && <h2 className="blk__title blk--center">{block.heading}</h2>}
       <div className="blk-trust-badges">
-        {items.map((item, idx) => (
-          <div key={idx} className="blk-trust-card" data-style={block.style || 'glass'}>
-            <span className="blk-trust-card__icon" aria-hidden="true">
-              {iconGlyph(item.icon)}
-            </span>
-            <div className="blk-trust-card__body">
-              <h3 className="blk-trust-card__title">{item.title}</h3>
-              {item.subtitle && <p className="blk-trust-card__subtitle">{item.subtitle}</p>}
+        {items.map((item, idx) => {
+          const Icon = iconFor(item.icon)
+          return (
+            <div key={idx} className="blk-trust-card" data-style={block.style || 'glass'}>
+              <span className="blk-trust-card__icon" aria-hidden="true">
+                <Icon size={20} />
+              </span>
+              <div className="blk-trust-card__body">
+                <h3 className="blk-trust-card__title">{item.title}</h3>
+                {item.subtitle && <p className="blk-trust-card__subtitle">{item.subtitle}</p>}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

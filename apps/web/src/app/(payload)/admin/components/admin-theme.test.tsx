@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import React from 'react'
 import { AdminThemeSync, adminThemeFromSaveResponse } from './AdminThemeSync'
 import { AdminHeaderActions } from './AdminHeaderActions'
+import { ADMIN_THEMES_CATALOG, payloadThemeFor } from './adminTheme.ts'
 
 describe('Admin Theme System — SSR & Contract', () => {
   it('#456 AdminThemeSync emits no DOM markup on SSR (protects hydration integrity)', () => {
@@ -41,5 +42,20 @@ describe('Admin Theme System — SSR & Contract', () => {
     expect(adminThemeFromSaveResponse(url, 'post', { doc: { adminTheme: 'light-clean' } })).toBe('light-clean')
     expect(adminThemeFromSaveResponse(url, 'POST', { adminTheme: 'bogus' })).toBeNull()
     expect(adminThemeFromSaveResponse('/api/globals/theme', 'POST', { adminTheme: 'cyber-neon' })).toBeNull()
+  })
+
+  it('#678 maps every skin to the Payload colour mode its native components expect', () => {
+    // Payload's ThemeProvider drives data-theme + the payload-theme cookie; if it
+    // disagrees with the skin, its Monaco editor renders light-on-dark.
+    expect(payloadThemeFor('light-clean')).toBe('light')
+    expect(payloadThemeFor('aether-frost')).toBe('light')
+    expect(payloadThemeFor('precision-dark')).toBe('dark')
+    expect(payloadThemeFor('aether-foundry')).toBe('dark')
+    expect(payloadThemeFor('cyber-neon')).toBe('dark')
+    expect(payloadThemeFor('classic-payload')).toBe('dark')
+    // every catalog entry is covered (no skin can fall through to a stale mode)
+    for (const skin of ADMIN_THEMES_CATALOG) {
+      expect(['dark', 'light']).toContain(payloadThemeFor(skin.id))
+    }
   })
 })

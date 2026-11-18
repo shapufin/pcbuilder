@@ -1,8 +1,13 @@
 import type { Block } from 'payload'
+import { isSafeNavLinkUrl } from '../lib/site-settings.ts'
 
 export const HeroBlock: Block = {
   slug: 'hero',
   interfaceName: 'HeroBlock',
+  labels: {
+    singular: 'Hero Banner',
+    plural: 'Hero Banners',
+  },
   admin: { group: 'Content' },
   fields: [
     { name: 'heading', type: 'text', required: true },
@@ -18,9 +23,21 @@ export const HeroBlock: Block = {
     {
       name: 'ctas',
       type: 'array',
+      labels: {
+        singular: 'Call to Action',
+        plural: 'Calls to Action',
+      },
       fields: [
         { name: 'label', type: 'text', required: true },
-        { name: 'url', type: 'text', required: true },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          validate: (value: unknown) => {
+            if (typeof value !== 'string' || !value.trim()) return 'URL is required'
+            return isSafeNavLinkUrl(value.trim()) || 'Must start with a single / (internal path) or https://'
+          },
+        },
         { name: 'style', type: 'select', options: ['primary', 'secondary'], defaultValue: 'primary' },
       ],
     },

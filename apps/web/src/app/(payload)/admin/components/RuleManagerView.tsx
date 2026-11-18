@@ -692,10 +692,9 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
               <Upload className="bmr-btn-icon" />
               Import CSV
             </span>
-            <input
+            <input className="bmr-rm-1"
               type="file"
               accept=".csv,text/csv"
-              style={{ display: 'none' }}
               onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) void previewImport(f)
@@ -799,6 +798,20 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
             <p className="bmr-rule-manager__empty-sub">
               Try adjusting your facet filter or search query.
             </p>
+            {(activeFilter !== 'all' || searchQuery.trim() !== '') && (
+              <div className="bmr-rule-manager__empty-action">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setActiveFilter('all')
+                    setSearchQuery('')
+                  }}
+                >
+                  Clear Filters &amp; Search
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -807,14 +820,14 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
             <table className="bmr-rule-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px' }}>Active</th>
+                  <th className="bmr-rm-2">Active</th>
                   <th>Subject</th>
                   <th>Type</th>
                   <th>Condition (Operator / Field / Value)</th>
                   <th>Target</th>
                   <th>Severity</th>
                   <th>Direction</th>
-                  <th style={{ textAlign: 'right', width: '130px' }}>Actions</th>
+                  <th className="bmr-rm-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -865,7 +878,7 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td className="bmr-rm-4">
                         <div className="bmr-rule-row-actions">
                           <button
                             type="button"
@@ -1056,19 +1069,19 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
                 </div>
                 <div className="bmr-form-col bmr-form-col--switch">
                   <label className="bmr-form-label">Symmetrical (Bidirectional)</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <div className="bmr-rm-5">
                     <Switch
                       checked={draft.bidirectional}
                       onCheckedChange={(checked) => setDraft({ ...draft, bidirectional: checked })}
                     />
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--theme-text-muted)' }}>
+                    <span className="bmr-rm-6">
                       Mirror rule on opposite entity
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bmr-form-col" style={{ width: '100%' }}>
+              <div className="bmr-form-col bmr-rm-7">
                 <label className="bmr-form-label">Conflict Advisory Message</label>
                 <Input
                   placeholder="Custom message shown to storefront builder on conflict…"
@@ -1155,8 +1168,8 @@ export const RuleManagerView: React.FC<RuleManagerViewProps> = ({ initialRules }
                 <table className="bmr-diff-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '50px' }}>Line</th>
-                      <th style={{ width: '80px' }}>Action</th>
+                      <th className="bmr-rm-8">Line</th>
+                      <th className="bmr-rm-9">Action</th>
                       <th>Condition Expression</th>
                       <th>Reason / Error</th>
                     </tr>

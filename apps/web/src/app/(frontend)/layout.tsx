@@ -12,12 +12,19 @@ import { SiteHeader } from '../../components/SiteHeader'
 import { SiteFooter } from '../../components/SiteFooter'
 import { NexusHeader } from '../../themes/nexus/NexusHeader'
 import { NexusFooter } from '../../themes/nexus/NexusFooter'
+import { AetherHeader } from '../../themes/aether/AetherHeader'
+import { AetherFooter } from '../../themes/aether/AetherFooter'
 import { PromoTopBanner } from '../../components/PromoTopBanner'
 import { getSiteSettings } from '@/lib/site-settings.server'
 import { getStoreSettings } from '@/lib/store-settings.server'
 import { getMegaMenu } from '@/themes/nexus/lib/mega-menu.server'
 import '../../themes/nexus/nexus.css'
+import { NewsletterNotice } from '@/components/NewsletterNotice'
+import '../../themes/aether/aether.css'
+import '../../themes/aether/aether-utilities.css'
 import { getThemeAssets, THEME_BOOT_SCRIPT } from '@/lib/theme.server'
+import { CHROME_BOOT_SCRIPT } from '@/lib/chrome'
+import { ChromeSync } from '@/components/ChromeSync'
 import { JsonLd, organizationJsonLd } from '@/lib/jsonld'
 
 // Plausible (12-integrations-ops.md): script only when a domain is configured,
@@ -57,13 +64,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [siteSettings, storeSettings, theme] = await Promise.all([
+  const [siteSettings, storeSettings, theme, megaMenu] = await Promise.all([
     getSiteSettings(),
     getStoreSettings(),
     getThemeAssets(),
+    getMegaMenu(),
   ])
   const isNexus = theme.pack === 'nexus'
-  const megaMenu = isNexus ? await getMegaMenu() : { sections: [] }
+  const isAether = theme.pack === 'aether'
   return (
     // suppressHydrationWarning: pre-hydration scripts (Payload admin theme
     // boot on /admin, browser extensions) add data-theme/dir to <html> before
@@ -73,7 +81,10 @@ export default async function RootLayout({
       className={`${inter.variable} ${grotesk.variable} ${jakarta.variable} ${jetbrains.variable}`}
       suppressHydrationWarning
     >
-      <body data-theme-pack={theme.pack}>
+      {/* suppressHydrationWarning on <body>: CHROME_BOOT_SCRIPT sets
+          data-chrome before hydration (immersive builder route) — same
+          intentional pre-paint DOM state as the theme styles above. */}
+      <body data-theme-pack={theme.pack} suppressHydrationWarning>
         {/* suppressHydrationWarning on the three theme styles: the boot
             script below rewrites their `media` attrs pre-hydration, which is
             intentional DOM state React must not treat as a mismatch. */}
@@ -101,6 +112,12 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: theme.altCss }}
         />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* Entry 131: immersive builder chrome — the design owns the header
+            on /builder/configure; hide the site chrome pre-paint. */}
+        <script dangerouslySetInnerHTML={{ __html: CHROME_BOOT_SCRIPT }} />
+        {/* Entry 131 follow-up (audit F1): keep data-chrome in step with
+            client-side navigation — the boot script only covers full loads. */}
+        <ChromeSync />
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
@@ -110,7 +127,14 @@ export default async function RootLayout({
         ) : null}
         <EcommerceShell>
           <PromoTopBanner promo={storeSettings.promoBanner} />
-          {isNexus ? (
+          {isAether ? (
+            <AetherHeader
+              navLinks={siteSettings.navLinks}
+              announcements={siteSettings.announcements}
+              megaMenu={megaMenu.sections}
+              themeLabels={{ altLabel: theme.altLabel, defaultLabel: theme.defaultLabel }}
+            />
+          ) : isNexus ? (
             <NexusHeader
               navLinks={siteSettings.navLinks}
               announcements={siteSettings.announcements}
@@ -124,8 +148,9 @@ export default async function RootLayout({
             />
           )}
           <CartDrawerLazy />
+          <NewsletterNotice />
           <div id="main-content">{children}</div>
-          {isNexus ? <NexusFooter /> : <SiteFooter />}
+          {isAether ? <AetherFooter /> : isNexus ? <NexusFooter /> : <SiteFooter />}
         </EcommerceShell>
       </body>
     </html>

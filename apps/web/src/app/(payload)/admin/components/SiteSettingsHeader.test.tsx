@@ -1,7 +1,11 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { SiteSettingsHeader } from './SiteSettingsHeader.tsx'
+import { SiteSettingsHeader, selectAdminTheme } from './SiteSettingsHeader.tsx'
+
+// The header no longer reads form state (audit #668 moved the skin cards into a
+// `ui` field), so @payloadcms/ui is not mocked here on purpose — if a useField
+// call creeps back into elements.Description territory, this render throws.
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -62,5 +66,21 @@ describe('SiteSettingsHeader (#555 - #559)', () => {
     expect(html).toContain('Global Settings')
     expect(html).toContain('Settings &amp; Design · Environment')
     expect(html).toContain('Storefront identity, header &amp; footer navigation, announcement telemetry')
+  })
+
+  it('#560 the header renders without any form context (no useField)', () => {
+    // Regression guard for #668: mounting useField on elements.Description threw
+    // "x is not a function" on every load of the global edit view.
+    expect(() => renderToStaticMarkup(<SiteSettingsHeader />)).not.toThrow()
+    const html = renderToStaticMarkup(<SiteSettingsHeader />)
+    expect(html).not.toContain('bmr-admin-theme-card')
+  })
+
+  it('#669 selectAdminTheme syncs the field when a setter is available', () => {
+    const setter = vi.fn()
+    selectAdminTheme('aether-foundry', setter)
+    expect(setter).toHaveBeenCalledWith('aether-foundry')
+    // No setter (outside a form) must not throw.
+    expect(() => selectAdminTheme('cyber-neon')).not.toThrow()
   })
 })

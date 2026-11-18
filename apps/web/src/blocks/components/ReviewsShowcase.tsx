@@ -1,3 +1,4 @@
+import { Check, Star } from 'lucide-react'
 import { getPayloadClient } from '@/lib/shop'
 import type { ReviewsShowcaseBlock as ReviewsShowcaseBlockType } from '@/payload-types'
 
@@ -11,10 +12,15 @@ type ReviewDoc = {
   createdAt?: string | null
 }
 
-const renderStars = (rating: number): string => {
-  const full = '★'.repeat(Math.max(1, Math.min(5, Math.round(rating))))
-  const empty = '☆'.repeat(Math.max(0, 5 - Math.round(rating)))
-  return `${full}${empty}`
+const renderStars = (rating: number): React.ReactNode => {
+  const full = Math.max(1, Math.min(5, Math.round(rating)))
+  return (
+    <span className="blk-review-card__stars" aria-label={`${full} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} size={13} aria-hidden fill={i <= full ? 'currentColor' : 'none'} />
+      ))}
+    </span>
+  )
 }
 
 export async function ReviewsShowcase({ block }: { block: Partial<ReviewsShowcaseBlockType> }) {
@@ -46,7 +52,7 @@ export async function ReviewsShowcase({ block }: { block: Partial<ReviewsShowcas
 
   return (
     <section className="blk">
-      {block.eyebrow && <p className="blk__lead" style={{ textAlign: 'center', marginBottom: 'var(--space-1)' }}>{block.eyebrow}</p>}
+      {block.eyebrow && <p className="blk__lead reviews-showcase-x-1">{block.eyebrow}</p>}
       {block.heading && <h2 className="blk__title blk--center">{block.heading}</h2>}
       <div className="blk-reviews-grid">
         {reviews.map((r) => (
@@ -60,7 +66,7 @@ export async function ReviewsShowcase({ block }: { block: Partial<ReviewsShowcas
               <span className="blk-review-card__author">{r.authorName}</span>
               {r.verifiedPurchase && (
                 <span className="blk-review-card__verified">
-                  <span aria-hidden="true">✓</span> Verified Buyer
+                  <Check size={12} aria-hidden /> Verified Buyer
                 </span>
               )}
             </div>

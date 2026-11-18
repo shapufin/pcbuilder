@@ -6,8 +6,10 @@ export const powerRequired = (tdpSumWatts: number, multiplier = 1.3, baseWatts =
 
 export * from './rule-engine'
 export * from './money'
+export * from './margin'
 export * from './rate-limit'
 export * from './line-items'
 export * from './richtext'
 export * from './slot-limits'
 export * from './rgb-presets'
+export * from './builder-palette'

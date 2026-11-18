@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rateLimit } from './rate-limit'
+import { clientIpFromHeaders, rateLimit } from './rate-limit'
 
 describe('rateLimit (sliding window)', () => {
   it('allows up to max hits inside the window', () => {
@@ -63,5 +63,18 @@ describe('rateLimit (sliding window)', () => {
     expect(rl.check('k1', 3).ok).toBe(true)
     expect(rl.check('k1', 4).ok).toBe(true)
     expect(rl.check('k1', 5).ok).toBe(false)
+  })
+})
+
+describe('clientIpFromHeaders — audit 2026-11-18 C1 (spoofable leftmost XFF)', () => {
+  const h = (init: Record<string, string>) => new Headers(init)
+  it('#752 ignores client-supplied XFF entries: the proxy-appended rightmost hop wins', () => {
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '6.6.6.6, 203.0.113.9' }))).toBe('203.0.113.9')
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '1.1.1.1, 2.2.2.2, 203.0.113.9' }))).toBe('203.0.113.9')
+  })
+  it('#753 x-real-ip (set by the edge, not the client) beats XFF; single hop and absent headers still resolve', () => {
+    expect(clientIpFromHeaders(h({ 'x-real-ip': '198.51.100.4', 'x-forwarded-for': '6.6.6.6' }))).toBe('198.51.100.4')
+    expect(clientIpFromHeaders(h({ 'x-forwarded-for': '203.0.113.9' }))).toBe('203.0.113.9')
+    expect(clientIpFromHeaders(h({}))).toBe('unknown')
   })
 })

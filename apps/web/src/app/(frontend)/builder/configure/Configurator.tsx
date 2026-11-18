@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import type { ComponentSpecEntry } from '@buildmyrig/lib'
 import { trackBuildStepCompleted } from '@/lib/analytics'
 import { useBuilder } from '../builder-provider'
@@ -52,6 +54,7 @@ export function Configurator() {
 
   return (
     <main className="builder-page cfg">
+      <h1 className="sr-only">Configure your build</h1>
       <StepNavigation
         categories={categories}
         selections={selections}
@@ -60,6 +63,12 @@ export function Configurator() {
       />
 
       <div className="cfg-path">
+        {/* Entry 131: /builder/configure is immersive (site header hidden), so
+            every design needs its own way back to the store. */}
+        <Link href="/" className="cfg-back" aria-label="Back to store">
+          <ArrowLeft size={14} aria-hidden="true" />
+          <span>Store</span>
+        </Link>
         <PathSwitcher />
       </div>
 
@@ -103,6 +112,7 @@ export function Configurator() {
           totalCents={totalCents}
           canReview={canReview}
           missingRequired={missingRequired}
+          warnings={meta.validateCurrent().warnings}
           onSlotClick={goToStep}
           onRemoveComponent={actions.remove}
         />

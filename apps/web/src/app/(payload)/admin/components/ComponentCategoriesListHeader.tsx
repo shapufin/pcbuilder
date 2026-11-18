@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import {
   Layers,
   CheckCircle2,
@@ -151,12 +150,15 @@ export const ComponentCategoriesListHeader: React.FC<ComponentCategoriesListHead
             Export CSV
           </Button>
 
-          <Link href="/admin/compatibility-rules-manager">
-            <Button variant="outline" size="sm" aria-label="Open Rule Matrix Manager">
-              <ExternalLink className="bmr-btn-icon" />
-              Rule Matrix ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/compatibility-rules-manager"
+            aria-label="Open Rule Matrix Manager"
+          >
+            <ExternalLink className="bmr-btn-icon" />
+            <span>Rule Matrix ↗</span>
+          </Button>
 
           <CreateDocDrawerButton collectionSlug="component-categories" label="Create Component Slot" />
         </div>

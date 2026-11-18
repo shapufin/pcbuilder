@@ -282,3 +282,24 @@ Session history (one line each, entries 1–24 in the progress log):
    crawl 59 routes passed on `next start -p 3001` (~61s). Non-fatal: 401
    console noise on pages create/edit + 403 on the reservations list-data
    fetch in prod mode.
+
+## Rotated 2026-10-24 (entries 124-125, verbatim)
+
+17–18. **Entries 124–125** — **Aether Rigs, CFD Calculator, Loop Visualizer & Theme System**:
+    Ported luxury hardware lab into `aether` theme pack & `aether-frost` titanium preset; added 6 interactive Aether page blocks and seeded `/aether-showcase`.
+    Lib 86 / shop 163 / pc-builder 118 / pages 48 / web 422 green, tc+lint 0.
+
+
+## Rotated 2026-11-18 (entries 132-133, verbatim — AGENTS.md budget, entry 139)
+
+24. **Entry 133** — **Backend-for-frontend audit (perf/integrity round)**: cart-write
+    N+1s batched (stock caps, stock-unit resolution — also fixed a settlement wedge on
+    deleted components), pricing-config + facet-registry TTL caches, atomic template
+    popularity, index-driven slot slugs, server-side verified-buyer match, PDP populated-
+    spec read, shared limiter/cart-gate helpers. `audit/backend-frontend-2026-10-24`,
+    7 commits. 987 passed, tc+lint 0. #714–#722.
+23. **Entry 132** — **Builder themes audit round 2**: immersive-chrome client-nav
+    sync (HIGH, verified live both directions), `cartView` staleness derivation,
+    `shouldRename` + `buildSubItems` payload hardening, ThemeColorStudio DOM-sync
+    documented as accepted workaround. `audit/builder-themes-2026-10-24`,
+    6 commits. 968 passed, tc+lint 0. #704–#707.

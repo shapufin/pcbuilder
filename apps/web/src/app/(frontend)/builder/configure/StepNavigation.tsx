@@ -1,6 +1,7 @@
 'use client'
 
 import type { BuilderIndex } from '@buildmyrig/lib'
+import { Check } from 'lucide-react'
 
 type Category = BuilderIndex['categories'][number]
 
@@ -26,7 +27,7 @@ export function StepNavigation({ categories, selections, stepIndex, onSelect }: 
           >
             {i + 1}. {category.name}
             {category.required ? (
-              done ? <span className="step-badge step-badge--done">✓</span> : (
+              done ? <span className="step-badge step-badge--done"><Check size={12} aria-hidden /></span> : (
                 <span className="step-badge">required</span>
               )
             ) : (

@@ -3,13 +3,14 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { createRuleEngine, type ComponentSpecEntry } from '@buildmyrig/lib'
+import { createRuleEngine } from '@buildmyrig/lib'
 import { useEcommerce } from '@payloadcms/plugin-ecommerce/client/react'
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilderIndex } from '../useBuilderIndex'
 import { useBuilderStore } from '../builder-store'
 import { useBuildActions } from '../kit/useBuildActions'
 import { WarningsPanel } from '../configure/WarningsPanel'
+import { summarizeBuild } from '../kit/build-summary'
 
 export function SummaryClient() {
   const { index, status, retry } = useBuilderIndex()
@@ -29,31 +30,26 @@ export function SummaryClient() {
   // same buttons and labels as before.
   const {
     saveToAccount, addToCart, share,
-    saveState, saveView, cartState, shareState, cartLoading,
+    saveState, saveView, cartView, shareState, cartLoading,
   } = useBuildActions(index)
   const { user } = useEcommerce()
 
-  const categories = useMemo(
-    () => (index ? [...index.categories].sort((a, b) => a.sortOrder - b.sortOrder) : []),
-    [index],
-  )
   const engine = useMemo(() => (index ? createRuleEngine(index) : null), [index])
   const result = useMemo(() => (engine ? engine.evaluate(selections) : null), [engine, selections])
-
-  const entryOf = (id: string): ComponentSpecEntry | undefined =>
-    index?.components.find((c) => c.id === id)
-
-  const rows = categories.flatMap((category) =>
-    (selections[category.id] ?? []).map((id) => ({ category, entry: entryOf(id) })),
+  // Entry 131: the rail lists the build's warnings (validateSelections), not
+  // result.warnings — that one is the per-candidate badge dataset.
+  const warnings = useMemo(
+    () => (engine ? engine.validateSelections(selections).warnings : []),
+    [engine, selections],
   )
-  const total = rows.reduce((sum, row) => sum + (row.entry?.priceCents ?? 0), 0)
-  const missing = categories.filter((c) => c.required && (selections[c.id] ?? []).length === 0)
+
+  const { rows, total, missing } = useMemo(() => summarizeBuild(index, selections), [index, selections])
 
   if (!hydrated || status === 'loading') {
     return (
       <main className="builder-page summary" aria-busy="true">
-        <div className="skeleton" style={{ height: 48 }} />
-        <div className="skeleton" style={{ height: 240 }} />
+        <div className="skeleton skeleton--bar" />
+        <div className="skeleton skeleton--panel" />
         <p className="state-msg" role="status">Loading your build…</p>
       </main>
     )
@@ -139,7 +135,7 @@ export function SummaryClient() {
           </div>
         )}
 
-        <WarningsPanel result={result} />
+        <WarningsPanel warnings={warnings} />
       </div>
 
       <div className="summary__actions">
@@ -150,14 +146,13 @@ export function SummaryClient() {
           disabled={missing.length > 0}
           title={missing.length > 0 ? 'Finish required slots first' : 'Copy a public link to this build'}
         >
-          <motion.span
+          <motion.span className="summary-x-1"
             key={shareState}
             initial={shareState === 'copied' ? { scale: 0.85 } : false}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 500, damping: 16 }}
-            style={{ display: 'inline-block' }}
           >
-            {shareState === 'copied' ? 'Link copied ✓' : 'Share link'}
+            {shareState === 'copied' ? 'Link copied' : 'Share link'}
           </motion.span>
         </button>
         <button
@@ -176,7 +171,7 @@ export function SummaryClient() {
           {saveView === 'saving'
             ? 'Saving…'
             : saveView === 'saved'
-              ? 'Saved ✓'
+              ? 'Saved'
               : saveView === 'error'
                 ? 'Save failed — retry'
                 : !user
@@ -190,27 +185,27 @@ export function SummaryClient() {
             const rect = e.currentTarget.getBoundingClientRect()
             void addToCart(rect)
           }}
-          disabled={missing.length > 0 || cartState === 'adding' || cartLoading}
+          disabled={missing.length > 0 || cartView === 'adding' || cartLoading}
         >
-          {cartState === 'adding'
+          {cartView === 'adding'
             ? 'Adding…'
-            : cartState === 'added'
-              ? 'Added to cart ✓'
-              : cartState === 'error'
+            : cartView === 'added'
+              ? 'Added to cart'
+              : cartView === 'error'
                 ? 'Add to cart failed — retry'
                 : 'Add to cart'}
         </button>
-        {cartState === 'added' && (
+        {cartView === 'added' && (
           <Link href="/cart" className="btn btn--ghost">
             View cart
           </Link>
         )}
-        {cartState === 'error' && (
+        {cartView === 'error' && (
           <span className="state-msg state-msg--error">
             Could not save the build — check required slots and try again.
           </span>
         )}
-        {missing.length === 0 && cartState === 'idle' && (
+        {missing.length === 0 && cartView === 'idle' && (
           <span className="state-msg">The build is saved on the server; price is re-validated at checkout.</span>
         )}
       </div>

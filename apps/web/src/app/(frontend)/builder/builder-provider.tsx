@@ -52,7 +52,7 @@ export interface BuilderContextValue {
     /** Active platform path (null = no preference). Drives the option filter. */
     path: PlatformId | null
     /** Per-action state machines from the provider's useBuildActions instance —
-     *  designs render "Saving…"/"Added ✓" from these. Never re-instantiate
+     *  designs render "Saving…"/"Added" from these. Never re-instantiate
      *  useBuildActions inside a design: its states would desync from the
      *  context actions (the context action mutates THIS instance). */
     actionStatus: BuildActionStatus
@@ -263,7 +263,7 @@ export function BuilderProvider({
     clearSavedBuild,
     saveState,
     saveView,
-    cartState,
+    cartView,
     shareState,
     cartLoading,
   } = useBuildActions(index)
@@ -271,10 +271,10 @@ export function BuilderProvider({
   if (!hydrated || status === 'loading') {
     return (
       <main className="builder-page cfg" aria-busy="true">
-        <div className="skeleton" style={{ height: 40 }} />
+        <div className="skeleton builder-loading-1" />
         <div className="cfg-layout">
-          <div className="skeleton" style={{ height: 420 }} />
-          <div className="skeleton" style={{ height: 320 }} />
+          <div className="skeleton builder-loading-2" />
+          <div className="skeleton builder-loading-3" />
         </div>
         <p className="state-msg" role="status">Loading builder index…</p>
       </main>
@@ -375,7 +375,7 @@ export function BuilderProvider({
       savedBuild,
       rgbColor,
       path,
-      actionStatus: { saveState, saveView, cartState, shareState, cartLoading },
+      actionStatus: { saveState, saveView, cartView, shareState, cartLoading },
     },
     actions: {
       select,

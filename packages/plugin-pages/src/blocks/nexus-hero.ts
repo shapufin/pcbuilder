@@ -1,4 +1,5 @@
 import type { Block } from 'payload'
+import { isSafeNavLinkUrl } from '../lib/site-settings.ts'
 
 /**
  * Entry 71 (Nexus) — hero ported from the source app's StorefrontView:
@@ -9,6 +10,10 @@ import type { Block } from 'payload'
 export const NexusHeroBlock: Block = {
   slug: 'nexusHero',
   interfaceName: 'NexusHeroBlock',
+  labels: {
+    singular: 'Nexus Hero Section',
+    plural: 'Nexus Hero Sections',
+  },
   admin: { group: 'Nexus' },
   fields: [
     { name: 'eyebrow', type: 'text', maxLength: 120 },
@@ -22,10 +27,22 @@ export const NexusHeroBlock: Block = {
     {
       name: 'ctas',
       type: 'array',
-      label: 'Buttons',
+      labels: {
+        singular: 'CTA Button',
+        plural: 'CTA Buttons',
+      },
+      admin: { initCollapsed: true },
       fields: [
         { name: 'label', type: 'text', required: true },
-        { name: 'url', type: 'text', required: true },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          validate: (value: unknown) => {
+            if (typeof value !== 'string' || !value.trim()) return 'URL is required'
+            return isSafeNavLinkUrl(value.trim()) || 'Must start with a single / (internal path) or https://'
+          },
+        },
         { name: 'style', type: 'select', options: ['primary', 'ghost'], defaultValue: 'primary' },
       ],
     },

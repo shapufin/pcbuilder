@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
 import {
   Cpu,
   Layers,
@@ -12,6 +11,7 @@ import {
   Network,
 } from 'lucide-react'
 import { MetricCard, AlertBanner, Button } from '../ui'
+import { BUILDER_DESIGNS, type BuilderDesignDef } from '@buildmyrig/plugin-pc-builder/designs'
 
 export interface BuilderSettingsTelemetryStats {
   rendererLabel: string
@@ -26,13 +26,14 @@ interface BuilderSettingsHeaderProps {
   description?: unknown
 }
 
-/** Mirrors the BUILDER_DESIGNS registry in plugin-pc-builder (slug → label). */
-const RENDERER_LABELS: Record<string, string> = {
-  classic: 'Classic wizard',
-  'rig-studio': 'RIG Studio',
-}
+/** Mirrors the BUILDER_DESIGNS registry in plugin-pc-builder (slug → label).
+ *  Entry 131: derived from the registry's own subpath export — the previous
+ *  hand-kept copy drifted silently and kept counting a stale option set. */
+export const RENDERER_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(BUILDER_DESIGNS).map(([slug, def]) => [slug, def.label]),
+)
 
-const RENDERER_OPTIONS_COUNT = Object.keys(RENDERER_LABELS).length
+export const RENDERER_OPTIONS_COUNT = Object.keys(BUILDER_DESIGNS).length
 
 const DEFAULT_STATS: BuilderSettingsTelemetryStats = {
   rendererLabel: 'RIG Studio',
@@ -43,6 +44,7 @@ const DEFAULT_STATS: BuilderSettingsTelemetryStats = {
 
 export const BuilderSettingsHeader: React.FC<BuilderSettingsHeaderProps> = ({ stats: propStats }) => {
   const [fetchedStats, setFetchedStats] = useState<BuilderSettingsTelemetryStats | null>(null)
+  const [currentDesign, setCurrentDesign] = useState<string | null>(null)
   const [bannerDismissed, setBannerDismissed] = useState(false)
 
   const stats = propStats || fetchedStats || DEFAULT_STATS
@@ -61,6 +63,7 @@ export const BuilderSettingsHeader: React.FC<BuilderSettingsHeaderProps> = ({ st
       .then((doc) => {
         if (!doc) return
         const design = typeof doc.design === 'string' ? doc.design : 'rig-studio'
+        if (isMounted) setCurrentDesign(design)
         apply({ rendererLabel: RENDERER_LABELS[design] ?? design })
       })
       .catch(() => {})
@@ -102,26 +105,37 @@ export const BuilderSettingsHeader: React.FC<BuilderSettingsHeaderProps> = ({ st
         </div>
 
         <div className="bmr-collection-header__actions">
-          <Link href="/admin/build-stats">
-            <Button variant="outline" size="sm" aria-label="Open Build Stats">
-              <BarChart3 className="bmr-btn-icon" />
-              Build Stats ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/build-stats"
+            aria-label="Open Build Stats"
+          >
+            <BarChart3 className="bmr-btn-icon" />
+            <span>Build Stats ↗</span>
+          </Button>
 
-          <Link href="/admin/compatibility-rules-manager">
-            <Button variant="outline" size="sm" aria-label="Open Rule Matrix Manager">
-              <Network className="bmr-btn-icon" />
-              Rule Matrix ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/compatibility-rules-manager"
+            aria-label="Open Rule Matrix Manager"
+          >
+            <Network className="bmr-btn-icon" />
+            <span>Rule Matrix ↗</span>
+          </Button>
 
-          <Link href="/builder" target="_blank" rel="noopener noreferrer">
-            <Button variant="primary" size="sm" aria-label="Open Configurator">
-              <Wrench className="bmr-btn-icon" />
-              Configurator ↗
-            </Button>
-          </Link>
+          <Button
+            variant="primary"
+            size="sm"
+            href="/builder"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Configurator"
+          >
+            <Wrench className="bmr-btn-icon" />
+            <span>Configurator ↗</span>
+          </Button>
         </div>
       </div>
 
@@ -172,6 +186,42 @@ export const BuilderSettingsHeader: React.FC<BuilderSettingsHeaderProps> = ({ st
           trend={{ direction: 'up', label: 'enforced' }}
           icon={GitBranch}
         />
+      </div>
+
+      {/* 4. Renderer catalogue (entry 131) — read-only reference so the editor
+          can see every design and how it treats the theme before switching the
+          select below. A clickable picker is not possible here: custom field
+          components on this global get no form context (verified with a `ui`
+          field probe — keys=0). */}
+      <div className="bmr-renderers">
+        <span className="bmr-renderers__title">Available renderers</span>
+        <ul className="bmr-renderers__grid">
+          {Object.entries<BuilderDesignDef>(BUILDER_DESIGNS).map(
+            ([slug, def]) => {
+              // Prefer the slug fetched from the global; fall back to the
+              // displayed label when stats were supplied via props.
+              const active = currentDesign
+                ? currentDesign === slug
+                : stats.rendererLabel === def.label
+              return (
+                <li
+                  key={slug}
+                  className={`bmr-renderer${active ? ' bmr-renderer--active' : ''}`}
+                  aria-current={active ? 'true' : undefined}
+                >
+                  <span className="bmr-renderer__head">
+                    <span className="bmr-renderer__name">{def.label}</span>
+                    <span className="bmr-renderer__palette">
+                      {def.palette === 'inherit' ? 'inherits theme' : 'theme + own ramp'}
+                    </span>
+                  </span>
+                  <span className="bmr-renderer__desc">{def.description}</span>
+                  <span className="bmr-renderer__state">{active ? 'Active' : 'Available'}</span>
+                </li>
+              )
+            },
+          )}
+        </ul>
       </div>
     </div>
   )

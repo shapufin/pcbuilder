@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import type { BuilderDesign } from '@buildmyrig/plugin-pc-builder'
 
 const ADMIN = { email: 'admin@buildmyrig.test', password: 'Password123!' }
 const ORIGIN = { Origin: 'http://localhost:3000' }
@@ -11,7 +12,7 @@ const ORIGIN = { Origin: 'http://localhost:3000' }
  */
 export async function setBuilderDesign(
   page: Page,
-  design: 'classic' | 'rig-studio',
+  design: BuilderDesign,
 ): Promise<void> {
   const login = await page.request.post('/api/users/login', {
     data: ADMIN,

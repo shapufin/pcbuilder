@@ -1,6 +1,7 @@
 'use client'
 
-import { Bookmark, Box, LayoutGrid, ScanLine } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, Bookmark, Box, LayoutGrid, ScanLine } from 'lucide-react'
 import { formatEUR } from '@/components/ui/Price'
 import { useBuilder } from '../../builder-provider'
 import { PathSwitcher } from '../../kit/PathSwitcher'
@@ -11,6 +12,12 @@ import { numSpecOf, type StudioView } from './studio-lib'
  * Studio top strip (port of the mockup's Header.tsx): compatibility status,
  * PSU mini-bar, total, view tabs, saved builds, and Deploy. Presentation
  * only — every value comes from useBuilder().
+ *
+ * Entry 131: /builder/configure is immersive (the site header is hidden), so
+ * this bar is the page's only header — it carries the back-to-store link and
+ * the only brand. The status chip now separates real clearance errors from
+ * merely empty required slots: "7 issues — check clearances" was wrong on a
+ * fresh build where nothing was wrong, just unpicked.
  */
 export function StudioHeader({
   view,
@@ -26,18 +33,24 @@ export function StudioHeader({
   const { state, meta } = useBuilder()
   const { categories, selections, result, totalCents, missingRequired } = state
 
-  // Compat chip: engine errors + empty required slots → danger, warnings →
-  // amber, the rest → cyan/success (severity from rule-engine.ts).
-  const engineWarnings = [...result.warnings, ...result.powerWarnings]
-  const errorCount =
-    engineWarnings.filter((w) => w.severity === 'error').length + missingRequired.length
-  const warningCount = engineWarnings.filter((w) => w.severity === 'warning').length
+  // Compat chip: engine errors → danger, empty required slots → pending,
+  // warnings → amber, the rest → cyan/success.
+  // Entry 131: counts come from validateSelections on the CURRENT picks, not
+  // from result.warnings — that array is the per-candidate badge dataset, so
+  // a full build reported 8 warnings where only 2 applied.
+  const validation = meta.validateCurrent()
+  const errorCount = validation.errors.length
+  const warningCount = validation.warnings.length
+  const missingCount = missingRequired.length
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
   const chip =
     errorCount > 0
-      ? { cls: 'studio-chip--danger', label: `${errorCount} issue${errorCount === 1 ? '' : 's'} — check clearances` }
-      : warningCount > 0
-        ? { cls: 'studio-chip--warning', label: `${warningCount} warning${warningCount === 1 ? '' : 's'}` }
-        : { cls: 'studio-chip--ok', label: 'Verified compatible' }
+      ? { cls: 'studio-chip--danger', label: plural(errorCount, 'clearance issue') }
+      : missingCount > 0
+        ? { cls: 'studio-chip--pending', label: `${plural(missingCount, 'slot')} left` }
+        : warningCount > 0
+          ? { cls: 'studio-chip--warning', label: plural(warningCount, 'warning') }
+          : { cls: 'studio-chip--ok', label: 'Verified compatible' }
 
   // PSU mini-bar: engine-required draw vs the chosen PSU's rated wattage
   // (numSpecOf falls back to display.specs, matching the rest of the design).
@@ -51,6 +64,11 @@ export function StudioHeader({
   return (
     <header className="studio-header">
       <div className="studio-header__left">
+        <Link href="/" className="studio-back" aria-label="Back to store">
+          <ArrowLeft size={14} aria-hidden="true" />
+          <span>Store</span>
+        </Link>
+
         <div className="studio-brand">
           <span className="studio-brand__icon">
             <Box size={18} aria-hidden="true" />
@@ -89,14 +107,6 @@ export function StudioHeader({
             <LayoutGrid size={13} aria-hidden="true" />
             Matrix
           </button>
-          <button
-            type="button"
-            className="studio-tab"
-            onClick={onOpenSaved}
-          >
-            <Bookmark size={13} aria-hidden="true" />
-            Saved builds
-          </button>
         </nav>
       </div>
 
@@ -122,6 +132,11 @@ export function StudioHeader({
           <span className="studio-total__label">Total spec</span>
           <span className="studio-total__amount">{formatEUR(totalCents)}</span>
         </div>
+
+        <button type="button" className="studio-tab studio-saved" onClick={onOpenSaved}>
+          <Bookmark size={13} aria-hidden="true" />
+          Saved builds
+        </button>
 
         <DeployCta onDeploy={onOpenDeploy} />
       </div>

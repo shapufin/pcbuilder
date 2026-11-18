@@ -28,6 +28,8 @@ export {
   builderDesignOptions,
   DEFAULT_BUILDER_DESIGN,
   resolveBuilderDesign,
+  type BuilderDesignDef,
+  type BuilderDesignPalette,
 } from './lib/builder-designs.ts'
 export { SPEC_TEMPLATES, specTemplateFor, specLabel } from './lib/spec-templates.ts'
 export {
@@ -212,21 +214,31 @@ export const pcBuilderPlugin =
           ],
           views: {
             ...incomingConfig.admin?.components?.views,
-            ruleManager: {
-              type: 'custom',
-              path: '/compatibility-rules-manager',
-              // Specifier is resolved relative to the config's importMap baseDir (apps/web/src)
-              Component:
-                pluginOptions.ruleManagerViewComponent ??
-                '../../../packages/plugin-pc-builder/src/admin/RuleManagerView#RuleManagerView',
-            } as never,
-            buildStats: {
-              type: 'custom',
-              path: '/build-stats',
-              Component:
-                pluginOptions.buildStatsViewComponent ??
-                '../../../packages/plugin-pc-builder/src/admin/BuildStatsView#BuildStatsView',
-            } as never,
+            // Audit 2026-11-18 M5: the views are host-provided (the app owns the
+            // rich RuleManagerView/BuildStatsView). The plugin used to ship
+            // older duplicate copies as fallbacks that were always shadowed.
+            ...(pluginOptions.ruleManagerViewComponent
+              ? {
+                  ruleManager: {
+                    type: 'custom',
+                    path: '/compatibility-rules-manager',
+                    // Without meta.title every custom view inherits the generic
+                    // "Payload - Payload" document title (audit 2026-10-22, #674).
+                    meta: { title: 'Rule Matrix' },
+                    Component: pluginOptions.ruleManagerViewComponent,
+                  } as never,
+                }
+              : {}) as Record<string, never>,
+            ...(pluginOptions.buildStatsViewComponent
+              ? {
+                  buildStats: {
+                    type: 'custom',
+                    path: '/build-stats',
+                    meta: { title: 'Build Analytics' },
+                    Component: pluginOptions.buildStatsViewComponent,
+                  } as never,
+                }
+              : {}) as Record<string, never>,
           },
         },
       },

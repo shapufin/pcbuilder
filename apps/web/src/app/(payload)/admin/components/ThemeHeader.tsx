@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
 import {
   Palette,
   SwatchBook,
@@ -12,6 +11,7 @@ import {
   Store,
 } from 'lucide-react'
 import { MetricCard, AlertBanner, Button } from '../ui'
+import { ThemeColorStudio } from './ThemeColorStudio'
 
 export interface ThemeTelemetryStats {
   presetLabel: string
@@ -33,6 +33,8 @@ const PRESET_LABELS: Record<string, string> = {
   midnight: 'Midnight',
   'rig-dark': 'RIG Dark',
   nexus: 'Nexus',
+  aether: 'Aether Engineering',
+  'aether-frost': 'Aether Titanium Frost',
 }
 
 const PRESET_OPTIONS_COUNT = Object.keys(PRESET_LABELS).length
@@ -82,7 +84,7 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({ stats: propStats }) =>
           presetLabel: PRESET_LABELS[preset] ?? preset,
           presetOptions: PRESET_OPTIONS_COUNT,
           tokenOverrides: countThemeOverrides(doc),
-          packLabel: preset === 'nexus' ? 'Nexus pack' : 'None',
+          packLabel: preset === 'nexus' ? 'Nexus pack' : preset === 'aether' || preset === 'aether-frost' ? 'Aether pack' : 'None',
         })
       })
       .catch(() => {
@@ -109,26 +111,37 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({ stats: propStats }) =>
         </div>
 
         <div className="bmr-collection-header__actions">
-          <Link href="/admin/globals/site-settings">
-            <Button variant="outline" size="sm" aria-label="Open Site Settings Global">
-              <Settings className="bmr-btn-icon" />
-              Site Settings ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/globals/site-settings"
+            aria-label="Open Site Settings Global"
+          >
+            <Settings className="bmr-btn-icon" />
+            <span>Site Settings ↗</span>
+          </Button>
 
-          <Link href="/admin/globals/mega-menu">
-            <Button variant="outline" size="sm" aria-label="Open Mega Menu Global">
-              <Menu className="bmr-btn-icon" />
-              Mega Menu ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/admin/globals/mega-menu"
+            aria-label="Open Mega Menu Global"
+          >
+            <Menu className="bmr-btn-icon" />
+            <span>Mega Menu ↗</span>
+          </Button>
 
-          <Link href="/" target="_blank" rel="noopener noreferrer">
-            <Button variant="primary" size="sm" aria-label="Open Storefront">
-              <Store className="bmr-btn-icon" />
-              Storefront ↗
-            </Button>
-          </Link>
+          <Button
+            variant="primary"
+            size="sm"
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Storefront"
+          >
+            <Store className="bmr-btn-icon" />
+            <span>Storefront ↗</span>
+          </Button>
         </div>
       </div>
 
@@ -180,6 +193,9 @@ export const ThemeHeader: React.FC<ThemeHeaderProps> = ({ stats: propStats }) =>
           icon={Package}
         />
       </div>
+
+      {/* 4. Interactive Theme Color Studio & Live Dynamic Preview */}
+      <ThemeColorStudio />
     </div>
   )
 }

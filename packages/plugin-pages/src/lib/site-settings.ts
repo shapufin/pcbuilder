@@ -1,6 +1,12 @@
 export type NavLink = { label: string; url: string }
 
-export type AdminThemeOption = 'precision-dark' | 'cyber-neon' | 'classic-payload' | 'light-clean'
+export type AdminThemeOption =
+  | 'precision-dark'
+  | 'cyber-neon'
+  | 'classic-payload'
+  | 'light-clean'
+  | 'aether-foundry'
+  | 'aether-frost'
 
 export type SiteSettings = {
   navLinks: NavLink[]
@@ -86,6 +92,8 @@ const VALID_ADMIN_THEMES = new Set<AdminThemeOption>([
   'cyber-neon',
   'classic-payload',
   'light-clean',
+  'aether-foundry',
+  'aether-frost',
 ])
 
 export function resolveSiteSettings(doc: unknown): SiteSettings {

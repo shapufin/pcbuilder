@@ -29,7 +29,6 @@ import {
   cartShippingCountryEndpoint,
   cartConfirmFreeEndpoint,
   cartPackagingEndpoint,
-  discountValidateEndpoint,
 } from './endpoints.ts'
 import { PackagingTiers } from './globals/packaging-tiers.ts'
 import { StoreSettings } from './globals/store-settings.ts'
@@ -68,6 +67,8 @@ export interface ShopPluginOptions {
   serpPreviewComponent?: string
   /** Custom UI component path for the product slug field (live title→slug autogen) */
   slugFieldComponent?: string
+  /** Custom UI component path for the live gross-margin readout on the Pricing & Margin tab */
+  productMarginComponent?: string
 }
 
 const checkRole =
@@ -124,6 +125,14 @@ export const shopPlugin =
 
           return {
             ...defaultCollection,
+            // Saved filters/columns/sort (Payload Query Presets) — replaces the
+            // bespoke filter pills on the products list (plan 2.1).
+            enableQueryPresets: true,
+            // Plan 4.2 — a hard delete takes variants, review links and order
+            // line references with it. Trash makes it a reversible PATCH of
+            // `deletedAt`; Payload keeps trashed docs out of `find` unless
+            // `trash: true` is asked for, so the storefront is unaffected.
+            trash: true,
             // Upstream enables drafts.autosave — every open of the create
             // view (incl. the list-page slide-over drawer) persists an empty
             // draft before the user saves, leaking orphan rows. Keep drafts
@@ -231,8 +240,12 @@ export const shopPlugin =
                       {
                         name: 'description',
                         type: 'textarea',
-                        label: 'Product Overview & Specifications',
-                        admin: { placeholder: 'Detailed product description, key highlights, performance details...' },
+                        label: 'Product Description & Overview',
+                        admin: {
+                          rows: 6,
+                          placeholder: 'Detailed product description, key highlights, performance details...',
+                          description: 'Editorial Markdown overview shown on storefront PDP (supports headings, bold text, bullet points).',
+                        },
                       },
                       {
                         name: 'crossSells',
@@ -279,6 +292,20 @@ export const shopPlugin =
                           },
                         ],
                       },
+                      // A `ui` field mounts inside the document <Form>, so the
+                      // panel can read priceInEUR / costInEUR / compareAt via
+                      // useFormFields and recompute as the admin types.
+                      ...(pluginOptions.productMarginComponent
+                        ? [
+                            {
+                              name: 'marginPanel',
+                              type: 'ui' as const,
+                              admin: {
+                                components: { Field: pluginOptions.productMarginComponent },
+                              },
+                            },
+                          ]
+                        : []),
                     ],
                   },
                   {
@@ -311,7 +338,30 @@ export const shopPlugin =
                           },
                         ],
                       },
-                      ...ecommerceInventory,
+                      {
+                        type: 'row',
+                        fields: [
+                          ...ecommerceInventory.map((f) => ({
+                            ...f,
+                            admin: {
+                              ...(typeof f === 'object' && 'admin' in f ? f.admin : {}),
+                              width: '50%',
+                              description: 'Current real-time stock units available across warehouse hubs.',
+                            },
+                          })),
+                          {
+                            name: 'weightKg',
+                            type: 'number',
+                            label: 'Shipping Weight (kg)',
+                            min: 0,
+                            admin: {
+                              width: '50%',
+                              placeholder: 'e.g. 1.85',
+                              description: 'Physical package weight for shipping band calculation.',
+                            },
+                          },
+                        ],
+                      },
                       {
                         type: 'row',
                         fields: [
@@ -336,17 +386,6 @@ export const shopPlugin =
                             },
                           },
                         ],
-                      },
-                      {
-                        name: 'weightKg',
-                        type: 'number',
-                        label: 'Shipping Weight (kg)',
-                        min: 0,
-                        admin: {
-                          width: '50%',
-                          placeholder: 'e.g. 1.85',
-                          description: 'Physical package weight for shipping band calculation.',
-                        },
                       },
                     ],
                   },
@@ -379,7 +418,7 @@ export const shopPlugin =
                         name: 'specsJson',
                         type: 'json',
                         label: 'Raw Cosmetic Specs (JSON)',
-                        admin: { description: 'Structured JSON specs displayed in PDP specification table' },
+                        admin: { hidden: true, description: 'Structured JSON specs displayed in PDP specification table' },
                       },
                     ],
                   },
@@ -471,7 +510,7 @@ export const shopPlugin =
               {
                 name: 'isFeatured',
                 type: 'checkbox',
-                label: '⭐ Featured Product',
+                label: 'Featured Product',
                 defaultValue: false,
                 admin: {
                   position: 'sidebar',
@@ -481,7 +520,7 @@ export const shopPlugin =
               {
                 name: 'isTrending',
                 type: 'checkbox',
-                label: '🔥 Trending / Staff Pick',
+                label: 'Trending / Staff Pick',
                 defaultValue: false,
                 admin: {
                   position: 'sidebar',
@@ -700,8 +739,6 @@ export const shopPlugin =
 
     return withEcommerce({
       ...incomingConfig,
-      // Config-level endpoints are matched from the API root: /api/discounts/validate.
-      endpoints: [...(incomingConfig.endpoints ?? []), discountValidateEndpoint],
       globals: [...(incomingConfig.globals ?? []), PackagingTiers, StoreSettings],
       collections: [
         ...(incomingConfig.collections || []),

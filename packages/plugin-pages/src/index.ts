@@ -11,6 +11,8 @@ export interface PagesPluginOptions {
   enabled?: boolean
   /** Custom UI component path for the elevated site-settings edit header (entry 110) */
   siteSettingsHeaderComponent?: string
+  /** Custom UI field component for the visual admin-skin switcher (audit #668) */
+  siteSettingsThemeCardsComponent?: string
   /** Custom UI component path for the elevated theme edit header (entry 110) */
   themeHeaderComponent?: string
   /** Custom UI component path for the elevated mega-menu edit header (entry 110) */
@@ -67,11 +69,31 @@ export const pagesPlugin =
             },
           }
         : g
+    // A `ui` field mounts inside the document <Form>, so its component can use
+    // useField/useForm. elements.Description cannot — it renders outside the
+    // provider (audit #668: the skin switcher threw on every click there).
+    const withThemeCards = (g: GlobalConfig, component?: string): GlobalConfig =>
+      component
+        ? {
+            ...g,
+            fields: [
+              {
+                name: 'adminThemeCards',
+                type: 'ui',
+                admin: { components: { Field: component } },
+              },
+              ...g.fields,
+            ],
+          }
+        : g
     const withGlobals: Config = {
       ...withBlocks,
       globals: [
         ...(withBlocks.globals ?? []),
-        withDescription(SiteSettings, pluginOptions.siteSettingsHeaderComponent),
+        withDescription(
+          withThemeCards(SiteSettings, pluginOptions.siteSettingsThemeCardsComponent),
+          pluginOptions.siteSettingsHeaderComponent,
+        ),
         withDescription(Theme, pluginOptions.themeHeaderComponent),
         withDescription(MegaMenu, pluginOptions.megaMenuHeaderComponent),
       ],

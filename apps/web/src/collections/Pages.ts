@@ -1,5 +1,6 @@
 import type { Access, CollectionConfig } from 'payload'
 import { pageBlockSlugs } from '@buildmyrig/plugin-pages'
+import { shouldRevalidatePage } from '@/lib/page-revalidate.ts'
 
 const isStaff: Access = ({ req }) =>
   Boolean(req.user?.roles?.some((r) => ['admin', 'manager', 'staff'].includes(r)))
@@ -13,7 +14,13 @@ const isManager: Access = ({ req }) =>
  */
 export const Pages: CollectionConfig = {
   slug: 'pages',
-  versions: { drafts: true },
+  // Plan 4.1 — a layout is the longest form in the admin (28 block types), so
+  // an autosave interval is the difference between a lost tab costing one
+  // block and costing the whole page. Draft-only saves do not revalidate (see
+  // `shouldRevalidatePage`), so this does not become a cache-busting storm.
+  versions: { drafts: { autosave: { interval: 800 } } },
+  // Plan 4.2 — a deleted page takes its whole block layout with it.
+  trash: true,
   access: {
     read: ({ req }) => {
       if (isStaff({ req })) return true
@@ -45,9 +52,15 @@ export const Pages: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, req }) => {
+      async ({ doc, previousDoc, req }) => {
         // On-demand revalidation (13-performance-seo.md): homepage renders `/`,
         // other pages render at `/<slug>` via the root [slug] route.
+        //
+        // Autosave fires this hook every ~800ms with a draft, which the public
+        // page never renders — revalidating there would discard the cached
+        // page on every keystroke. Only saves that change what is published
+        // (publish, edit-while-published, unpublish) bust the cache.
+        if (!shouldRevalidatePage({ doc, previousDoc })) return doc
         try {
           const { revalidatePath } = await import('next/cache')
           if (doc.isHomepage) revalidatePath('/')
@@ -87,6 +100,10 @@ export const Pages: CollectionConfig = {
     {
       name: 'layout',
       type: 'blocks',
+      labels: {
+        singular: 'Block',
+        plural: 'Blocks',
+      },
       blocks: [],
       blockReferences: pageBlockSlugs as never,
       filterOptions: () => pageBlockSlugs as never,

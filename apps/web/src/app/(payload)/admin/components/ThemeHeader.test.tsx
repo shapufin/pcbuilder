@@ -3,6 +3,20 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ThemeHeader, countThemeOverrides } from './ThemeHeader.tsx'
 
+vi.mock('@payloadcms/ui', () => ({
+  useForm: () => ({
+    dispatchFields: vi.fn(),
+    setModified: vi.fn(),
+  }),
+  useFormFields: () => [null, vi.fn()],
+  useField: () => ({
+    value: undefined,
+    setValue: vi.fn(),
+    showError: false,
+    errorMessage: '',
+  }),
+}))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),

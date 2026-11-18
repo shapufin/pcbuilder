@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Search,
+  Mail,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -43,9 +44,13 @@ import {
   Sun,
   Zap,
   Sliders,
+  Snowflake,
   Component,
   CreditCard,
 } from 'lucide-react'
+import { useAuth } from '@payloadcms/ui'
+import { applyAdminTheme } from './adminTheme.ts'
+import { canSeeNavHref, navIdentity, type NavPermissions } from './nav-access.ts'
 
 export interface NavItem {
   id: string
@@ -103,6 +108,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: 'pages', label: 'Pages', href: '/admin/collections/pages', icon: FileText, keywords: ['landing', 'about', 'blocks'] },
       { id: 'media', label: 'Media Library', href: '/admin/collections/media', icon: ImageIcon, keywords: ['images', 'uploads', 'assets', 'photos'] },
+      { id: 'newsletter-subscribers', label: 'Newsletter', href: '/admin/collections/newsletter-subscribers', icon: Mail, keywords: ['subscribers', 'email list', 'marketing', 'opt-in'] },
     ],
   },
   {
@@ -179,6 +185,8 @@ const getFeaturesServerSnapshot = (): string => ''
 
 const THEMES = [
   { label: 'Dark', value: 'precision-dark', icon: Moon, title: 'Modern Slate (Dark)' },
+  { label: 'Aether', value: 'aether-foundry', icon: Zap, title: 'Aether Foundry (Luxury Workstation)' },
+  { label: 'Frost', value: 'aether-frost', icon: Snowflake, title: 'Aether Frost (Titanium Clean)' },
   { label: 'Light', value: 'light-clean', icon: Sun, title: 'Enterprise SaaS (Light)' },
   { label: 'Cyber', value: 'cyber-neon', icon: Zap, title: 'Cyber Neon (Tech)' },
   { label: 'Classic', value: 'classic-payload', icon: Sliders, title: 'Classic Payload' },
@@ -200,7 +208,7 @@ const getThemeSnapshot = (): AdminTheme => {
     const stored = localStorage.getItem('bmr_admin_theme') as AdminTheme | null
     const rootTheme = document.documentElement.getAttribute('data-admin-theme') as AdminTheme | null
     const val = stored || rootTheme
-    if (val && ['precision-dark', 'cyber-neon', 'light-clean', 'classic-payload'].includes(val)) {
+    if (val && ['precision-dark', 'aether-foundry', 'aether-frost', 'cyber-neon', 'light-clean', 'classic-payload'].includes(val)) {
       return val
     }
   } catch {}
@@ -209,19 +217,11 @@ const getThemeSnapshot = (): AdminTheme => {
 
 const getThemeServerSnapshot = (): AdminTheme => 'precision-dark'
 
-function applyAdminTheme(next: AdminTheme) {
-  if (typeof document === 'undefined') return
-  document.documentElement.setAttribute('data-admin-theme', next)
-  document.documentElement.setAttribute('data-theme', next === 'light-clean' ? 'light' : 'dark')
-  try {
-    localStorage.setItem('bmr_admin_theme', next)
-  } catch {}
-  document.cookie = `bmr_admin_theme=${next}; path=/; max-age=31536000; SameSite=Lax`
-  window.dispatchEvent(new CustomEvent('bmr-admin-theme-change', { detail: next }))
-}
-
 export const ModernAdminNav: React.FC = () => {
   const pathname = usePathname()
+  // Audit 2026-11-18 H3: real identity + permission-filtered links.
+  const { user, permissions } = useAuth<{ email?: string; name?: string; roles?: string[] }>()
+  const identity = navIdentity(user)
   const [search, setSearch] = useState('')
   const isMobile = useSyncExternalStore(subscribeMobile, getMobileSnapshot, getMobileServerSnapshot)
   // The collapsed rail is a desktop affordance only — on ≤1023px the nav is
@@ -319,6 +319,7 @@ export const ModernAdminNav: React.FC = () => {
     return NAV_SECTIONS.map((section) => {
       const items = section.items
         .filter((item) => isItemActive(item.id))
+        .filter((item) => canSeeNavHref(item.href, permissions as NavPermissions))
         .filter((item) => {
           if (!q) return true
           const matchesLabel = item.label.toLowerCase().includes(q)
@@ -333,7 +334,7 @@ export const ModernAdminNav: React.FC = () => {
         })
       return { ...section, items }
     }).filter((section) => section.items.length > 0)
-  }, [search, features, activePluginsCount])
+  }, [search, features, activePluginsCount, permissions])
 
   return (
     <aside
@@ -516,12 +517,12 @@ export const ModernAdminNav: React.FC = () => {
         <div className="bmr-nav-user-card">
           <div className="bmr-nav-user-info">
             <div className="bmr-nav-user-avatar" aria-hidden="true">
-              <span>AD</span>
+              <span>{identity.initials}</span>
             </div>
             {!isRail && (
               <div className="bmr-nav-user-details">
-                <span className="bmr-nav-user-name">Administrator</span>
-                <span className="bmr-nav-user-email">admin@buildmyrig.test</span>
+                <span className="bmr-nav-user-name">{identity.name}</span>
+                <span className="bmr-nav-user-email">{identity.email}</span>
               </div>
             )}
           </div>

@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { Users } from './Users.ts'
+import { describe, it, expect, vi } from 'vitest'
+import {
+  Users,
+  protectLastAdminDemotion,
+  protectLastAdminDeletion,
+} from './Users.ts'
 
 const access = Users.access as Record<string, unknown>
 const rolesField = Users.fields.find(
@@ -48,6 +52,91 @@ describe('users access — entry 11 privilege-escalation fix', () => {
     expect(call(rolesField.access?.update, admin)).toBe(true)
     expect(call(rolesField.access?.create, admin)).toBe(true)
   })
+
+  it('#49 beforeDelete nullifies user foreign key on configured-builds', async () => {
+    const beforeDeleteHooks = Users.hooks?.beforeDelete ?? []
+    expect(beforeDeleteHooks.length).toBeGreaterThanOrEqual(1)
+
+    const mockUpdate = vi.fn().mockResolvedValue({ docs: [] })
+    const mockFindByID = vi.fn().mockResolvedValue({ id: 77, roles: ['customer'] })
+    const req = {
+      payload: {
+        findByID: mockFindByID,
+        find: vi.fn().mockResolvedValue({ totalDocs: 1 }),
+        update: mockUpdate,
+        logger: { error: vi.fn() },
+      },
+    }
+
+    for (const hook of beforeDeleteHooks) {
+      await (hook as any)({ req: req as any, id: 77, collection: Users as any })
+    }
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'configured-builds',
+        where: {
+          user: { equals: 77 },
+        },
+        data: {
+          user: null,
+        },
+      }),
+    )
+  })
+
+  it('#50 beforeChange rejects demoting the last remaining admin', async () => {
+    const mockFind = vi.fn().mockResolvedValue({ totalDocs: 0 })
+    const req = { payload: { find: mockFind } }
+
+    await expect(
+      protectLastAdminDemotion({
+        operation: 'update',
+        originalDoc: { id: 1, roles: ['admin'] },
+        data: { roles: ['customer'] },
+        req: req as any,
+      }),
+    ).rejects.toThrow('Cannot demote the last remaining admin user.')
+
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'users',
+        where: {
+          and: [
+            { roles: { contains: 'admin' } },
+            { id: { not_equals: 1 } },
+          ],
+        },
+      }),
+    )
+  })
+
+  it('#51 beforeChange allows demoting an admin when another active admin exists', async () => {
+    const mockFind = vi.fn().mockResolvedValue({ totalDocs: 1 })
+    const req = { payload: { find: mockFind } }
+
+    const res = await protectLastAdminDemotion({
+      operation: 'update',
+      originalDoc: { id: 1, roles: ['admin'] },
+      data: { roles: ['manager'] },
+      req: req as any,
+    })
+
+    expect(res).toEqual({ roles: ['manager'] })
+  })
+
+  it('#52 beforeDelete rejects deleting the last remaining admin', async () => {
+    const mockFindByID = vi.fn().mockResolvedValue({ id: 1, roles: ['admin'] })
+    const mockFind = vi.fn().mockResolvedValue({ totalDocs: 0 })
+    const req = { payload: { findByID: mockFindByID, find: mockFind } }
+
+    await expect(
+      protectLastAdminDeletion({
+        id: 1,
+        req: req as any,
+      }),
+    ).rejects.toThrow('Cannot delete the last remaining admin user.')
+  })
 })
 
 describe('users roles/auth config — entry 15 (least-privilege signup)', () => {
@@ -59,5 +148,14 @@ describe('users roles/auth config — entry 15 (least-privilege signup)', () => 
       maxLoginAttempts: 5,
       lockTime: 10 * 60 * 1000,
     })
+  })
+})
+
+describe('users access — audit 2026-11-18 H1 admin panel', () => {
+  it('#738 access.admin admits staff roles only', () => {
+    expect(call(access.admin, { req: { user: { id: 72, roles: ['customer'] } } })).toBe(false)
+    expect(call(access.admin, { req: { user: null } })).toBe(false)
+    expect(call(access.admin, { req: { user: { id: 3, roles: ['staff'] } } })).toBe(true)
+    expect(call(access.admin, { req: { user: { id: 1, roles: ['admin'] } } })).toBe(true)
   })
 })

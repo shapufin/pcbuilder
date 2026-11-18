@@ -84,8 +84,8 @@ export default async function ConfiguratorPage({ searchParams }: Props) {
     if (doc) {
       // configured-builds store `components[]` (hasMany), not the singular
       // `component` of build-templates — expand one row per component so
-      // multi-select slots hydrate correctly. rgbColor torna nel draft:
-      // il link condiviso ricrea anche l'accento scelto dall'autore.
+      // multi-select slots hydrate correctly. rgbColor also returns to the
+      // draft: the shared link recreates the author's chosen accent.
       template = {
         id: `shared:${doc.shareId ?? sharedBuildId}`,
         name: doc.name,
@@ -99,8 +99,8 @@ export default async function ConfiguratorPage({ searchParams }: Props) {
     }
   }
 
-  // Preset per il SavedBuildsModal dei design (Architect Presets) — una
-  // find per request, come la landing (depth 2 espande category/component).
+  // Presets for the designs' SavedBuildsModal (Architect Presets) — one
+  // find per request, same as the landing (depth 2 expands category/component).
   const templateDocs = await payload.find({
     collection: 'build-templates',
     where: { _status: { equals: 'published' } },

@@ -11,7 +11,8 @@ export interface AlertBannerProps {
   counter?: string
   action?: {
     label: string
-    href: string
+    href?: string
+    onClick?: () => void
     /** Opens in a new tab with noopener — for storefront-facing links from edit views. */
     external?: boolean
   }
@@ -67,15 +68,26 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
         {counter && <span className="bmr-alert-banner__counter">{counter}</span>}
 
         {action && (
-          <Link
-            href={action.href}
-            className="bmr-alert-banner__action-btn"
-            target={action.external ? '_blank' : undefined}
-            rel={action.external ? 'noopener noreferrer' : undefined}
-          >
-            <span>{action.label}</span>
-            <ChevronRight size={14} />
-          </Link>
+          action.href ? (
+            <Link
+              href={action.href}
+              className="bmr-alert-banner__action-btn"
+              target={action.external ? '_blank' : undefined}
+              rel={action.external ? 'noopener noreferrer' : undefined}
+            >
+              <span>{action.label}</span>
+              <ChevronRight size={14} />
+            </Link>
+          ) : action.onClick ? (
+            <button
+              type="button"
+              onClick={action.onClick}
+              className="bmr-alert-banner__action-btn"
+            >
+              <span>{action.label}</span>
+              <ChevronRight size={14} />
+            </button>
+          ) : null
         )}
 
         {onDismiss && (

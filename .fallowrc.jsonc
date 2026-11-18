@@ -1,0 +1,13 @@
+{
+  // Audit 2026-11-18 L9: local design-reference dumps in the repo root are
+  // gitignored and are not workspaces; keep them out of fallow's analysis.
+  "ignorePatterns": [
+    "ADMIN_GUI/**",
+    "PC_BUILDER_ARCHITECT_DESIGN/**",
+    "PC_BUILDER_ATELIER_DESIGN/**",
+    "shop layout/**",
+    "buildmyrig-studio-admin---modern-cms-&-pc-engine-console/**",
+    "SHOP_THEME_2.tsx",
+    "graphify-out/**"
+  ]
+}

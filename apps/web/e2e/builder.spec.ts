@@ -9,9 +9,12 @@ test.describe('configurator', () => {
     await page.goto('/builder/configure')
     // Component option cards carry aria-pressed and only render once
     // GET /api/builder/index has resolved.
-    await expect(page.locator('button[aria-pressed]').first()).toBeVisible()
+    // Scoped to <main>: the header theme toggle is also aria-pressed, and the
+    // immersive builder chrome hides that header (audit 2026-11-18).
+    const firstOption = page.locator('main button[aria-pressed]').first()
+    await expect(firstOption).toBeVisible()
     // Step navigation exists for the multi-step flow.
-    await expect(page.locator('button[aria-pressed]').first()).toBeEnabled()
+    await expect(firstOption).toBeEnabled()
   })
 
   test('?path=amd hard-filters socket-bound options; switching clears picks', async ({ page }) => {

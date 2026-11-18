@@ -1,4 +1,5 @@
 import type { Block } from 'payload'
+import { isSafeNavLinkUrl } from '../lib/site-settings.ts'
 
 export const BannerCountdownBlock: Block = {
   slug: 'bannerCountdown',
@@ -22,7 +23,17 @@ export const BannerCountdownBlock: Block = {
       type: 'row',
       fields: [
         { name: 'ctaLabel', type: 'text', label: 'CTA Button Label', defaultValue: 'Configure Rig Now', admin: { width: '50%' } },
-        { name: 'ctaUrl', type: 'text', label: 'CTA Target URL', defaultValue: '/builder', admin: { width: '50%' } },
+        {
+          name: 'ctaUrl',
+          type: 'text',
+          label: 'CTA Target URL',
+          defaultValue: '/builder',
+          admin: { width: '50%' },
+          validate: (value: unknown) => {
+            if (!value || typeof value !== 'string') return true
+            return isSafeNavLinkUrl(value.trim()) || 'Must start with a single / (internal path) or https://'
+          },
+        },
       ],
     },
     {

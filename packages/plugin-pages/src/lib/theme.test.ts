@@ -137,7 +137,7 @@ describe('theme field validators (admin form gate)', () => {
 describe('theme presets — design swap registry', () => {
   it('#288 registry drives the Theme global select; presets ship in code', () => {
     const keys = Object.keys(THEME_PRESETS)
-    expect(keys).toEqual(['dark', 'light', 'midnight', 'rig-dark', 'nexus'])
+    expect(keys).toEqual(['dark', 'light', 'midnight', 'rig-dark', 'nexus', 'aether', 'aether-frost'])
     expect(themePresetOptions().map((o) => o.value)).toEqual(keys)
     const presetField = Theme.fields?.find((f) => 'name' in f && f.name === 'preset') as
       | { options?: Array<{ value: string }> }
@@ -198,6 +198,38 @@ describe('theme presets — design swap registry', () => {
     const css = buildThemeCss(resolved)
     expect(css).toContain('--color-bg: #080b11;')
     expect(css).toContain('--color-accent: #00eefc;')
+  })
+
+  it('#438 aether preset: luxury engineering pack theme — label, skin, pack flag', () => {
+    const aether = THEME_PRESETS.aether
+    expect(aether.label).toBe('Aether Engineering')
+    expect(aether.skin).toBe('aether.css')
+    expect(aether.pack).toBe('aether')
+    const resolved = resolveTheme({ preset: 'aether' })
+    expect(resolved.preset).toBe('aether')
+    expect(resolved.colors.bg).toBe('#09090b')
+    expect(resolved.colors.primary).toBe('#fbbf24')
+    expect(resolved.extras.accent).toBe('#22d3ee')
+    expect(altThemePreset('aether')).toBe('light')
+    const css = buildThemeCss(resolved)
+    expect(css).toContain('--color-bg: #09090b;')
+    expect(css).toContain('--color-primary: #fbbf24;')
+  })
+
+  it('#439 aether-frost preset: luxury clean titanium laboratory theme', () => {
+    const frost = THEME_PRESETS['aether-frost']
+    expect(frost.label).toBe('Aether Titanium Frost')
+    expect(frost.skin).toBe('aether-frost.css')
+    expect(frost.pack).toBe('aether')
+    const resolved = resolveTheme({ preset: 'aether-frost' })
+    expect(resolved.preset).toBe('aether-frost')
+    expect(resolved.colors.bg).toBe('#f8fafc')
+    expect(resolved.colors.primary).toBe('#d97706')
+    expect(resolved.extras.accent).toBe('#0284c7')
+    expect(altThemePreset('aether-frost')).toBe('dark')
+    const css = buildThemeCss(resolved)
+    expect(css).toContain('--color-bg: #f8fafc;')
+    expect(css).toContain('--color-primary: #d97706;')
   })
 
   it('#371 Theme global defaultValue stays pinned to DEFAULT_THEME.preset', () => {

@@ -19,6 +19,32 @@ Payment/auth changes trigger the `security-review` skill in addition to
   and `shipments` not built (status-only fulfilment; out of scope until
   a carrier/3PL or URL-migration need exists).
 
+## Payload system surfaces (audit 2026-11-18)
+
+- **Admin panel is staff-only**: `users.access.admin = canAccessAdminPanel`
+  (`apps/web/src/lib/system-access.ts`). Customers share the `users` auth
+  collection, so every Payload default of "any authenticated user" must be
+  pinned explicitly (tests #730, #738).
+- **Query presets** (`queryPresets.access`) and **locked documents**
+  (`restrictLockedDocuments` in `onInit` — no config option exists) are
+  staff-only (#731–#733).
+- **CSRF**: localhost origins are trusted outside production only
+  (`allowedCsrfOrigins`, #734–#735).
+- **Security headers** on every route (`src/lib/security-headers.mjs`,
+  wired in `next.config.mjs`): structural CSP (`frame-ancestors 'self'`,
+  `object-src 'none'`, `base-uri`, `form-action`), XFO, nosniff,
+  Referrer-Policy, Permissions-Policy, HSTS in prod; `poweredByHeader:
+  false` (#736–#737).
+- **401 vs 403**: plugin endpoints answer 401 only when signed out; a
+  signed-in caller without the role gets 403 (`roleDenied`, #76/#197).
+- **Retention** (C1): nightly `pruneStaleGuestData` job (03:15, queue
+  `maintenance`) deletes guest carts idle >30 d with no transaction or
+  reservation, and unclaimed builds >90 d not referenced by a cart/order
+  (#750–#751).
+- **Newsletter** is double opt-in (`newsletter-subscribers`, staff read /
+  manager delete; confirm token never readable; ≤1 mail per address per
+  15 min) — #742–#747.
+
 ## Roles & helpers
 
 - Roles: `admin`, `manager`, `staff`, `customer` (id1 admin, id2
@@ -47,10 +73,10 @@ Payment/auth changes trigger the `security-review` skill in addition to
 
 - In-memory, single-instance, IP-keyed (`packages/lib` rate limiter) —
   documented deviation from the Upstash plan.
-- **Leftmost `X-Forwarded-For` is trusted** — client-controlled when the
-  origin is reached directly; prod must sit behind a proxy that
-  overwrites XFF/X-Real-IP (entry-15 VULN-01; contract in
-  `11-access-security.md`). Dev-first: acceptable locally.
+- **Client IP = `x-real-ip`, else the RIGHTMOST `X-Forwarded-For` hop**
+  (audit 2026-11-18 C1 — the leftmost hop is client-typed). One resolver,
+  `clientIpFromHeaders` in `@buildmyrig/lib`; `apps/web` `clientIp`
+  delegates to it. Prod still needs a proxy that sets one of the two.
 - Register: 5/min/IP + 409 dup + origin check. Password reset: 5/min/IP,
   always-200 (anti-enumeration — unknown email is byte-identical).
 

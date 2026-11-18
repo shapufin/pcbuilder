@@ -18,7 +18,7 @@ const colorField = (name: string, label: string): Field => ({
   name,
   type: 'text',
   label,
-  admin: { width: 50, placeholder: '#0070f3' },
+  admin: { width: '50%', placeholder: '#0070f3' },
   validate: optionalField(validateColor, 'Enter a hex color, e.g. #0070f3'),
 })
 
@@ -26,7 +26,7 @@ const radiusField = (name: string, label: string): Field => ({
   name,
   type: 'text',
   label,
-  admin: { width: 50, placeholder: '8px' },
+  admin: { width: '50%', placeholder: '8px' },
   validate: optionalField(validateRadius, 'Enter a CSS length, e.g. 8px / 0.5rem'),
 })
 
@@ -34,7 +34,7 @@ const fontField = (name: string, label: string): Field => ({
   name,
   type: 'text',
   label,
-  admin: { width: 100 },
+  admin: { width: '100%' },
   validate: optionalField(validateFont, 'Enter a font stack (letters, spaces, commas, quotes only)'),
 })
 

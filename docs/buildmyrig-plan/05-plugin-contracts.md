@@ -34,7 +34,7 @@ export function registerLineItemType(type: LineItemType): void   // config-time 
 ```
 
 **Collections added** (or inherited from ecommerce plugin when the audit spike picks it): carts, orders, transactions, shipments, addresses, customers, discountCodes, prices, inventory.
-**Endpoints added**: cart item endpoints (plugin-provided), `POST /api/discounts/validate`, `POST /api/checkout`, `POST /api/stripe/webhook` (registered by the injected payment adapter, not core).
+**Endpoints added**: cart item endpoints (plugin-provided), `POST /api/carts/:id/apply-discount` (the anonymous `/api/discounts/validate` was removed in audit 2026-11-18), `POST /api/checkout`, `POST /api/stripe/webhook` (registered by the injected payment adapter, not core).
 **Hooks added**: price resolution cache, inventory reservation/decrement, discount re-validation, order lifecycle emails, `afterLogin` guest-cart merge.
 **Admin components**: order status badge columns, discount usage column.
 **Events emitted (server event bus, simple typed emitter in packages/lib)**: `shop:order-paid`, `shop:order-shipped`, `shop:low-stock`, `shop:stock-changed`, `shop:cart-merged`.

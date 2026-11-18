@@ -1,12 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { discountValidateEndpoint, cartApplyDiscountEndpoint, cartShippingCountryEndpoint } from './endpoints.ts'
+import { cartApplyDiscountEndpoint, cartShippingCountryEndpoint } from './endpoints.ts'
 import { computeCartTotals } from './lib/pricing.ts'
 
 type Row = Record<string, any>
 
 /**
  * Discount endpoints (audit gap P2-C3 / A6):
- * - POST /api/discounts/validate — stateless pre-check for the checkout form.
  * - POST /api/carts/:id/apply-discount — owner-or-secret gated cart mutation;
  *   the cart beforeChange hook recomputes the four totals from the same
  *   computeCartTotals math source.
@@ -74,47 +73,6 @@ const validCode = (over: Row = {}): Row => ({
   enabled: true,
   usedCount: 0,
   ...over,
-})
-
-describe('POST /api/discounts/validate', () => {
-  it('#202 returns the computed discount for a valid code', async () => {
-    const { payload } = makePayload({ discountCodes: [validCode()] })
-    const res = await discountValidateEndpoint.handler!(
-      asReq(payload, { body: { code: 'SAVE10', subtotal: 10_000 } }),
-    ) as Response
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body).toMatchObject({ valid: true, discountTotal: 1_000, freeShipping: false })
-  })
-
-  it('#203 rejects an unknown code with a reason (no collection internals leaked)', async () => {
-    const { payload } = makePayload({ discountCodes: [validCode()] })
-    const res = await discountValidateEndpoint.handler!(
-      asReq(payload, { body: { code: 'NOPE' } }),
-    ) as Response
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.valid).toBe(false)
-    expect(typeof body.reason).toBe('string')
-    expect(body.reason).not.toMatch(/find|query|collection/i)
-  })
-
-  it('#204 rejects a malformed body with 400', async () => {
-    const { payload } = makePayload()
-    const res = await discountValidateEndpoint.handler!(asReq(payload, { body: {} })) as Response
-    expect(res.status).toBe(400)
-  })
-
-  it('#205 is rate limited per IP', async () => {
-    const { payload } = makePayload({ discountCodes: [validCode()] })
-    const req = asReq(payload, { body: { code: 'SAVE10' } })
-    let last: Response | null = null
-    for (let i = 0; i < 25; i++) {
-      last = (await discountValidateEndpoint.handler!(req)) as Response
-      if (last.status === 429) break
-    }
-    expect(last?.status).toBe(429)
-  })
 })
 
 describe('POST /api/carts/:id/apply-discount', () => {

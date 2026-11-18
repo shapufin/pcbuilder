@@ -53,7 +53,7 @@ export function AddToCartButton({
         : state === 'busy'
           ? 'Adding…'
           : state === 'done'
-            ? 'Added to cart ✓'
+            ? 'Added to cart'
             : state === 'error'
               ? 'Failed — retry'
               : 'Add to cart'}

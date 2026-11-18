@@ -255,15 +255,28 @@ export const resolveConfiguredBuildStockUnits = async (
     }
   }
 
-  const units: StockUnit[] = []
-  for (const { componentId, quantity } of componentQuantities) {
-    const component = (await payload.findByID({
-      id: componentId,
+  // One batched find for every component (audit 2026-10-24): the per-
+  // component findByID cost N sequential queries on each reservation create
+  // and settlement conversion, and a deleted component's 404 propagated —
+  // wedging a 'processing' transaction whose retry hit the same throw.
+  // Absent docs are simply skipped: nothing to pick, settlement continues.
+  const wanted = componentQuantities.map((c) => c.componentId)
+  const componentById = new Map<string, { productVariant?: unknown }>()
+  if (wanted.length > 0) {
+    const res = await payload.find({
       collection: 'components',
+      where: { id: { in: wanted } },
+      limit: wanted.length,
       depth: 0,
       overrideAccess: true,
-    })) as { productVariant?: unknown } | null
-    const variantId = component ? idOf(component.productVariant) : null
+    })
+    for (const doc of res.docs as Array<{ id: string | number; productVariant?: unknown }>) {
+      componentById.set(String(doc.id), doc)
+    }
+  }
+  const units: StockUnit[] = []
+  for (const { componentId, quantity } of componentQuantities) {
+    const variantId = idOf(componentById.get(componentId)?.productVariant)
     if (variantId) units.push({ variant: variantId, quantity })
   }
   return units

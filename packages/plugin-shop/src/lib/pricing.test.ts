@@ -94,6 +94,17 @@ describe('computeCartTotals — VAT-inclusive prices (tax extracted, not added)'
     expect(t.total).toBe(10_490)
   })
 
+  /**
+   * Audit round 2 (#709) — an empty cart was charged the cheapest band plus VAT
+   * on it (measured: shipping 595, tax 99, total 595 with no items). The cart
+   * can now legitimately empty itself when a product is trashed while it sits
+   * in a cart, so a total for nothing became reachable.
+   */
+  it('#709 an empty cart totals zero, not the cheapest shipping band', () => {
+    const t = computeCartTotals({ subtotal: 0, shippingBands, taxRates, country: 'DE' })
+    expect(t).toEqual({ discountTotal: 0, shippingTotal: 0, taxTotal: 0, total: 0 })
+  })
+
   it('percentage discount reduces subtotal before shipping/tax', () => {
     const t = computeCartTotals({
       subtotal: 10_000,

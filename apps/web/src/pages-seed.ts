@@ -1,4 +1,5 @@
 import type { Payload } from 'payload'
+import { repairMojibake } from './lib/mojibake.ts'
 
 /**
  * Phase-3 page content (10-blocks-pages.md composition map).
@@ -59,7 +60,10 @@ export const seedPages = async (payload: Payload): Promise<number> => {
   const createPage = async (data: Record<string, unknown>): Promise<void> => {
     const slug = String(data.slug)
     if (have.has(slug)) return
-    await payload.create({ collection: 'pages', draft: false, data: data as never })
+    // Seed writes are the only path content reaches the DB — normalise the
+    // CP1252 mojibake an editor round-trip can leave in the literals
+    // (audit 2026-10-22, item 677).
+    await payload.create({ collection: 'pages', draft: false, data: repairMojibake(data) as never })
     created += 1
   }
 
@@ -169,6 +173,90 @@ export const seedPages = async (payload: Payload): Promise<number> => {
         ctaLabel: 'Open the builder',
         ctaUrl: '/builder',
         tone: 'indigo',
+      },
+    ],
+  })
+
+  await createPage({
+    title: 'Aether Laboratory Showcase',
+    slug: 'aether-showcase',
+    _status: 'published',
+    seo: {
+      title: 'Aether Hardware Engineering Showcase',
+      description: 'Explore the Aether precision liquid cooling calculators, loop visualizer, and luxury workstations.',
+    },
+    layout: [
+      {
+        blockType: 'aetherHero',
+        badge: 'ISO-5 Cleanroom Certified · 2026 Lab Spec',
+        heading: 'Bespoke Liquid Rigs. Engineered Silence.',
+        highlightText: 'Engineered Silence.',
+        leadText: 'Aerospace-grade copper manifolds, direct-die delid thermals, and sub-ambient acoustic dampening for extreme compute workloads.',
+        primaryCtaText: 'Launch Thermal Calculator',
+        primaryCtaLink: '#thermal-calc',
+        secondaryCtaText: 'Custom Loop Configurator',
+        secondaryCtaLink: '#loop-visualizer',
+        stats: [
+          { label: 'Thermal Delta-T', value: 'ΔT < 8.2°C' },
+          { label: 'Acoustic Floor', value: '< 18.5 dBA' },
+          { label: 'Coolant Flow', value: '4.8 LPM' },
+        ],
+      },
+      {
+        blockType: 'aetherCalculator',
+        eyebrow: 'Computational Fluid Dynamics',
+        heading: 'Dynamic Thermal & Delid Calculator',
+        description: 'Simulate thermal junction deltas, radiator surface saturation, and acoustic noise profiles under 100% steady-state TDP loads.',
+      },
+      {
+        blockType: 'aetherLoopVisualizer',
+        eyebrow: 'Direct-Die Hydrodynamics',
+        heading: 'Interactive Loop & Manifold Visualizer',
+        description: 'Inspect micro-fin distribution, coolant fluid dynamics, and pressure differential across custom CNC blocks.',
+      },
+      {
+        blockType: 'aetherProductLab',
+        eyebrow: 'Precision Engineering',
+        heading: 'Turnkey Hardware Laboratories',
+        description: 'Each rig is hand-machined from solid 6061-T6 aluminum with bespoke distribution plates.',
+      },
+      {
+        blockType: 'aetherTelemetryGrid',
+        eyebrow: 'Laboratory Diagnostics',
+        heading: 'Real-Time Hardware Telemetry',
+        description: '24-hour burn-in telemetry verifying zero coolant leakage and zero micro-channel degradation.',
+        metrics: [
+          { label: 'Coolant Pressure', value: '1.42 BAR', unit: 'BAR', delta: '±0.02' },
+          { label: 'Delta Ambient', value: '6.4°C', unit: 'ΔT', delta: '-1.2°C' },
+          { label: 'Pump Duty Cycle', value: '65%', unit: 'PWM', delta: 'Nominal' },
+          { label: 'Thermal Runaway Margin', value: '38.5°C', unit: 'Headroom', delta: '+4.0°C' },
+        ],
+      },
+      {
+        blockType: 'aetherLookbook',
+        eyebrow: 'Hardware Architecture',
+        heading: 'Cleanroom Atelier Lookbook',
+        description: 'A glimpse inside the Munich assembly bay where every custom hardline loop is pressure-tested.',
+        slides: [
+          {
+            title: 'Aether Apex Cryo-01',
+            subtitle: 'Sub-zero direct-die contact with custom electroless nickel plating',
+            tag: 'Munich Cleanroom',
+            metrics: [
+              { label: 'Silicon', value: 'Core i9-14900KS SP118' },
+              { label: 'Coolant', value: 'Cryo-Clear UV' },
+            ],
+          },
+          {
+            title: 'Titanium Studio Workstation',
+            subtitle: 'Dual RTX 4090 with dual-loop distribution manifold',
+            tag: 'CAD / Render Node',
+            metrics: [
+              { label: 'GPU Power', value: '900W Combined' },
+              { label: 'Noise', value: '21.0 dBA Under Load' },
+            ],
+          },
+        ],
       },
     ],
   })

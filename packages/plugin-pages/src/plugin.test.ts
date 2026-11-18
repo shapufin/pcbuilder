@@ -206,6 +206,28 @@ describe('pagesPlugin - site-settings admin header (entry 110)', () => {
     ) as GlobalConfig
     expect(bareMenu.admin?.components?.elements?.Description).toBeUndefined()
   })
+
+  it('#670 mounts the skin-switcher ui field on site-settings only when option passed', async () => {
+    const specifier = './app/(payload)/admin/components/AdminThemeCards#AdminThemeCards'
+    const out = (await pagesPlugin({ siteSettingsThemeCardsComponent: specifier })(cfg([]))) as Config
+    const globals = (out.globals ?? []) as GlobalConfig[]
+    const siteSettings = globals.find((g) => g.slug === 'site-settings') as GlobalConfig
+    const uiField = siteSettings.fields.find(
+      (f) => 'name' in f && f.name === 'adminThemeCards',
+    ) as { type?: string; admin?: { components?: { Field?: unknown } } }
+    // A ui field is the only mount that sits inside the document <Form>, so the
+    // switcher's useField() resolves a real setter (audit #668).
+    expect(uiField?.type).toBe('ui')
+    expect(String(uiField?.admin?.components?.Field)).toContain('AdminThemeCards')
+    // It must render above the adminTheme select it edits.
+    expect(siteSettings.fields[0]).toBe(uiField)
+
+    const bare = (await pagesPlugin()(cfg([]))) as Config
+    const bareSite = (bare.globals ?? []).find(
+      (g) => (g as GlobalConfig).slug === 'site-settings',
+    ) as GlobalConfig
+    expect(bareSite.fields.some((f) => 'name' in f && f.name === 'adminThemeCards')).toBe(false)
+  })
 })
 
 /**

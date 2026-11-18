@@ -1,7 +1,15 @@
 import type { Where } from 'payload'
 import { formatEUR } from '@/components/ui/Price'
 
-export const formatPrice = (product: { priceInEUR?: number | null }): string => formatEUR(product.priceInEUR ?? 0)
+/**
+ * A missing price is not a price of zero — `0` is a legitimate free item, while
+ * `null` means the product has not been priced yet. Collapsing the two rendered
+ * €0.00 for an unpriced product (audit round 2, #710).
+ */
+export const formatPrice = (product: { priceInEUR?: number | null }): string =>
+  typeof product.priceInEUR === 'number' && Number.isFinite(product.priceInEUR)
+    ? formatEUR(product.priceInEUR)
+    : 'Price on request'
 
 export const productFilters = (searchParams: Record<string, string | string[] | undefined>): {
   and: Where[]

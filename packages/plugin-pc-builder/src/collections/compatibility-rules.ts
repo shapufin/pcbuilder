@@ -6,8 +6,29 @@ const RULE_TYPES = ['requires', 'excludes', 'supports', 'warns'] as const
 const OPERATORS = ['equals', 'in', 'gte', 'lte', 'contains'] as const
 const SEVERITIES = ['error', 'warning', 'info'] as const
 
+export const formatRuleTitle = (doc: {
+  id?: unknown
+  subjectType?: string | null
+  type?: string | null
+  targetType?: string | null
+  field?: string | null
+  value?: string | null
+}): string => {
+  const parts = [
+    doc.subjectType ?? 'rule',
+    doc.type ?? '',
+    doc.targetType ?? '',
+  ].filter(Boolean)
+  const detail = doc.field ? `(${doc.field}${doc.value ? `: ${doc.value}` : ''})` : ''
+  const summary = `${parts.join(' ')} ${detail}`.trim()
+  return summary || (doc.id ? `Rule #${String(doc.id)}` : 'Rule')
+}
+
 export const CompatibilityRules: CollectionConfig = {
   slug: 'compatibility-rules',
+  // Saved filters/columns/sort (Payload Query Presets) — the rule matrix is the
+  // screen most often filtered by subject/target/severity (plan 2.1).
+  enableQueryPresets: true,
   access: {
     read: ({ req }) => isStaff(req.user as { roles?: string[] | null } | null),
     create: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
@@ -15,15 +36,31 @@ export const CompatibilityRules: CollectionConfig = {
     delete: ({ req }) => isManager(req.user as { roles?: string[] | null } | null),
   },
   hooks: {
+    beforeChange: [
+      ({ data, originalDoc }) => {
+        if (data) {
+          data.title = formatRuleTitle({ ...originalDoc, ...data })
+        }
+        return data
+      },
+    ],
     afterChange: [() => invalidateBuilderIndex()],
     afterDelete: [() => invalidateBuilderIndex()],
   },
   admin: {
-    useAsTitle: 'id',
-    defaultColumns: ['subjectType', 'type', 'operator', 'field', 'value', 'severity', 'enabled'],
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'subjectType', 'type', 'operator', 'field', 'value', 'severity', 'enabled'],
     group: 'PC Builder',
   },
   fields: [
+    {
+      name: 'title',
+      type: 'text',
+      admin: {
+        description: 'Auto-generated rule summary for admin relations and headers.',
+        readOnly: true,
+      },
+    },
     {
       name: 'subjectType',
       type: 'select',

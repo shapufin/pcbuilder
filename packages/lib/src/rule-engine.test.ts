@@ -484,10 +484,17 @@ describe('rule engine (28 named cases from docs/buildmyrig-plan/06-rule-engine.m
       rules.push(rule({ id: `r-${i}`, subject: { kind: 'category', id: 'cpu' }, target: { kind: 'category', id: 'motherboard' } }))
     }
     const engine = createRuleEngine(baseIndex(components, rules))
-    const t0 = performance.now()
-    engine.evaluate({ cpu: ['c-0'] })
-    const elapsed = performance.now() - t0
-    expect(elapsed).toBeLessThan(20)
+    // Best-of-3: a single wall-clock sample measures whatever else the machine
+    // is doing (dev server + Playwright turned 4ms into 42ms on 2026-10-22).
+    // The minimum is the run least polluted by contention, so this still fails
+    // on a real algorithmic regression without failing on load.
+    let best = Number.POSITIVE_INFINITY
+    for (let i = 0; i < 3; i++) {
+      const t0 = performance.now()
+      engine.evaluate({ cpu: ['c-0'] })
+      best = Math.min(best, performance.now() - t0)
+    }
+    expect(best).toBeLessThan(20)
   })
 
   // #29 display.name feeds {componentA}/{componentB} interpolation

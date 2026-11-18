@@ -1,4 +1,4 @@
-import type { BuilderIndex, Selections } from '@buildmyrig/lib'
+import type { BuilderIndex, ComponentSpecEntry, Selections } from '@buildmyrig/lib'
 import { formatEUR } from '@/components/ui/Price'
 import type { TemplateSlot } from '../builder-store'
 
@@ -60,6 +60,19 @@ export const buildManifest = (args: {
   if (shareUrl) lines.push(`Share link: ${shareUrl}`)
   return lines
 }
+
+/**
+ * Sub-item lines for POST /api/carts/:id/add-build. Same contract as
+ * buildManifest: a selection pointing at a component the index no longer
+ * has is skipped, never posted as component:"" — the endpoint rejected
+ * that with a generic 400 (round-2 audit F6).
+ */
+export const buildSubItems = (
+  rows: ReadonlyArray<{ entry?: ComponentSpecEntry }>,
+): { component: string; quantity: number; name: string }[] =>
+  rows.flatMap(({ entry }) =>
+    entry ? [{ component: entry.id, quantity: 1, name: entry.display?.name ?? entry.id }] : [],
+  )
 
 /** Serializza la bozza per l'export (JSON-safe, slug al posto degli id). */
 export const serializeBuild = (args: {

@@ -125,6 +125,10 @@ export const computeCartTotals = (args: {
 }): CartTotals => {
   const subtotal = Math.max(0, args.subtotal || 0)
 
+  // Nothing to ship means nothing to charge: without this an empty cart picked
+  // the cheapest band (minSubtotal 0) and added VAT on top of it.
+  if (subtotal === 0) return { discountTotal: 0, shippingTotal: 0, taxTotal: 0, total: 0 }
+
   const check = args.discountCode
     ? validateDiscount(args.discountCode, subtotal, args.now)
     : { valid: false, discountTotal: 0, freeShipping: false }

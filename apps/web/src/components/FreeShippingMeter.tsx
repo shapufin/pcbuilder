@@ -1,4 +1,5 @@
 import React from 'react'
+import { PartyPopper, Truck } from 'lucide-react'
 
 interface FreeShippingMeterProps {
   currentTotalCents: number
@@ -23,12 +24,12 @@ export function FreeShippingMeter({
       <div className="free-shipping-meter__header">
         {isUnlocked ? (
           <span className="free-shipping-meter__status">
-            <span className="free-shipping-meter__icon" aria-hidden="true">🎉</span>
+            <span className="free-shipping-meter__icon" aria-hidden="true"><PartyPopper size={16} /></span>
             <strong>FREE Express Shipping Unlocked!</strong>
           </span>
         ) : (
           <span className="free-shipping-meter__status">
-            <span className="free-shipping-meter__icon" aria-hidden="true">🚚</span>
+            <span className="free-shipping-meter__icon" aria-hidden="true"><Truck size={16} /></span>
             Add <strong>€{remainingFormatted}</strong> more for <strong>FREE Shipping</strong>
           </span>
         )}

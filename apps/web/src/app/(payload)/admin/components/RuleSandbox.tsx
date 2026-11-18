@@ -4,8 +4,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { RotateCcw, CheckCircle2, XCircle, AlertTriangle, Activity } from 'lucide-react'
 import { createRuleEngine } from '@buildmyrig/lib'
 import type { BuilderIndex, ComponentSpecEntry, SelectionIssue } from '@buildmyrig/lib'
+import { AlertBanner, Skeleton } from '../ui'
 
-// Sandbox slots keyed by category slug — the five parts the mock's
+// Sandbox slots keyed by category slug - the five parts the mock's
 // LIVE COMPATIBILITY ENGINE SANDBOX exercises.
 const SANDBOX_SLOTS = [
   { slug: 'cpu', label: 'CPU Platform' },
@@ -35,7 +36,7 @@ const spec = (entry: ComponentSpecEntry | undefined, key: string): unknown =>
   entry?.specs?.[key]
 
 /**
- * Live pipeline diagnostics — runs the REAL rule engine (`createRuleEngine`
+ * Live pipeline diagnostics - runs the REAL rule engine (`createRuleEngine`
  * from @buildmyrig/lib) over the picked components, mirroring the mock's three
  * evaluated checks plus the full `validateSelections` verdict set.
  */
@@ -160,23 +161,47 @@ export interface RuleSandboxProps {
 
 export const RuleSandbox: React.FC<RuleSandboxProps> = ({ index: propIndex }) => {
   const [index, setIndex] = useState<BuilderIndex | null>(propIndex ?? null)
+  const [loading, setLoading] = useState<boolean>(!propIndex)
+  const [error, setError] = useState<string | null>(null)
   const [picks, setPicks] = useState<SandboxPicks>({})
+  const [retryCount, setRetryCount] = useState<number>(0)
 
   useEffect(() => {
     if (propIndex) return
     let isMounted = true
     fetch('/api/builder/index', { credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json: BuilderIndex | null) => {
-        if (isMounted && json?.components) setIndex(json)
+      .then(async (r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText || 'Failed to load index'}`)
+        }
+        return r.json()
       })
-      .catch(() => {})
+      .then((json: BuilderIndex | null) => {
+        if (!isMounted) return
+        if (json?.components) {
+          setIndex(json)
+          setLoading(false)
+        } else {
+          throw new Error('Malformed builder index response')
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return
+        setError(err instanceof Error ? err.message : 'Unknown network failure')
+        setLoading(false)
+      })
     return () => {
       isMounted = false
     }
-  }, [propIndex])
+  }, [propIndex, retryCount])
 
-  // Effective picks = user overrides merged over per-slot defaults — pure
+  const handleRetry = () => {
+    setLoading(true)
+    setError(null)
+    setRetryCount((c) => c + 1)
+  }
+
+  // Effective picks = user overrides merged over per-slot defaults - pure
   // derivation, so a stale pick (component not in the slot's category) falls
   // back to the first entry without an effect-setState pass.
   const effectivePicks = useMemo<SandboxPicks>(() => {
@@ -195,15 +220,63 @@ export const RuleSandbox: React.FC<RuleSandboxProps> = ({ index: propIndex }) =>
     [index, effectivePicks],
   )
 
-  if (!index) {
+  if (error && !index) {
     return (
-      <div className="bmr-sandbox">
+      <div className="bmr-sandbox" role="region" aria-label="Rule Sandbox">
         <div className="bmr-sandbox__title-row">
           <span className="bmr-sandbox__title">
             <Activity size={14} aria-hidden="true" /> LIVE COMPATIBILITY ENGINE SANDBOX
           </span>
         </div>
-        <div className="bmr-sandbox__loading">Loading builder index…</div>
+        <div className="bmr-sandbox__error-wrap">
+          <AlertBanner
+            severity="critical"
+            badge="ENGINE ERROR"
+            title="Failed to Load Builder Index"
+            description={`Could not initialize the live compatibility rule sandbox (${error}).`}
+            icon={AlertTriangle}
+            action={{
+              label: 'Retry Connection',
+              onClick: handleRetry,
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || !index) {
+    return (
+      <div className="bmr-sandbox" role="status" aria-busy="true">
+        <div className="bmr-sandbox__title-row">
+          <span className="bmr-sandbox__title">
+            <Activity size={14} aria-hidden="true" /> LIVE COMPATIBILITY ENGINE SANDBOX
+          </span>
+          <span className="bmr-sandbox__loading-label">Loading engine telemetry...</span>
+        </div>
+        <div className="bmr-sandbox__controls">
+          {SANDBOX_SLOTS.map((slot) => (
+            <div key={slot.slug} className="bmr-sandbox__control">
+              <Skeleton width={110} height={14} />
+              <Skeleton width="100%" height={32} />
+            </div>
+          ))}
+        </div>
+        <div className="bmr-sandbox__diagnostics">
+          <div className="bmr-sandbox__diag-title">PIPELINE VERIFICATION STATUS</div>
+          <div className="bmr-sandbox__diag">
+            <Skeleton width={200} height={14} />
+            <Skeleton width={90} height={14} className="bmr-sandbox__skeleton-end" />
+          </div>
+          <div className="bmr-sandbox__diag">
+            <Skeleton width={180} height={14} />
+            <Skeleton width={80} height={14} className="bmr-sandbox__skeleton-end" />
+          </div>
+          <div className="bmr-sandbox__diag">
+            <Skeleton width={160} height={14} />
+            <Skeleton width={70} height={14} className="bmr-sandbox__skeleton-end" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -241,9 +314,10 @@ export const RuleSandbox: React.FC<RuleSandboxProps> = ({ index: propIndex }) =>
                   ? `: ${selected.specs.psuWatts}W`
                   : ''}
                 {slot.slug === 'case' && selected?.specs.caseGpuMaxLengthMm
-                  ? ` — Case max: ${selected.specs.caseGpuMaxLengthMm}mm`
+                  ? ` - Case max: ${selected.specs.caseGpuMaxLengthMm}mm`
                   : ''}
               </span>
+              {/* ds-allow-native-select: lightweight high-density sandbox hardware picker */}
               <select
                 className="bmr-sandbox__select"
                 value={effectivePicks[slot.slug] ?? ''}

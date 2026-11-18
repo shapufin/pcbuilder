@@ -29,6 +29,11 @@ export const buttonVariants = cva('bmr-btn', {
   },
 })
 
+/**
+ * DOCTRINE: Never wrap <Button> in <Link>. Use <Button href="..."> directly.
+ * Wrapping <Button> inside Next.js <Link> produces invalid HTML5 (nested interactive
+ * elements <a href><button>), breaking accessibility, hydration, and event bubbling.
+ */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -49,9 +54,11 @@ export const Button = React.forwardRef<HTMLButtonElement | HTMLAnchorElement, Bu
     if (href) {
       return (
         <Link
-          href={href}
-          className={combinedClassName}
+          href={disabled ? '#' : href}
+          className={clsx(combinedClassName, disabled && 'bmr-btn--disabled')}
           ref={ref as React.Ref<HTMLAnchorElement>}
+          aria-disabled={disabled ? 'true' : undefined}
+          tabIndex={disabled ? -1 : undefined}
           {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
         >
           {loading && <span className="bmr-btn__spinner" aria-hidden="true" />}

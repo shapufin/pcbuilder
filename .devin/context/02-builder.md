@@ -107,7 +107,7 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   must carry the prefix, incl. inside `@media`. `--rgb-accent` is a
   runtime custom property on the design root (legal under hex ban).
   Deliberate: no whole-card click (nested buttons); no category-pill
-  filter (search covers). Deferred: modal focus-trap.
+  filter (search covers).
 - **P4 (entry 54)**: `DeployModal` real pipeline — stage 1
   `engine.validateSelections` (errors block), stage 2 power envelope
   (`recommendedPsuWatts` vs picked `psuWatts`, errors block/warnings
@@ -129,6 +129,63 @@ type). Enforced by `no-restricted-imports` (`pnpm lint`).
   `hasRgb` flags, mobo `ramSlots`/`m2Slots` (ITX 2/2, ATX 4/3),
   ram/storage `maxSelectable` → 4; `BuilderSpec` widened
   (bool + `Record<string, unknown>`). Invariants #359–#362.
+## Designs v2 (entry 131) — palette, chrome, shared kit
+
+- **Registry shape**: `BUILDER_DESIGNS[slug] = { label, description, palette }`,
+  `palette: 'inherit' | 'accent'`. `inherit` = raw `--color-*` only (classic).
+  `accent` = the design mounts `builderPaletteVars('accent')` (packages/lib
+  `builder-palette.ts`) on its root: `--bd-elev-1/2/3`, `--bd-line(-soft)`,
+  `--bd-line-accent`, `--bd-grid`, all `color-mix()` over live theme vars, so
+  the ladder survives admin theme edits AND the visitor light/dark toggle.
+  **Never hardcode a palette** — the neutral surface tokens sit ~1.1:1 apart
+  and made the blueprint a ghost (measured 1.09:1 before the ramp).
+- `BuilderShell` passes `palette` to the design; designs accept
+  `BuilderDesignProps` (`{ palette? }`). Admin labels come from the registry
+  via the `@buildmyrig/plugin-pc-builder/designs` subpath — never re-list slugs
+  in `apps/web` (that copy drifted).
+- **Immersive chrome**: `/builder/configure` hides the site header/footer/promo
+  (`lib/chrome.ts` `isImmersivePath` + `CHROME_BOOT_SCRIPT`, pre-paint body
+  attribute, CSS in globals.css, `--header-h: 0`). The design header is the
+  page's only `<header>` and must carry a back-to-store link. Adding a route to
+  `IMMERSIVE_PATHS` is the only place to change it (unit-tested).
+- **Shared kit — no cross-design imports**: `kit/part-lib.ts` (slotCode, zones,
+  fit/PSU math; `rig-studio/studio-lib.ts` re-exports it),
+  `kit/ModalShell.tsx` (Escape/focus-restore/scroll-lock/Tab-wrap via
+  `kit/focus-trap.ts` — pure `nextTrapIndex` + DOM `focusables`; layout-box
+  visibility check, not `offsetParent` — that misses `position:fixed`;
+  `StudioModalShell` re-exports it), `kit/modal.css` (dialog chrome, scoped
+  `.bdesign-modal` — design-agnostic) and `kit/SavedBuildsModal.tsx` (the
+  3-tab manager; `rig-studio/SavedBuildsModal.tsx` is a one-line re-export,
+  Atelier opens the kit version directly). A new design imports the kit,
+  never another design.
+- **Designs**: `rig-studio` (Architect port: bay + blueprint + matrix) and
+  `atelier` (Atelier port: studio stage + spec sheet + architectural blueprint).
+  Both token-only; both stylesheets are in `css-token-purity` `APP_CSS`.
+- **Warnings have two sources — do not mix them** (entry 131): `result.warnings`
+  is the per-**candidate** badge dataset (`warns` rules flag every candidate in
+  the category, so a full build reports ~8). A build's actual warnings are
+  `engine.validateSelections(selections).warnings` — exposed in the provider as
+  `meta.validateCurrent()`. Chip/rail/summary use the latter; option cards use
+  the former.
+- Deferred: admin design gallery/preview (read-only renderer catalogue in
+  `BuilderSettingsHeader` marks the active design by **slug**, not label —
+  fetched separately as `currentDesign`). A card picker as
+  `admin.components.Field` on `builder-settings` is a **dead
+  end**: that field has no form context (`useFormFields` → `{}`, `dispatch` is a
+  no-op, `useField` throws in SSR → 500; confirmed again with a `ui`-field
+  probe: `keys=0`). Needs a `ui` field with its own `FieldProvider`, or an
+  `elements` component saving via REST.
+- **Component imagery** (entry 131): `display.image` is rendered in
+  rig-studio swap rows, Atelier swap sheet and Atelier slot icons — only
+  when the catalog entry has one. Live data has 0 component images, so rows
+  render unchanged; `<img>` matches `OptionCard`/`ProductGallery` convention
+  (`no-img-element` warnings are expected).
+- **Rule operators on string specs** (entry 131): `gte`/`lte` coerce numeric
+  strings ('4.0'), and a numeric operator on a non-numeric spec is *not* a
+  violation. Before that, every `warns` rule on `pcieVersion` fired on every
+  board (including exact matches) — `warns` polarity turns "unsatisfied" into a
+  warning.
+
 ## Specs-as-data layers (entry 68 — design doc `20-spec-templates-auto-compat-design.md`)
 
 - **Three spec layers, don't conflate**: typed `components` fields

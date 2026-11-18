@@ -96,6 +96,9 @@ export const ordersCollectionOverride = ({
 }): CollectionConfig =>
   ({
     ...defaultCollection,
+    // Saved filters/columns/sort (Payload Query Presets) — the fulfilment team
+    // keeps "needs fulfilment" as a view instead of rebuilding filters (plan 2.1).
+    enableQueryPresets: true,
     fields: pinOrderFieldWrites(
       extendItemsFields([
         ...defaultCollection.fields,

@@ -36,6 +36,8 @@ describe('Admin GUI — CommandPalette Primitive (Phase 5)', () => {
     // Quick actions & theme toggles
     expect(html).toContain('Launch Storefront')
     expect(html).toContain('Theme: Modern Slate (Dark)')
+    expect(html).toContain('Theme: Aether Foundry (Luxury Workstation)')
+    expect(html).toContain('Theme: Aether Frost (Titanium Clean)')
     expect(html).toContain('Theme: Enterprise SaaS (Light)')
   })
 

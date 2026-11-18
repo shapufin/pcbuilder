@@ -68,6 +68,9 @@ Notes:
 - **CSV import** (`/admin` → builder rules import endpoint): manager/admin only, zod-validated rows — bad rows are rejected with row-level errors; valid rows land immediately in the live index (no redeploy needed). Export the grid before a large import so you can roll back.
 - **Build Templates**: the "Start from a template" cards on `/builder`; each slot pins a component; base price shown to shoppers.
 - **Configured Builds**: customer build submissions. Staff can read all builds; only admins can edit/delete another person's build (deleting a customer's build is recoverable only from backups — prefer read-only).
+- **Builder Settings & Telemetry** (`/admin/globals/builder-settings`): configure active storefront renderer (`RIG Studio` / `Atelier`), view required slot count, and monitor active compatibility rule totals.
+- **Product Edit Integration**: products feature dedicated **Hardware Specs** (per-category spec templates) and **Builder Rules** (linked component socket/clearance/PSU checks) tabs.
+- **High-Density Table Navigation**: all collection lists use high-density responsive tables with compact ID/status badges and zero horizontal clipping.
 - The public **builder index** (components + rules powering `/builder/configure`) is intentionally public; internal fields (prices of unpublished items, user data) are not exposed.
 
 ## 7. Troubleshooting

@@ -10,7 +10,7 @@
   background: color-mix(in srgb, var(--color-bg) 82%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-hairline) solid var(--color-border);
 }
 
 .site-header__inner {
@@ -68,7 +68,7 @@
   min-height: var(--tap-target);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  border: var(--border-width-hairline) solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
   /* ≥16px — smaller fonts trigger iOS auto-zoom on focus. */
@@ -143,8 +143,8 @@
 }
 
 .theme-toggle:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline: var(--border-width-thick) solid var(--color-focus);
+  outline-offset: var(--border-width-thick);
 }
 
 /* Count badge — cart + wishlist header counts. */
@@ -175,7 +175,7 @@
 }
 
 .nav-badge--pop {
-  animation: nav-badge-pop 150ms var(--ease-out);
+  animation: nav-badge-pop var(--duration-fast) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -192,7 +192,7 @@
   min-height: var(--tap-target);
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
+  border: var(--border-width-hairline) solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text);
@@ -208,7 +208,7 @@
   bottom: 0;
   z-index: 49;
   background: var(--color-bg);
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-width-hairline) solid var(--color-border);
   padding: var(--space-5);
   display: grid;
   gap: var(--space-2);
@@ -253,7 +253,7 @@
 
 .site-footer {
   margin-top: var(--space-9);
-  border-top: 1px solid var(--color-border);
+  border-top: var(--border-width-hairline) solid var(--color-border);
   padding: var(--space-7) var(--space-5) var(--space-5);
 }
 
@@ -323,7 +323,7 @@
 
 .cart-drawer {
   background: var(--color-surface);
-  border-left: 1px solid var(--color-border);
+  border-left: var(--border-width-hairline) solid var(--color-border);
   box-shadow: var(--shadow-lg);
   width: min(420px, 100%);
   height: 100%;
@@ -378,7 +378,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   font-size: var(--text-sm);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-hairline) solid var(--color-border);
   padding-bottom: var(--space-2);
 }
 
@@ -457,7 +457,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--border-width-hairline) solid var(--color-border);
   transition: background var(--duration-base) var(--ease-out);
 }
 
@@ -521,6 +521,12 @@
   color: var(--color-text-muted);
   font-size: var(--text-base);
   line-height: 1;
+  /* WCAG 2.5.8 minimum target size (audit 2026-10-22, item 676). */
+  min-width: var(--target-size-min);
+  min-height: var(--target-size-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-1);
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -566,14 +572,14 @@
 .promo-banner--dark .promo-banner__badge {
   background: var(--color-surface-hover);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: var(--border-width-hairline) solid var(--color-border);
 }
 
 /* ---------- Free Shipping Progress Meter ---------- */
 
 .free-shipping-meter {
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border);
+  border: var(--border-width-hairline) solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3);
   display: flex;

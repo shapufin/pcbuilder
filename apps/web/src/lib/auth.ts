@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { rateLimit } from '@buildmyrig/lib'
+import { clientIpFromHeaders, rateLimit } from '@buildmyrig/lib'
 
 export type RegisterDeps = {
   create: (args: {
@@ -16,10 +16,8 @@ export const registerSchema = z.object({
 /** 5 registers/min/IP — signup abuse + email-enumeration throttling (11-access-security.md). */
 export const registerLimiter = rateLimit({ windowMs: 60_000, max: 5 })
 
-export const clientIp = (headers: Headers): string =>
-  headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-  headers.get('x-real-ip') ||
-  'local'
+/** One resolver for every limiter (audit 2026-11-18 C1/R7) — see @buildmyrig/lib. */
+export const clientIp = (headers: Headers): string => clientIpFromHeaders(headers)
 
 /** Same Origin policy as Payload's CSRF allowlist (payload.config.ts): no Origin
  * (scripts/curl) is allowed — the endpoint only creates an account, it never

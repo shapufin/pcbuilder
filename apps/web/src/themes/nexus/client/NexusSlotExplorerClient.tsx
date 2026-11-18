@@ -214,7 +214,7 @@ export function NexusSlotExplorerClient({ slots }: { slots: ExplorerSlot[] }) {
         <span>
           {mountedCount}/{slots.length} slots mounted
         </span>
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+        <span className="nx-slot-x-1">
           <button
             type="button"
             className="nx-btn nx-btn--ghost"

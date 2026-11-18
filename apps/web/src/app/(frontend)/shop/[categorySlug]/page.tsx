@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Where } from 'payload'
 import { getPayloadClient, productFilters } from '@/lib/shop'
 import { buildFacets, facetSelection } from '@/lib/facets'
+import { getFacetRegistries } from '@/lib/facet-registries.server'
 import { JsonLd, itemListJsonLd, breadcrumbJsonLd } from '@/lib/jsonld'
 import { PageRenderer } from '@/blocks/PageRenderer'
 import { ProductCard, ProductCardGrid } from '@/components/ProductCard'
@@ -119,14 +120,10 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     { _status: { equals: 'published' } } as Where,
     ...and,
   ]
-  const [attributeTypes, attributeValues, brands] = await Promise.all([
-    payload.find({ collection: 'attribute-types', limit: 50, sort: 'name' }),
-    payload.find({ collection: 'attribute-values', limit: 200, sort: 'value' }),
-    // Facet options come from the brands collection — a hardcoded slug list
-    // silently renders dead filters the moment seed/admin data diverges.
-    payload.find({ collection: 'brands', limit: 100, sort: 'name' }),
-  ])
-  const selection = facetSelection(attributeTypes.docs, attributeValues.docs, sp)
+  // Registries are cross-request cached (searchParams pages render
+  // dynamically — ISR can't cover them).
+  const { attributeTypes, attributeValues, brands } = await getFacetRegistries()
+  const selection = facetSelection(attributeTypes, attributeValues, sp)
   const [products, facetSource] = await Promise.all([
     payload.find({
       collection: 'products',
@@ -147,7 +144,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
       select: { attributeValues: true },
     }),
   ])
-  const facets = buildFacets(facetSource.docs, attributeTypes.docs, attributeValues.docs)
+  const facets = buildFacets(facetSource.docs, attributeTypes, attributeValues)
 
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
   const currentBrand = first(sp.brand)
@@ -167,7 +164,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const priceBand = (gte?: string, lte?: string) => `${gte ?? ''}-${lte ?? ''}`
   const filters = (
     <Filters
-      brand={brands.docs.map((b) => ({
+      brand={brands.map((b) => ({
         label: b.name,
         href: currentBrand === b.slug ? qs({ brand: undefined }) : qs({ brand: b.slug }),
         active: currentBrand === b.slug,

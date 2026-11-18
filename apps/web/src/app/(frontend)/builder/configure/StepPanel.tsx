@@ -70,7 +70,9 @@ export function StepPanel(props: Props) {
         aria-labelledby="step-title"
       >
         <header className="panel-header">
-          <h1 id="step-title">{category.name}</h1>
+          {/* Entry 131: the page h1 is the build itself (Configurator); the
+              current step is a section heading, not the document title. */}
+          <h2 id="step-title">{category.name}</h2>
           <span className="helper">
             {category.helperText ?? (category.required ? 'Required step' : 'Optional step')}
             {(slotLimit?.max ?? category.maxSelectable) > 1

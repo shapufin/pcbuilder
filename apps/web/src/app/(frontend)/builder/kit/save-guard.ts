@@ -30,3 +30,21 @@ export const canReuseInflight = (
   inflight: InflightSave | null,
   signature: string,
 ): boolean => inflight !== null && inflight.signature === signature
+
+export type CartView = 'idle' | 'adding' | 'added' | 'error'
+
+/** What the UI may show for the cart action. 'added' is only honest while the
+ *  draft it described still exists — a selection edit clears buildId/shareId,
+ *  so the flag collapses back to 'idle' (same staleness rule as saveView;
+ *  round-2 audit F2: a stale 'added' hid the re-add path in CommissionSheet). */
+export const cartViewFor = (cartState: CartView, hasSavedDraft: boolean): CartView =>
+  cartState === 'added' && !hasSavedDraft ? 'idle' : cartState
+
+/** The rename PATCH runs only for an authed user changing to a non-blank,
+ *  different name — guests can't write owner-scoped docs and a same-name
+ *  PATCH is a no-op round-trip. */
+export const shouldRename = (
+  live: { buildName?: string | null },
+  trimmedName: string | undefined,
+  hasUser: boolean,
+): boolean => Boolean(trimmedName?.trim() && trimmedName !== live.buildName && hasUser)

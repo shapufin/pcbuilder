@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import {
   Layers,
   Sparkles,
@@ -163,12 +162,17 @@ export const TemplatesListHeader: React.FC<TemplatesListHeaderProps> = ({ stats:
             Export CSV
           </Button>
 
-          <Link href="/builder" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm" aria-label="Open Storefront Configurator">
-              <ExternalLink className="bmr-btn-icon" />
-              Configurator ↗
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/builder"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open Storefront Configurator"
+          >
+            <ExternalLink className="bmr-btn-icon" />
+            <span>Configurator ↗</span>
+          </Button>
 
           <CreateDocDrawerButton collectionSlug="build-templates" label="Create Blueprint" />
         </div>

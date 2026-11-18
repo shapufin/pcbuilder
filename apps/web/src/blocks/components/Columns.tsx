@@ -1,4 +1,4 @@
-import { renderBlocks, type BlockShape } from '../renderBlocks'
+import { renderNested, type BlockShape } from '../nested'
 
 type ColumnsLayout = {
   layout?: string | null
@@ -36,7 +36,7 @@ export function Columns({ block }: { block: ColumnsBlockData }) {
     <div className="blk-columns" data-layout={layout} data-gap={gap}>
       {columns.map((col, i) => (
         <div key={i} className="blk-columns__col">
-          {renderBlocks(col.blocks, 'Columns')}
+          {renderNested(col.blocks, 'Columns')}
         </div>
       ))}
     </div>

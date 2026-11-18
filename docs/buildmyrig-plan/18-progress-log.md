@@ -2,6 +2,347 @@
 
 Reverse-chronological work log. Each entry: what landed, verification, known gaps.
 
+## 2026-11-18 (139) — Full-app audit round 1 + fix batches A/B/C
+
+Audit plan + round-2 scorecard: `docs/audits/full-app-2026-11-18/` (plan.md, round-2.md). Branch `audit/full-app-2026-11-18` (uncommitted).
+- **Batch A — access/backend**: admin panel staff-only (`users.access.admin`, H1); query presets + locked documents staff-only (H2); security headers + `poweredByHeader:false` (M1); anonymous `/api/discounts/validate` oracle removed (M2); newsletter → double opt-in `newsletter-subscribers` collection, ≤1 mail/address/15 min (M3); `confirm-free` re-prices the cart before trusting €0 (M4); IP key = `x-real-ip` → rightmost XFF, one resolver (C1/R7); nightly `pruneStaleGuestData` job (C1); 403-vs-401 + no internal error echo in builder endpoints (L1); reviews: real staff-session check + 404 for missing product (L2); CSRF localhost dev-only + email validation (L3).
+- **Batch B — admin GUI**: nav shows the signed-in identity and only permitted links (`nav-access.ts`, H3); duplicate plugin RuleManagerView/BuildStatsView deleted, views host-provided (M5); rule zero value (L4).
+- **Batch C — themes/UX**: Aether ported off ~130 dead Tailwind classes to a token-driven `ae-u-*` layer + no-Tailwind guard (H4); 20 undefined CSS custom properties fixed + guard (`--space-16`, `--font-bold`→`--weight-*`, …); 280px overflow fixes (testimonials, `/aether-lab` grid track, 7 shared `minmax(Npx,1fr)` floors → `min(Npx,100%)`); cart/checkout titles + noindex, SEO title suffix (L6); newsletter confirm banner.
+- Verified live: customer `/admin` → "does not have access"; customer 403 on locked-docs/presets/subscribers; oracle 404; headers present; storefront 0 overflow at 280/1440.
+- Gates: **1023 tests** (993 baseline; #730–#763), typecheck 6/6, lint 0 errors / 11 warnings (baseline), `workflow:check` PASSED.
+- **Round 3 (backlog)**: block import cycles removed via `blocks/nested.ts` (R6); `capQuantitiesToStock` + rule-engine entry points split (R4/R5); checkout/PDP/summary logic extracted to tested helpers (R1–R3); Aether `[data-block-pack]` token scope (M6); 36 static inline styles → classes (M7); admin table scroll shadows (L5); `.fallowrc.jsonc` (L9). fallow health 71.2 → 74.7, cycles 3 → 0. Gates: **1038 tests** (#764–#778), typecheck 6/6, lint 11 warnings (baseline).
+
+## 2026-11-08 (138) — Full Audit: Admin GUI Product Tabs & Gutter Normalization
+
+Full senior audit and layout resolution of Admin GUI edit workspaces and product tabs layout:
+- **Tabs Container & Gutter Normalization (`admin.css`)**:
+  - Overrode Payload CMS SCSS asymmetric gutter margins (`margin: 0 -40px 0 -60px` on `.tabs-field`) and `padding: 0 60px` on `.tabs-field__content-wrap`.
+  - Neutralized `.group-field--within-tab` negative margin breakout (`margin: 0 -60px`). All fields across all 5 product tabs now align to the exact same 100% grid line (`width: 1015, left: 352` on 1440px viewport).
+  - Eliminated `.tabs-field__tabs::before` 60px pseudo-element offset; tab navigation bar now aligns directly with form field margins.
+- **Builder Rules Max-Width Clamp Removal (`admin.css`, `ui.css`)**:
+  - Removed artificial `max-width: 720px` clamp on `.bmr-builder-rules`, allowing compatibility validation cards to expand 100% matching adjacent fields.
+- **Inventory & Logistics Tactile Checkbox Cards (`admin.css`)**:
+  - Styled inventory toggles (`trackQuantity`, `allowBackorders`) as elevated cards with clean spacing and subtle border hover affordances.
+- **Lower Metadata Deck Card Uniformity (`admin.css`)**:
+  - Standardized `.document-fields__sidebar-fields > .render-fields > *` with uniform elevation card styling.
+  - Spanned `bmr-serp-preview` across the full grid (`grid-column: 1 / -1`) to present Google SERP previews cleanly without cramped truncation.
+- **Verification**:
+  - Bounding rect inspection via browser evaluate across all 5 tabs and responsive viewports (1440px and 390px mobile).
+  - 524/524 tests passed, typecheck 0 errors across 6 packages, eslint 0 errors.
+
+## 2026-11-08 (137) — Admin GUI Full Audit & Ergonomic Refactor (Mockup Parity)
+
+Full ergonomic overhaul of Payload CMS Admin GUI tables, edit layouts, and theme centralization based on the `buildmyrig-studio-admin---modern-cms-&-pc-engine-console` (`ADMIN_GUI`) design system:
+
+- **Product Edit Workspace Layout (`admin.css`)**:
+  - Converted `.document-fields` to a full-width stacked hierarchy: `.document-fields__main` takes 100% width, eliminating horizontal squeezing on tabs and inputs.
+  - Relocated right-rail metadata fields (*Category, Brand, Badge, Warranty, SERP Preview*) below the main form tab content into a spacious, responsive 2-to-4 column card deck.
+- **Anti-Slop Tabs Navigation (`admin.css`)**:
+  - Enforced `scrollbar-width: none;` and hidden WebKit scrollbars on `.tabs-field__tabs-wrap` and `.tabs-field__tabs`.
+  - Applied compact proportional tab padding (`10px 16px`), completely eliminating the thick Windows OS scrollbar track (`< [ ===== ] >`).
+- **Concealed Redundant Raw Specs JSON (`plugin-shop`, `admin.css`)**:
+  - Hidden the raw Monaco code editor for `specsJson` (`admin: { hidden: true }` + CSS protection) since `ProductSpecFields` provides the structured visual form.
+- **Pricing Tab Design Refactor (`admin.css`)**:
+  - Structured the tab into elevated card containers: (1) Configuration card for *Enable variants* and *Enable EUR price*, (2) structured 3-column financial inputs with tabular numerals, (3) seamless integration with the dark financial `ProductMarginPanel`.
+- **Collection Table Standards & Header Fixes (`admin.css`, `EntityListCell.tsx`, `admin-list-cells.ts`)**:
+  - Resolved sort header clipping (`SUBJEC...`, `TY...`, `OPE...`, `SE...`, `E...`) by removing rigid max-widths and setting min-widths (`Subject Type` 140px, `Operator` 120px, `Severity` 115px).
+  - Suppressed duplicate Payload collection titles and buttons (`.list-header__title-and-actions`) when elevated custom headers are mounted.
+  - Centered table selection checkboxes (`th#heading-_select`, `td.cell-_select`) with vertical middle alignment.
+  - Standardized search/filter controls distance to 16px.
+  - Added dynamic rule summary fallback in `EntityListCell` with monogram badges for rules lacking titles (test `#729`).
+- **Gates & Verification**:
+  - Unit test suite: 524 tests passed across 98 test files (test `#729` added in `ListCells.test.tsx`).
+  - Monorepo typecheck: 0 errors across all 6 packages (`web`, `lib`, `ui`, `plugin-shop`, `plugin-pc-builder`, `plugin-pages`).
+  - ESLint: 0 errors.
+  - Headless Playwright: Verified live rendering on `/admin/collections/products/17` and `/admin/collections/compatibility-rules`.
+
+## 2026-11-07 (136) — Storefront, Theme Packs, Cart & PDP Full Audit Fixes
+
+Comprehensive storefront review and cross-theme token unification:
+
+- **Aether Theme Pack Token Refactor (`aether.css`, `AetherHeaderClient.tsx`, `AetherSearchModal.tsx`)**:
+  - Replaced remaining uncompiled Tailwind utility classes (`fixed inset-0`, `hidden md:flex`, `gap-4`) with pure CSS design tokens (`.ae-modal-backdrop`, `.ae-search-modal`, `.ae-ticker__aside`, `.ae-cart-badge`, `.ae-cart-btn`, `.ae-mobile-panel`).
+  - Added touch & click outside event listener with containment check to cleanly close the Aether mega-menu on touch devices and Escape key.
+- **Cart Drawer Scroll Lock & Catalog Navigation (`CartDrawer.tsx`)**:
+  - Added background body scroll lock (`body { overflow: hidden }`) when the slide-out cart drawer is active, restoring cleanly upon unmount.
+  - Aligned empty cart browsing link to `/shop` (was `"/"`), ensuring consistent catalog navigation across `/cart`, `/checkout`, and drawer.
+- **Product Reviews A11y Live Region (`ProductReviews.tsx`)**:
+  - Added `role="status" aria-live="polite"` to review submission feedback for screen reader accessibility.
+- **Shop Category Mobile Filter Contrast (`shop.css`)**:
+  - Strengthened `.filter-drawer__open` button border to `var(--color-border-strong)` ensuring WCAG 2.2 AA contrast on light alternate themes.
+- **Tests & Verification**:
+  - Added `#725` & `#726` in `apps/web/src/themes/aether/client/AetherHeader.test.tsx` and `#728` in `ProductReviews.test.tsx`.
+  - 992 unit tests pass across all 6 packages (up from 989 baseline).
+  - Monorepo typecheck 0 errors, ESLint 0 errors, `pnpm workflow:check` PASSED.
+
+## 2026-11-07 (135) — Admin GUI PC Builder & Backend Option Polish
+
+Deep polish of PC Builder admin interfaces and backend configuration surfaces:
+
+- **Compatibility Rules Collection Table (`admin.css`)**:
+  - Enforced compact proportional widths on the 9-column rule matrix (`subjectType` 100px, `type` 85px, `operator` 90px, `field`/`value` 90px monospace, `severity` 85px, `enabled` 75px).
+  - Reduced table scroll width from 1048px to 839px, ensuring 0px horizontal scroll on standard viewports.
+- **Builder Rules Product Tab (`.bmr-builder-rules` in `admin.css`)**:
+  - Polished hardware validations card: 3-column responsive check cards (Socket & Platform, GPU Clearance, PSU Headroom).
+  - Added hover elevation, cyan/accent icons, and clean linked component status badge and empty state guidance.
+- **Product Hardware Spec Fields (`.bmr-spec-fields` in `admin.css`)**:
+  - Styled category template selector, responsive hardware specs grid with monospace inputs, unit indicators (MB/s, W, mm, GB).
+  - Polished linked component sync banner and audit footer note.
+- **Verification & Gates**:
+  - Live CloakBrowser testing across `/admin/globals/builder-settings`, `/admin/collections/compatibility-rules`, `/admin/compatibility-rules-manager`, `/admin/build-stats`, and product tabs (`Hardware Specs`, `Builder Rules`, `Pricing & Margin`).
+  - 989 unit tests pass, typecheck 0, lint 0, workflow:check PASSED.
+
+## 2026-11-07 (134) — Workstation SaaS High-Density Table Standard & Admin Gutter Collapse
+
+Standardized high-density table architecture across all Payload CMS collection lists:
+
+- **Gutter Collapse & Container Expansion (`admin.css`)**:
+  - Collapsed Payload's redundant inner gutter padding (`.collection-list .collection-list__wrap.gutter`, `.gutter--left`, `.gutter--right` -> `padding-inline: 0 !important`).
+  - Standardized `.collection-list` padding to `20px 24px 40px` (reclaimed 136px+ of blank horizontal whitespace).
+  - Ensured `.table`, `.table-wrap`, and `table` stretch to 100% width edge-to-edge.
+- **Unset Blanket 150px Min-Width & Proportional Column Matrix (`admin.css`)**:
+  - Overrode Payload's `@payloadcms/ui` default `min-width: 150px` on `th`/`td` with `min-width: unset !important`.
+  - Selection checkboxes (`_select`, `_dragHandle`): fixed 44px centered.
+  - IDs (`_bmrId`, `id`, `_id`): compact 64px (52-76px monospace muted).
+  - Status badges (`_bmrStatus`, `_status`, `status`): 116px (100-130px nowrap, full visibility without clipping).
+  - Metrics & Currency (`priceInEUR`, `inventory`, `total`, `quantity`, `price`, `popularity`): 110px tabular numbers.
+  - Row actions (`_bmrActions`): 84px right-aligned.
+  - Secondary relations / tags (`category`, `brand`, `socket`, `parent`, `roles`): 130px.
+  - Timestamps (`createdAt`, `updatedAt`): 120px tabular numbers.
+  - Primary text (`title`, `name`, `email`): `width: auto` + `min-width: 200px` to naturally absorb all remaining viewport space.
+- **Verification & Gates**:
+  - Unit tests #723-#724 added to `ListCells.test.tsx` (CSS contract for gutter collapse and column matrix).
+  - All 989 monorepo tests pass.
+  - `pnpm -r typecheck` 0 errors.
+  - `pnpm lint` 0 errors.
+  - `pnpm workflow:check` PASSED.
+  - Live CloakBrowser verification: Tested across Products, Users, Categories, Components, and Pages (0px horizontal overflow, 0 clipped badges).
+
+## 2026-10-24 (132) — Builder themes audit round 2: immersive-chrome nav sync + cart-state hardening
+
+Re-audit of the full entry-131 changeset (full-audit workflow v2), on branch
+`audit/builder-themes-2026-10-24`. Report: `.devin/audits/builder-themes-2026-10-24/round-2.md`.
+
+- **HIGH fixed**: `data-chrome='immersive'` was set pre-paint but never
+  reconciled on client navigation — entering `/builder/configure` via Link/
+  `router.push` re-stacked the double header, leaving kept the site chrome
+  hidden. `syncChrome(pathname, body)` + `<ChromeSync/>` run on every
+  `usePathname()` change; verified live both directions (#704).
+- **MEDIUM fixed**: stale `cartState` — `cartView` derivation collapses
+  `added` → `idle` once the draft ref is gone (#705); `CommissionSheet` +
+  `SummaryClient` read it.
+- **LOWs**: `shouldRename` gate + honest rename resolution; `buildSubItems`
+  drops stale ids (#706–#707); ModalShell comment; `.gitignore` for
+  `.tmp-*`/`screenshots/`; `ThemeColorStudio` DOM-sync recorded as an
+  accepted workaround in `04-cms-pages-theme.md`.
+- **Commits**: `d527cab`, `b9fe66b`, `6d3ac10`, `5167056`, `aa60534`,
+  `0ebee20`. **Gates**: 968 unit, typecheck 0, lint 0 errors / 11 warnings.
+
+## 2026-10-24 (131) — Builder themes audit: palette contract, immersive chrome & the Atelier design
+
+Full audit of the PC-builder design system against the two supplied mockups
+(`PC_BUILDER_ATELIER_DESIGN`, `PC_BUILDER_ARCHITECT_DESIGN`, both run locally
+for reference). Report: `.devin/audits/builder-themes-2026-10-24/round-1.md`.
+
+- **Finding of record**: `rig-studio` *is* the Architect port; **Atelier was
+  never implemented** (zero source references). The Architect mockup's
+  `TelemetrySidebar`/`TuneModal`/`ExplodedHudView` are dead files there too.
+- **Palette contract (user decision: inherit + design ramp)**: registry entries
+  gained `description` + `palette: 'inherit' | 'accent'`; `packages/lib/builder-palette.ts`
+  emits the `--bd-*` ramp (`color-mix` over live theme vars, so admin theme edits
+  and the visitor light/dark toggle both apply). `BuilderShell` passes the policy.
+  Measured: blueprint part fill **1.09:1 → 1.93:1** (dark) / **1.05:1 → 1.63:1**
+  (light); interactive zone stroke **2.12 → 4.30** / **2.45 → 3.54** (WCAG 1.4.11 ≥3:1).
+- **Immersive chrome (user decision)**: `/builder/configure` hides the site
+  header/footer/promo pre-paint (`lib/chrome.ts` + boot script + CSS, `--header-h: 0`);
+  the design header is the only `<header>` and carries back-to-store. Removed a
+  second brand bar and a second banner landmark (127px of stacked chrome).
+- **Atelier design**: editorial studio (63/37 split, live vector stage with
+  hotspots, atmosphere/perspective presets) + Architectural Blueprint screen
+  (5 subsystem layers, clearance cards), swap sheet and commission sheet on the
+  real `addToCart` pipeline. Token-only CSS, in `css-token-purity`.
+- **Shared kit** (kills cross-design imports): `kit/part-lib.ts`,
+  `kit/ModalShell.tsx`, `kit/modal.css` (dialog chrome was scoped to
+  `.bdesign-rig-studio`, so a second design rendered unstyled dialogs).
+- Also fixed: status chip said "N issues — check clearances" for empty required
+  slots; `MetricPills` blank band; 28px overflow at 280px (now 0 on both
+  designs); missing `h1`; admin `RENDERER_LABELS` drift (now derived from the
+  registry via the `./designs` subpath).
+- **Gates**: 954 unit (lib 97, pc-builder 131, pages 51, shop 172, web 501, ui 2),
+  typecheck 0, lint 0 errors. `next build` compiles + typechecks; page-data
+  collection needs `PAYLOAD_SECRET` in the shell (pre-existing, `.env` is
+  root-level and turbo strips it).
+- **Live simulation round (same day)**: 7 presets × 3 designs × 5 widths (0px
+  overflow everywhere, 1 header/1 h1, CTA ≥4.55:1, blueprint edge ≥4.94:1) plus
+  the full purchase journey on all three designs (8 parts → €1,542 → deploy/commission
+  → cart "Configured build · 8 parts"). Found + fixed: hydration mismatch on
+  `body[data-chrome]`, the **warning source** bug (`result.warnings` is the
+  per-candidate badge set — chip/rail/summary reported 8 warnings on a valid
+  build, now `validateSelections` → 2), aether-frost CTA 3.19:1, Precision Dark
+  CTA 4.37:1, classic 280px 2px overflow, Atelier deselect toast.
+- **Round 1c (follow-ups)**: the PCIe false warning was an **engine** bug, not
+  seed data — `gte`/`lte` rejected string versions, so every `warns` rule on
+  `pcieVersion` fired on every board (equal versions included). Numeric-string
+  coercion + "non-numeric spec under a numeric operator is not a violation"
+  (tests #694–#698); a full build now shows only the legitimate SATA advisory.
+  Also: classic `h1` is the page ("Configure your build"), step is `h2`; admin
+  design-field description generated from the registry. Admin card gallery
+  attempted and reverted — `admin.components.Field` on that global has no form
+  context (documented dead end).
+- **Round 1d (shared kit + a11y + admin catalogue)**: `SavedBuildsModal`
+  moved to `builder/kit` (rig-studio keeps a one-line re-export; Atelier opens
+  the same modal — live-verified); dialog focus trap via `kit/focus-trap.ts`
+  (pure `nextTrapIndex` + DOM `focusables`, layout-box visibility check) wired
+  into `ModalShell` + `StudioSwapModal` (tests #699–#703; live: Tab stays
+  inside a 55-focusable dialog); `ui`-field probe confirmed the admin-gallery
+  dead end (`keys=0`) and was removed; `BuilderSettingsHeader` gained a
+  read-only renderer catalogue (per-design palette mode + Active marker by
+  slug); `display.image` thumbnails wired in swap sheets + Atelier slot icons
+  (render only when real image data exists — live catalog has none);
+  `focus-trap.test.ts` `.ts`-extension import fixed. Gates: 964 unit,
+  typecheck 0, lint 0 errors (3 new `no-img-element` warnings match the
+  `OptionCard`/`ProductGallery` convention), `workflow:check` PASSED.
+- **Deferred**: clickable admin design gallery (dead end documented — needs a
+  `ui` field with its own `FieldProvider` or an `elements` component saving
+  via REST); component image seeding (thumbnails are wired but the catalog
+  has no images).
+
+## 2026-10-22 (128) — Block Schemas Hardening, Rule Manager Filter Reset & Studio Typings Polish
+
+Completion of Batch B and Batch C audit objectives across all 28 page block schemas and custom admin views:
+
+- **Block Schemas UX & Array Ergonomics (`packages/plugin-pages/src/blocks/`)**:
+  - Configured `admin.initCollapsed: true` and descriptive `labels: { singular, plural }` across all remaining nested array blocks: `testimonials.ts` (`items`), `aether-hero.ts` (`ctas`, `telemetryMetrics`), `aether-lookbook.ts` (`rigs`), `aether-telemetry-grid.ts` (`departments`), `nexus-hero.ts` (`ctas`), `nexus-category-matrix.ts` (`items`), and `nexus-slot-explorer.ts` (`slots`).
+  - Added section block labels to `testimonials.ts`, `nexus-hero.ts`, `nexus-category-matrix.ts`, `nexus-slot-explorer.ts`, `aether-hero.ts`, `aether-lookbook.ts`, `aether-telemetry-grid.ts`, and `video-embed.ts`.
+- **Security & Link Target Validation (`packages/plugin-pages/src/blocks/`)**:
+  - Enforced `isSafeNavLinkUrl` boundary validation across all CTA link targets (`banner-countdown.ts`, `aether-hero.ts`, `aether-lookbook.ts`, `nexus-hero.ts`), preventing unsafe schemes like `javascript:` and malformed protocols.
+  - Added https protocol validation on `video-embed.ts` video URLs.
+- **Rule Matrix Ergonomics (`RuleManagerView.tsx`)**:
+  - Added a 1-click "Clear Filters & Search" button to the empty state when no rules match an active facet or query.
+- **Theme Color Studio Type Refinement (`ThemeColorStudio.tsx`, `ThemeColorStudio.test.tsx`)**:
+  - Refined `PayloadFormDispatch` and test mock typing to resolve contravariance mismatches with `@payloadcms/ui`'s `Dispatch<FieldAction>`.
+- **Verification & Gates**:
+  - Monorepo tests: 860 passed across all 6 packages (web 441, pages 50, shop 163, pc-builder 118, lib 86, ui 2). Tests #659–#661 added.
+  - TypeScript: `pnpm -r typecheck` 100% clean across all 6 packages.
+  - Linter: `pnpm lint` 100% clean across all packages.
+  - Workflow: `pnpm workflow:check` PASSED.
+  - Headless Playwright: Verified all 12 key admin routes with 0 horizontal overflows at 280px and 0 unexpected console errors.
+
+## 2026-10-22 (127) — Full Admin GUI Audit & Synchronization Overhaul (Round 1)
+
+Comprehensive deep-dive audit and optimization of Payload CMS Admin GUI, custom views, globals, block definitions, and theme synchronization:
+
+- **Theme Synchronization & Event Bus (`SiteSettingsHeader.tsx`, `AdminThemeSync.tsx`, `CommandPalette.tsx`)**:
+  - Fixed theme card switcher in `SiteSettingsHeader`: dispatched custom event `bmr-admin-theme-change` on card selection so the top header select and sidebar react immediately without needing page refresh.
+  - Hardened `AdminThemeSync` against React 19 / Turbopack StrictMode double-patching by adding `__bmr_fetch_patched` guard on `window.fetch`.
+  - Expanded `CommandPalette` with `aether-foundry` and `aether-frost` theme quick actions, appropriate icons (Flame, Snowflake), and mapped `aether-frost` to `data-theme="light"`.
+- **Theme Color Studio Form Synchronization (`ThemeColorStudio.tsx`, `ThemeHeader.tsx`)**:
+  - Implemented React synthetic property descriptor setter (`Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set`) + native `input`/`change` event dispatch in `syncColorsToPayloadForm`. This solves React 16+ `_valueTracker` change detection and reliably enables Payload's `#action-save` button when applying color presets.
+  - Added 'aether-frost': 'Aether Titanium Frost' to `PRESET_LABELS` and updated `packLabel` to recognize both `aether` and `aether-frost` presets in `ThemeHeader`.
+  - Fixed unitless CSS field widths (`width: 50` → `width: '50%'`) in `Theme.ts`.
+- **Page Blocks UX & Data Integrity (`Pages.ts`, Block Schemas)**:
+  - Added `labels: { singular: 'Block', plural: 'Blocks' }` to the `layout` blocks field in `Pages.ts`, correcting the drawer trigger button text from "Add Layout" to "Add Block".
+  - Enhanced nested array row labels on core blocks (`hero.ts`, `cta-banner.ts`, `faq.ts`, `comparison-table.ts`, `trust-badges.ts`) for clearer admin collapse/expand cards.
+  - Added `isSafeNavLinkUrl` URL validation to block CTAs to guard against unsafe protocols (`javascript:`, etc.).
+- **Admin Views & Diagnostics (`BuildStatsView.tsx`)**:
+  - Added explicit HTTP 401 unauthenticated banner handling and retry action to `BuildStatsView`.
+- **Verification & Gates**:
+  - Unit tests: 842 passing across all 6 packages (web 440, lib 86, pc-builder 118, shop 163, pages 48, ui 2).
+  - TypeScript: `pnpm -r typecheck` 100% clean across all 6 packages.
+  - Linter: `pnpm lint` 100% clean (zero errors, zero warnings, zero raw hex).
+  - Headless browser verification via Playwright: 5/5 automated interactive workflows verified green (theme card reactive event sync, header sync, color studio save button enablement, "Add Block" drawer label, command palette themes).
+  - Documentation: Audit log recorded in `.devin/audits/admin-2026-10-22/round-1.md`.
+
+## 2026-10-18 (126) — Admin GUI Redesign: 100vh Sticky Sidebar, Sticky Table Headers, Glassmorphic Admin Bar & Interactive Theme Color Studio
+
+Comprehensive Payload CMS Admin GUI modernization adhering to UX/UI Anti-Slop Doctrine & Workstation SaaS standards:
+
+- **100vh Sticky Sidebar & Shell Layout Overhaul (`admin.css`)**:
+  - Upgraded `.template-default` grid to `grid-template-columns: 260px minmax(0, 1fr) !important` with `min-height: 100vh`. Rail mode: `68px minmax(0, 1fr)`.
+  - Locked `aside.nav` using `position: sticky !important; top: 0 !important; height: 100vh !important; max-height: 100vh !important; align-self: start !important; z-index: 30`. It now leverages 100% of the viewport vertical height through the entire page scroll, never leaving an empty void or scrolling away.
+  - Constrained `.template-default__wrap` to `min-width: 0 !important; width: 100% !important; display: flex !important; flex-direction: column !important;`.
+- **Sticky Table Headers & Isolated Horizontal Scrolling (`admin.css`)**:
+  - Implemented sticky table headers on `.collection-list thead th` with `position: sticky; top: 56px; z-index: 10; background: var(--theme-elevation-50); backdrop-filter: blur(8px)`.
+  - Standardized `.collection-list .table` wrapper with clean border radius, subtle elevation, and responsive horizontal scroll.
+- **Glassmorphic Admin Bar (`.app-header`) & Breadcrumbs**:
+  - Modernized `.app-header` as a sticky 56px glassmorphic bar (`backdrop-filter: blur(16px); background: var(--theme-elevation-50); border-bottom: 1px solid var(--theme-border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.04)`).
+  - Styled `.step-nav` breadcrumbs with clean contrast, typography, and muted chevron separators.
+- **Interactive Color Studio & Live Dynamic Preview (`ThemeColorStudio.tsx`, `ThemeHeader.tsx`)**:
+  - Created `ThemeColorStudio` with interactive color swatch pickers, native `<input type="color">` eyedroppers, and format-validated hex inputs.
+  - Added "Affects Elements" mapping badges for all key tokens (`primary`, `bg`, `surface`, `surfaceRaised`, `border`, `text`, `textMuted`, `success`, `danger`).
+  - Created Dynamic Live Example Sandbox rendering real interactive buttons (with dynamic hover/shadow), live card containers, telemetry chips, and form input previews that update in real-time as colors change.
+  - Added 1-click Preset Palettes (Precision Dark, Aether Foundry, Titanium Frost, Cyber Neon) with instant preview and form synchronization to `#field-colors-*`.
+  - Mounted directly in `ThemeHeader.tsx`.
+- **Site Settings Visual Theme Card Switcher (`SiteSettingsHeader.tsx`)**:
+  - Added visual theme preview cards showing actual swatches for all 6 admin back-office skins (`Precision Dark`, `Aether Foundry`, `Titanium Frost`, `Cyber Neon`, `Light Clean`, `Classic Payload`).
+  - 1-click apply instantly updates DOM theme attribute, sets cookies, dispatches event, and syncs the `adminTheme` form field.
+- **Gates**:
+  - 426 tests passing in `apps/web` (unit tests #650–#654 added).
+  - Monorepo tests: 841 passed across all 6 packages (lib 86, shop 163, pc-builder 118, pages 48, ui 2, web 426).
+  - TypeScript: `pnpm -r typecheck` 100% clean across all 6 packages.
+  - Linter: `turbo lint` 100% clean with zero errors, zero warnings, zero raw hex.
+  - Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-17 (125) — Aether Luxury Hardware Lab Extensions: CFD Thermal Calculator, Interactive Loop Visualizer, Titanium Frost Palette & Showcase Page
+
+Comprehensive expansion of the Aether theme system and block suite:
+
+- **Two Interactive Luxury Engineering Blocks (`packages/plugin-pages` & `apps/web`)**:
+  - `aetherCalculator` (Dynamic Delid Delta & Liquid Cooling Thermal Calculator): Interactive simulation of CPU/GPU heat loads (up to 950W combined), radiator surface dissipation factors (360mm to triple 420mm custom loops), ambient room temperature variation, and direct-die delid status. Dynamically computes thermal junction delta-T, steady-state saturation %, acoustic noise floor in dBA, and headroom gauges.
+  - `aetherLoopVisualizer` (Interactive 3D / Schematic Custom Loop Fluid & Manifold Visualizer): Interactive CFD hydrodynamics visualizer with coolant chemistry selection (Cryo Cyan, Amber Gold, Pure Distilled, UV Emerald), tubing metallurgy profiles (Polished Brass, Satin PMMA, Industrial EPDM), animated SVG manifold flow paths with real-time D5 PWM duty cycle controls, and direct-die micro-channel inspection targets.
+  - Block schemas registered in `packages/plugin-pages/src/blocks/` (`aether-calculator.ts`, `aether-loop-visualizer.ts`), slugs (`slugs.ts`), block definitions (`definitions.ts`), and client/server component mappings in `apps/web/src/blocks/registry.tsx`. Total page block slugs elevated to 28.
+- **Preset Styling Extension (`aether-frost`)**:
+  - Added `AETHER_FROST_COLORS` and `AETHER_FROST_EXTRAS` (crisp metallic white surfaces, brushed titanium styling, amber-gold highlights, precision cryo cyan telemetry) to `packages/plugin-pages/src/lib/theme.ts`.
+  - Created `packages/ui/skins/aether-frost.css` with titanium scrollbars, elevated card lighting, and tactile form controls.
+  - Added `[data-admin-theme="aether-frost"]` to `apps/web/src/app/(payload)/admin.css`.
+  - Added `aether-frost` to `AdminHeaderActions.tsx`, `AdminThemeSync.tsx`, and `ModernAdminNav.tsx` with seamless live toggling.
+- **Official Laboratory Showcase Page (`apps/web/src/pages-seed.ts`)**:
+  - Added `/aether-showcase` to `pages-seed.ts` featuring all 6 Aether blocks in live, published state. Seeded idempotently via `pnpm --filter @buildmyrig/web seed:pages`.
+- **Live Browser Verification (CloakBrowser)**:
+  - Verified `http://localhost:3000/aether-showcase`: inspected hero, thermal calculator, interactive manifold visualizer, product lab, and telemetry grid. Captured full visual proofs into brain artifacts.
+  - Verified `http://localhost:3000/admin`: toggled Admin CMS theme to `aether-frost` (Clean Titanium White) and `aether-foundry` (Obsidian Gold).
+- **Gates**:
+  - Unit tests: 837 passing across all workspace packages (web 422, pc-builder 118, shop 163, lib 86, pages 48).
+  - TypeScript: `pnpm -r typecheck` 100% clean across all 6 packages.
+  - Linter: `pnpm lint` 100% clean (zero errors, zero warnings, zero raw hex).
+  - Workflow: `pnpm workflow:check` PASSED.
+
+## 2026-10-17 (124) — Aether // Rigs: Luxury Hardware Laboratory Storefront Theme Pack, Block Suite & Admin Foundry Redesign
+
+Full implementation of the Aether high-compute luxury hardware laboratory theme system inspired by `SHOP_THEME_2.tsx`, bringing WordPress-style theme switching to Payload CMS across both the storefront and admin GUI:
+
+- **Admin GUI Elevation (`aether-foundry`)**:
+  - Added the `🔥 Aether Foundry (Luxury Workstation)` theme option to `admin.css` via `[data-admin-theme="aether-foundry"]`.
+  - Applied hairline amber/gold accents (`#f59e0b` / `rgba(245, 158, 11, 0.4)`), deep obsidian `#09090b` canvas with elevation tinting (`#0f0f13`, `#18181b`), and cyan telemetry highlights (`#06b6d4`).
+  - Elevated `.bmr-nav-link--active` with full hairline border and tactile indicator pill adhering to the anti-slop doctrine.
+  - Updated `AdminHeaderActions.tsx`, `AdminThemeSync.tsx`, and `ModernAdminNav.tsx` with one-click theme switcher affordances.
+- **Theme Engine & Preset Architecture**:
+  - Added `AETHER_COLORS` (deep obsidian background, zinc typography, amber accents), `AETHER_EXTRAS`, and `aether` preset (`pack: 'aether'`, `skin: 'aether.css'`) in `packages/plugin-pages/src/lib/theme.ts`.
+  - Added `packages/ui/skins/aether.css` for shared-surface token overrides.
+  - Updated `ThemeHeader.tsx` to display Aether Engineering telemetry and pack indicator.
+- **Four New Page Blocks (`packages/plugin-pages`)**:
+  - `aetherHero`: Luxury workstation hero with eyebrow telemetry badge, gradient headline, dual CTAs, and live bench stat callouts.
+  - `aetherProductLab`: Interactive hardware and thermal telemetry lab with live category filtering, specs grid, and delid/OC run-in badges.
+  - `aetherLookbook`: Cleanroom assembly photo gallery with station badges, sub-ambient callouts, and lightbox metadata.
+  - `aetherTelemetryGrid`: Hardware department grid with delta T metrics, jitter metrics, and department quick links.
+  - Registered all 4 blocks in `slugs.ts`, `definitions.ts`, and `apps/web/src/blocks/registry.tsx`.
+- **Aether Component Pack (`apps/web/src/themes/aether/`)**:
+  - `AetherHeader`: Integrated live ticker, search modal launcher (⌘K dialog), shopping cart slideout, and visitor theme toggle.
+  - `AetherFooter`: High-precision technical specs footer with compliance certification, newsletter, and laboratory links.
+  - `AetherSearchModal`: Keyboard-navigable quick spec search dialog with ⌘K hotkey listener and Escape-to-close.
+  - `(frontend)/layout.tsx`: Dynamic chrome switching when `theme.pack === 'aether'` (`body[data-theme-pack="aether"]`).
+- **Live Browser Verification (CloakBrowser)**:
+  - Admin GUI theme switching verified: successfully toggled to `aether-foundry` with verified computed styles and screenshot capture.
+  - Theme Global verified: saved `preset: "aether"` via REST API and confirmed persistence.
+  - Storefront verified: navigated to `/`, confirmed `AetherHeader` and `AetherFooter` rendered.
+  - Tested search dialog trigger and visitor `ThemeToggle` stylesheet flipping (`#theme-vars` ↔ `#theme-alt`).
+  - Created and published test page `/aether-lab` with all 4 Aether blocks; verified DOM rendering and captured full-page screenshot.
+- **Gates**:
+  - Unit tests: 836 passing across all packages (web 422, pc-builder 118, shop 163, lib 86, pages 47).
+  - TypeScript: `pnpm -r typecheck` 100% clean across all 6 packages.
+  - Linter: `pnpm lint` 100% clean (zero errors, zero warnings, zero raw hex).
+  - Workflow: `pnpm workflow:check` PASSED.
+
 ## 2026-10-13 (123) — Security Hardening: Atomic CAS on Build Claim (VERIFY-001 Closed)
 
 Pre-production security audit hardening closing VERIFY-001 (claim TOCTOU):
@@ -2543,6 +2884,6 @@ Verified: **74/74 tests** (lib 48, plugin-pc-builder 15, plugin-shop 11), typech
 - **`transactions` schema is conditional on Stripe keys** (`paymentMethod` + `stripe` group exist only when an adapter is configured); dev push self-heals when keys are first set, but production must migrate schema *before* enabling keys or the webhook 500s with `no such column` (entry 13).
 - Load-test numbers are single-machine (`next start` on the dev box, 25 concurrent); re-run under production-like infra before capacity planning (entry 13).
 - **Payload CSRF checks `Origin` on cookie-authenticated requests including GETs** — REST calls with a session cookie and no `Origin`/`Sec-Fetch-Site` return `200 {user:null}` or 401s that look like auth failures; browsers send it automatically, curl/scripts must add `-H "Origin: http://localhost:3000"` (entry 14; explains earlier smoke-test confusion).
-- **All IP-keyed rate limiters trust the leftmost `X-Forwarded-For`** — client-controlled when the origin is reached directly (`pnpm start` with no proxy), so register/save/claim limits are spoofable; the deployment contract (proxy must overwrite `X-Real-IP`/`X-Forwarded-For`, origin not publicly reachable) is in [11-access-security.md](11-access-security.md) (entry-15 security review, VULN-01 Medium).
+- **IP-keyed rate limiters key on `x-real-ip`, else the rightmost `X-Forwarded-For` hop** (entry 139; was leftmost = client-controlled) — a directly exposed origin still collapses to one `unknown` bucket; the deployment contract (proxy must overwrite `X-Real-IP`/`X-Forwarded-For`, origin not publicly reachable) is in [11-access-security.md](11-access-security.md) (entry-15 security review, VULN-01 Medium).
 - Claim endpoint has a narrow TOCTOU race (two sessions claiming the same shareId in the same instant both get `claimed`; sequential claims are correct 403/idempotent) — CAS-style `where user:null` hardening deferred (entry 15 security review, VERIFY-001). Password reset landed in entry 23 end-to-end: login form "Forgot password?" → `/auth/forgot` → email link → `/auth/reset?token=` → new password + session (both pages + both API routes live).
 - **`pnpm start` (bypasses turbo) does NOT load the root `.env`** — turbo children do; `next start` only reads `apps/web/.env*` (absent), and fallbacks (`DATABASE_URI file:./payload.db`, default `PAYLOAD_SECRET`) hide it. Entry-23 probe hit the contact *no-recipient* path for this reason — export env in the launching shell or add `apps/web/.env` (entry 23).

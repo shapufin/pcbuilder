@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import type { Payload } from 'payload'
 import {
   findIncompleteSlotReasons,
@@ -7,6 +7,7 @@ import {
   newShareId,
   priceBuildFromIndex,
   resolveConfiguredBuildLine,
+  resolveConfiguredBuildStockUnits,
   slotsToSelections,
   type BuildSlot,
 } from './builds'
@@ -124,6 +125,59 @@ describe('builds helpers (Phase 2e)', () => {
     await expect(
       resolveConfiguredBuildLine({ configuredBuild: 'ghost', quantity: 1 }, payload),
     ).rejects.toThrow(/not found/i)
+  })
+})
+
+describe('resolveConfiguredBuildStockUnits — audit 2026-10-24 (batched lookup)', () => {
+  const stockCollections = {
+    components: [
+      { id: 1, name: 'CPU', productVariant: 11 },
+      { id: 2, name: 'Board', productVariant: { id: 12 } },
+      { id: 3, name: 'Accessory', productVariant: null }, // not stocked → skipped
+    ],
+  }
+
+  const stockPayload = (componentDocs: unknown[]) => {
+    const find = vi.fn(async ({ collection, where }: { collection: string; where?: { id?: { in?: unknown[] } } }) => {
+      if (collection !== 'components') return { docs: [] }
+      const wanted = new Set((where?.id?.in ?? []).map(String))
+      return {
+        docs: (componentDocs as { id: unknown }[]).filter((d) => wanted.has(String(d.id))),
+      }
+    })
+    return { find, findByID: vi.fn(async () => null) } as unknown as Payload & { find: ReturnType<typeof vi.fn> }
+  }
+
+  it('issues ONE batched find for all components and returns units in slot order', async () => {
+    const payload = stockPayload(stockCollections.components)
+    const units = await resolveConfiguredBuildStockUnits(
+      { subItems: [{ component: 1 }, { component: 2 }, { component: 3 }] },
+      payload,
+    )
+    expect(payload.find).toHaveBeenCalledTimes(1)
+    expect(payload.findByID).not.toHaveBeenCalled()
+    expect(units).toEqual([
+      { variant: '11', quantity: 1 },
+      { variant: '12', quantity: 1 },
+    ])
+  })
+
+  it('skips a deleted component instead of throwing (settlement must not wedge)', async () => {
+    const payload = stockPayload(stockCollections.components.slice(0, 1)) // id 2 deleted
+    const units = await resolveConfiguredBuildStockUnits(
+      { subItems: [{ component: 1 }, { component: 2 }] },
+      payload,
+    )
+    expect(units).toEqual([{ variant: '11', quantity: 1 }])
+  })
+
+  it('honours subItem quantities', async () => {
+    const payload = stockPayload(stockCollections.components)
+    const units = await resolveConfiguredBuildStockUnits(
+      { subItems: [{ component: 1, quantity: 4 }] },
+      payload,
+    )
+    expect(units).toEqual([{ variant: '11', quantity: 4 }])
   })
 })
 
